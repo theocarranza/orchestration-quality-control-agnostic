@@ -1,43 +1,299 @@
 # Orchestration Quality Control
 
-This repository contains the reusable `orchestration-quality-control` skill,
-its host adapters, the evaluation harness used to verify behavior, and the
-release bundles built from the source tree.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](orchestration-quality-control/SKILL.md)
+[![Version](https://img.shields.io/badge/version-1.2.0-green)](orchestration-quality-control/CHANGELOG.md)
+[![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](orchestration-quality-control/scripts/)
+[![Offline tests](https://img.shields.io/badge/offline%20tests-149-brightgreen)](orchestration-quality-control/scripts/tests/)
+[![Agent Skills](https://img.shields.io/badge/spec-Agent%20Skills-8A2BE2)](https://github.com/agentskills/agentskills)
 
-If you only want the reusable package, start with:
+**Quality control for the documents that run your agents** — workflow files, orchestrator documents, and rules files — not the application code agents write. The package classifies targets, checks them against packaged policy, returns structured findings with literal before/after diffs, and applies nothing until a human explicitly approves.
 
-- `orchestration-quality-control/SKILL.md`
-- `orchestration-quality-control/README.md`
+| Start here | Host install |
+| --- | --- |
+| [`orchestration-quality-control/SKILL.md`](orchestration-quality-control/SKILL.md) | [Claude](orchestration-quality-control/adapters/claude/README.md) · [Cursor](orchestration-quality-control/adapters/cursor/README.md) · [Codex](orchestration-quality-control/adapters/codex/README.md) |
 
-If you want the Codex-specific install path, use:
+---
 
-- `orchestration-quality-control/adapters/codex/README.md`
+## Table of contents
+
+- [The problem](#the-problem)
+- [The solution](#the-solution)
+- [How a run works](#how-a-run-works)
+- [Evidence it helps](#evidence-it-helps)
+- [Operations](#operations)
+- [Suggested use cases](#suggested-use-cases)
+- [Examples](#examples)
+- [Repository layout](#repository-layout)
+- [Installation and testing](#installation-and-testing)
+- [Architecture decisions](#architecture-decisions)
+- [References](#references)
+- [License](#license)
+
+---
+
+## The problem
+
+Teams building **agentic workflows** (multi-step processes where one agent delegates work, validates results, asks for approval, and keeps state) encode that behavior in markdown: workflow files describe steps, rules files state constraints, and orchestrator documents coordinate workers. When those documents are incomplete or inconsistent, the failure mode is subtle: agents skip approval gates, retry forever, lose progress when a session ends, or edit files before anyone agrees.
+
+A prior implementation, bundled inside an end-to-end testing project, mixed two concerns that do not belong together:
+
+1. **Generic orchestration checks** — delegation completeness, bounded retries, durable state, approval ownership — useful for any agent workflow.
+2. **Domain-specific checks** — Maestro flow shape, screen-identifier collisions, credentials in the wrong file — useful only for that one product's test suite.
+
+Coupling them made the tool look like a niche E2E linter while actually trying to be a portable orchestration gate. Worse, early versions relied heavily on model consistency for mechanical steps (classification, finding identity, checkpoint transitions), which produced **different findings for identical input** and sometimes reported edits as applied when they were not safe.
+
+---
+
+## The solution
+
+This repository ships **`orchestration-quality-control`**: a portable [Agent Skills](https://github.com/agentskills/agentskills)-format package with a **core-plus-adapters** layout.
+
+```mermaid
+flowchart TD
+    USER["User or host agent"] --> CORE["orchestration-quality-control core"]
+    CORE --> RULES["Generic orchestration rules\nworkflow · rules · orchestrator · generator"]
+    CORE --> SCRIPTS["Deterministic Python gates\nclassify · identity · checkpoint · diff"]
+    CORE --> REPORT["Structured findings +\nplain-language report"]
+    CORE --> PROFILE["Optional profile"]
+    PROFILE --> E2E["aplicatudo-e2e\nMaestro / domain artifact rules"]
+    CORE --> ADAPTERS["Host adapters"]
+    ADAPTERS --> CLAUDE["Claude — 3-role isolation + hook"]
+    ADAPTERS --> CURSOR["Cursor — nested subagents + hook"]
+    ADAPTERS --> CODEX["Codex — nested custom agents + hook"]
+```
+
+The core separates **policy** (what good orchestration looks like) from **enforcement** (how a host prevents bypass). Mechanical decisions run in dependency-free Python under `orchestration-quality-control/scripts/`; a language model is used only to judge whether a passage violates a rule and to write the human-facing report. Every proposed fix must quote verbatim text from the target file — if the anchor is missing, the finding is rejected before review.
+
+Domain checks live in optional **profiles** (for example [`profiles/aplicatudo-e2e/`](orchestration-quality-control/profiles/aplicatudo-e2e/)). With no profile, the core runs generic checks only and has no dependency on Maestro, Flutter, or any single product.
+
+---
+
+## How a run works
+
+Two quality-control operations run in order; two upgrade operations are optional.
+
+```mermaid
+sequenceDiagram
+    participant U as Human
+    participant H as Host entry
+    participant O as Orchestrator
+    participant V as Validator
+    participant R as Remediator
+
+    U->>H: validate — targets + profile + language
+    H->>O: delegate validation
+    O->>V: classify and inspect (read-only)
+    V-->>O: findings + report inputs
+    O->>O: write checkpoint if findings exist
+    O-->>H: plain-language report + checkpoint path
+    H->>U: apply all, some, or none?
+    U->>H: execute — checkpoint + decision
+    H->>O: delegate execution
+    O->>R: approved findings only
+    R-->>O: applied or skipped per finding
+    O->>O: consume checkpoint
+    O-->>H: final reconciliation report
+```
+
+**Checkpoints** (durable run records) live in the workspace under `.orchestration-qc/state/`, not inside the package. A checkpoint with status `pending_approval` is the only active-run signal — there is no separate marker file. Host adapters with hooks can block direct edits to target files while a review is pending.
+
+The portable core's **default** is a single agent calling the same scripts at every deterministic gate. Hosts that support **subagent isolation** (Claude, Cursor, Codex adapters) may split Validator (read-only) and Remediator (apply-only) for stronger mechanical boundaries; that topology strengthens enforcement of the same contracts, it does not change them ([ADR 0003](docs/adr/0003-single-agent-core-default.md)).
+
+**Guided upgrade** (`upgrade_prepare` / `upgrade_apply`) discovers an existing orchestration, compares it to a selected reference template (`portable-single-agent` or `isolated-three-agent`), drafts a complete replacement plus `ARCHITECTURE.md`, checkpoints the literal preview, and applies only an atomic approve/decline decision ([ADR 0008](docs/adr/0008-guided-orchestration-upgrade.md)).
+
+---
+
+## Evidence it helps
+
+### Legacy benchmark (predecessor skill)
+
+The retired `e2e-quality-control` skill was graded with the same rubric this package must match. In `legacy/e2e-quality-control-workspace/iteration-1/benchmark.json` (three evals, three with-skill runs each):
+
+| Configuration | Mean assertion pass rate |
+| --- | ---: |
+| **With skill** | **100%** (15/15 assertions) |
+| Without skill | 66.7% (10/15 assertions) |
+| **Delta** | **+33 percentage points** |
+
+Without the skill, models often produced long, jargon-heavy reports, opened no packaged rules, or failed plain-language shape requirements — even when they spotted some defects.
+
+### Eval coverage in this repository
+
+| Eval set | Profile | Cases | Purpose |
+| --- | --- | ---: | --- |
+| [`evals/core/evals.json`](orchestration-quality-control/evals/core/evals.json) | `core` | 4 | Generic orchestration only — no Maestro or product content |
+| [`profiles/aplicatudo-e2e/evals/evals.json`](orchestration-quality-control/profiles/aplicatudo-e2e/evals/evals.json) | `aplicatudo-e2e` | 4 | Regression scenarios carried from the retired 3.0.0 skill |
+
+The definition of done ([ADR 0005](docs/adr/0005-definition-of-done.md)) requires both sets to reach **100% with-skill pass rate** at benchmark parity. The repo includes [`eval-harness/`](eval-harness/) tooling (converter, run-integrity checker, runbook) to repeat that grading; see [`eval-harness/RUNBOOK.md`](eval-harness/RUNBOOK.md) for the 3 with-skill + 1 without-skill run protocol per eval (32 model runs total across both sets).
+
+### Offline deterministic tests
+
+**149** automated tests run with no model call (counts as of v1.2.0):
+
+| Suite | Tests |
+| --- | ---: |
+| Core scripts (`scripts/tests/`) | 69 |
+| Claude hook | 8 |
+| Codex adapter | 36 |
+| Cursor adapter | 19 |
+| Eval harness | 17 |
+
+These cover classification, content-anchored finding IDs (stable when unrelated lines shift), checkpoint state machine, diff rendering, partial-apply conformance, upgrade path containment, and hook authorization.
+
+---
+
+## Operations
+
+| Operation | What it does |
+| --- | --- |
+| **`validate`** | Classify targets, run applicable rules, return findings + plain-language report + checkpoint when issues exist |
+| **`execute`** | Apply `all`, `none`, or a named subset of finding IDs from a pending checkpoint; reconcile applied vs skipped |
+| **`upgrade_prepare`** | Discover orchestration, compare to a reference template, return proposal + docs preview + checkpoint |
+| **`upgrade_apply`** | Atomic `approve` or `decline` on an upgrade checkpoint |
+
+Input contracts: [`references/schemas/input.schema.json`](orchestration-quality-control/references/schemas/input.schema.json) and [`upgrade-input.schema.json`](orchestration-quality-control/references/schemas/upgrade-input.schema.json).
+
+Host entry points:
+
+| Host | QC | Upgrade |
+| --- | --- | --- |
+| Claude Code | `/oqc-validate`, `/oqc-execute` | `/oqc-upgrade` |
+| Cursor | skill + bundled subagents | `/oqc-upgrade` |
+| Codex | packaged plugin + custom agents | `orchestration-upgrade` skill |
+
+Compatibility aliases `e2e-quality-control-validate` / `-execute` remain on the Claude adapter for migrations from 3.0.0.
+
+---
+
+## Suggested use cases
+
+1. **Before merging agent workflow changes** — Run `validate` on new or edited workflow and rules files; require explicit approval before `execute` applies fixes.
+2. **Auditing an orchestrator document** — Flag unbounded retry loops, state kept only in chat context, or missing delegation specs (see core eval fixture `deploy-orchestrator.md`).
+3. **Rules authoring hygiene** — Detect rationale clauses (`because`, `so that`) and step sequencing that belongs in workflow files, not rule bullets.
+4. **Generator-source review** — Check whether prompts or generators that produce orchestration artifacts would violate packaged rules (core) or profile artifact rules (e.g. Maestro flows).
+5. **Replacing a legacy orchestration** — Use guided upgrade with `portable-single-agent` when one controller is enough, or `isolated-three-agent` when separate tool grants are required and documented.
+6. **Product-specific E2E artifact QC** — Select `profile: aplicatudo-e2e` for Maestro/domain/data-file checks without loading that vocabulary into generic runs.
+
+---
+
+## Examples
+
+### Validate a workflow (core profile)
+
+```yaml
+operation: validate
+targets:
+  - docs/agent/workflows/deploy.md
+profile: core
+language: en
+```
+
+Expected outcome: a short plain-language report listing each violation (what, which rule, where, suggested change), a structured finding per issue with a literal `{before, after}` span, and — if anything failed — a checkpoint path under `.orchestration-qc/state/`.
+
+### Execute after selective approval
+
+```yaml
+operation: execute
+checkpoint_path: .orchestration-qc/state/checkpoint-<run_id>.json
+decision:
+  - core/workflow/missing-retry-cap-abc123
+  - core/workflow/non-durable-state-def456
+```
+
+Expected outcome: only those findings are applied; others remain untouched; the checkpoint moves to `consumed` with per-finding applied or skipped outcomes.
+
+### Upgrade with side-by-side output
+
+```yaml
+operation: upgrade_prepare
+mechanism_path: .claude/agents/my-orchestrator.md
+template_id: isolated-three-agent
+apply_mode: side-by-side
+output_root: docs/agent/oqc-v2/
+isolation_reason: Validator must be mechanically read-only via separate tool grant
+```
+
+Expected outcome: a full proposal tree under `output_root`, an `ARCHITECTURE.md` preview, and a pending upgrade checkpoint for atomic approval.
+
+---
 
 ## Repository layout
 
-- `orchestration-quality-control/` — portable skill package: rules, schemas,
-  scripts, profiles, and adapters.
-- `eval-harness/` — benchmark conversion and integrity checks.
-- `docs/adr/` — architecture decisions.
-- `dist/` — release bundles generated from the source tree.
-- `legacy/` — archived prior material kept for reference.
-- `AI_Codex_OrchestratorQcPlugin/` — local Obsidian vault and working notes.
+| Path | Role |
+| --- | --- |
+| [`orchestration-quality-control/`](orchestration-quality-control/) | Portable skill — rules, workflows, schemas, scripts, profiles, adapters |
+| [`eval-harness/`](eval-harness/) | Benchmark conversion and run-integrity tooling (repo-local, not shipped in the skill) |
+| [`docs/adr/`](docs/adr/) | Architecture decision records |
+| [`dist/`](dist/) | Generated Cursor and Codex marketplace bundles |
+| [`legacy/`](legacy/) | Archived predecessor material and baseline benchmark |
+| [`AI_Codex_OrchestratorQcPlugin/`](AI_Codex_OrchestratorQcPlugin/) | Project knowledge vault (sessions, reports, plans) |
 
-## Working with the repo
+Runtime checkpoints and workspace state stay **outside** the package and **outside** git — under each target workspace's `.orchestration-qc/`.
 
-Run the test suites directly with Python:
+---
+
+## Installation and testing
+
+**Portable skill** — readable by any Agent Skills host; install via your host's skill mechanism (for example [OpenSkills](https://github.com/numman-ali/openskills) as one installer implementing the spec).
+
+**Full enforcement** — use a host adapter so subagents and hooks match the benchmarked topology:
+
+- Claude: [`adapters/claude/README.md`](orchestration-quality-control/adapters/claude/README.md)
+- Cursor: [`adapters/cursor/README.md`](orchestration-quality-control/adapters/cursor/README.md)
+- Codex: [`adapters/codex/README.md`](orchestration-quality-control/adapters/codex/README.md) — single entry: `python3 orchestration-quality-control/adapters/codex/install_codex.py --scope user`
+
+Run offline tests from the repository root:
 
 ```bash
-python3 -m unittest discover -s orchestration-quality-control/scripts/tests -p 'test_*.py'
+PYTHONPATH=orchestration-quality-control/scripts:orchestration-quality-control/scripts/tests \
+  python3 -m unittest discover -s orchestration-quality-control/scripts/tests -p 'test_*.py'
+
+python3 -m unittest discover -s orchestration-quality-control/adapters/claude/hooks/tests -p 'test_*.py'
 python3 -m unittest discover -s orchestration-quality-control/adapters/codex/tests -p 'test_*.py'
+python3 -m unittest discover -s orchestration-quality-control/adapters/cursor/tests -p 'test_*.py'
 python3 -m unittest discover -s eval-harness/tests -p 'test_*.py'
 ```
 
-## Publishing notes
+Public behavior changes belong in [`orchestration-quality-control/CHANGELOG.md`](orchestration-quality-control/CHANGELOG.md).
 
-- Keep generated workspaces and runtime state out of commits.
-- Keep machine-local editor and adapter settings out of commits.
-- Update `orchestration-quality-control/CHANGELOG.md` when public behavior
-  changes.
-- Prefer small, reviewable diffs over broad rewrites.
+---
 
+## Architecture decisions
+
+| ADR | Topic |
+| --- | --- |
+| [0001](docs/adr/0001-freeze-baseline-and-legacy-archival.md) | Freeze baseline and archive legacy |
+| [0002](docs/adr/0002-agent-skills-spec-anchor.md) | Anchor on Agent Skills spec, not OpenSkills alone |
+| [0003](docs/adr/0003-single-agent-core-default.md) | Single-agent pipeline as core default |
+| [0005](docs/adr/0005-definition-of-done.md) | Extraction definition of done (incl. benchmark parity) |
+| [0006](docs/adr/0006-codex-nested-adapter.md) | Codex nested adapter |
+| [0007](docs/adr/0007-cursor-native-adapter.md) | Cursor native adapter |
+| [0008](docs/adr/0008-guided-orchestration-upgrade.md) | Guided orchestration upgrade |
+
+Deeper design narrative: [`AI_Codex_OrchestratorQcPlugin/Agent_Reports/2026-07-15-orchestration-qc-openskills-architecture.md`](AI_Codex_OrchestratorQcPlugin/Agent_Reports/2026-07-15-orchestration-qc-openskills-architecture.md) (vault report; same facts as the ADRs above).
+
+---
+
+## References
+
+**Standards and portability**
+
+- [Agent Skills specification](https://github.com/agentskills/agentskills) — `SKILL.md` frontmatter, progressive disclosure, optional `scripts/` and `references/` ([ADR 0002](docs/adr/0002-agent-skills-spec-anchor.md))
+- [OpenSkills](https://github.com/numman-ali/openskills) — one supported installer for the open standard
+
+**Why single-agent is the core default**
+
+- Anthropic's published multi-agent research system notes substantially higher token use than a single agent for many tasks; multi-agent breadth is justified mainly when context exceeds one window ([ADR 0003](docs/adr/0003-single-agent-core-default.md))
+- Cognition's public critique of multi-agent setups attributes much unreliability to context fragmented across agents — relevant to inconsistent validator/remediator results on identical input
+
+**In-repo contracts**
+
+- Skill entry: [`orchestration-quality-control/SKILL.md`](orchestration-quality-control/SKILL.md)
+- Package overview: [`orchestration-quality-control/README.md`](orchestration-quality-control/README.md)
+- Reference templates: [`references/templates/portable-single-agent.md`](orchestration-quality-control/references/templates/portable-single-agent.md), [`isolated-three-agent.md`](orchestration-quality-control/references/templates/isolated-three-agent.md)
+
+---
+
+## License
+
+MIT — see [`orchestration-quality-control/SKILL.md`](orchestration-quality-control/SKILL.md) frontmatter and adapter plugin manifests.
