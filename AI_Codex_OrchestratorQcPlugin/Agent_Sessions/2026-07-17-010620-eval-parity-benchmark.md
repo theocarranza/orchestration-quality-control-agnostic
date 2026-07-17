@@ -1,13 +1,13 @@
 ---
 date: 2026-07-17
 type: session
-status: open
+status: closed
 ---
 
 # Session — Eval parity benchmark (ADR 0005 item 3)
 
 Previous Session: [[2026-07-16-133000-orchestration-qc-extraction-implementation]]
-Next Session:
+Next Session: [[2026-07-17-070500-agent-skills-standards-and-aplicatudo-deployment]]
 
 ## Scope
 
