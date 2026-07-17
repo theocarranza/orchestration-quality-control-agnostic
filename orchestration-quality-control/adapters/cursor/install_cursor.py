@@ -51,9 +51,21 @@ def _paths(args: argparse.Namespace) -> tuple[Path, Path, Path]:
     return local_root, local_root / PLUGIN_NAME, local_root / RECORD_NAME
 
 
+def _managed_tree_paths(root: Path) -> list[Path]:
+    paths: list[Path] = []
+    for path in root.rglob("*"):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(root).as_posix()
+        if "/__pycache__/" in relative or relative.endswith(".pyc"):
+            continue
+        paths.append(path)
+    return sorted(paths)
+
+
 def _tree_hash(root: Path) -> str:
     digest = hashlib.sha256()
-    for path in sorted(item for item in root.rglob("*") if item.is_file()):
+    for path in _managed_tree_paths(root):
         digest.update(path.relative_to(root).as_posix().encode("utf-8"))
         digest.update(b"\0")
         digest.update(path.read_bytes())

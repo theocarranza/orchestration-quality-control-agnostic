@@ -72,6 +72,21 @@ class InstallerTest(unittest.TestCase):
         (destination / "skills/example/SKILL.md").write_text("changed\n", encoding="utf-8")
         self.assertEqual(INSTALLER.uninstall(args), 2)
 
+    def test_pycache_does_not_block_reinstall(self):
+        args = self._args()
+        with mock.patch.object(INSTALLER, "_plugin_source", return_value=self.source), mock.patch.object(
+            INSTALLER, "_run_build", return_value=0
+        ):
+            self.assertEqual(INSTALLER.install(args), 0)
+        destination = self.root / "cursor-home" / "plugins" / "local" / INSTALLER.PLUGIN_NAME
+        cache = destination / "hooks" / "__pycache__"
+        cache.mkdir(parents=True)
+        (cache / "cursor_authorization.cpython-310.pyc").write_bytes(b"compiled")
+        with mock.patch.object(INSTALLER, "_plugin_source", return_value=self.source), mock.patch.object(
+            INSTALLER, "_run_build", return_value=0
+        ):
+            self.assertEqual(INSTALLER.install(args), 0)
+
     def test_dry_run_writes_nothing(self):
         args = self._args(dry_run=True)
         with mock.patch.object(INSTALLER, "_plugin_source", return_value=self.source), mock.patch.object(
