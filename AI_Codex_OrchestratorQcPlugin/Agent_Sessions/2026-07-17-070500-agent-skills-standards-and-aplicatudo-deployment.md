@@ -1,13 +1,13 @@
 ---
 date: 2026-07-17
 type: session
-status: open
+status: closed
 ---
 
 # Session — Agent Skills standards research and Aplicatudo deployment plan
 
 Previous Session: [[2026-07-17-010620-eval-parity-benchmark]]
-Next Session:
+Next Session: [[2026-07-17-111000-oqc-2-0-0-release]]
 
 ## Scope
 
@@ -48,3 +48,10 @@ Next Session:
 - Linked it from the Aplicatudo deployment plan execution section.
 
 **Validation:** User approved publish (`proceed`).
+
+## Pivot - 2026-07-17T11:10-03:00
+
+Closing this session. Standards research and deployment plan are recorded;
+implementation of the 2.0.0 breaking topology change and Claude marketplace
+adapter continues in [[2026-07-17-111000-oqc-2-0-0-release]].
+

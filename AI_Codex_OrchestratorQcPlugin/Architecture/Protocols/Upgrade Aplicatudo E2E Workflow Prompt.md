@@ -32,12 +32,6 @@ Upgrade inputs:
   template_id: isolated-three-agent
   apply_mode: in-place
   documentation_path: projects/aplicatudo/e2e_test/agentic-workflow/ARCHITECTURE.md
-  isolation_reason: >
-    The end-to-end workflow must keep user conversation in the root session,
-    route work through a nested coordinator, keep quality judgment read-only,
-    and apply approved file changes only through a separate applier. A single
-    agent cannot enforce those boundaries; without separation, the root session
-    can read and rewrite protected targets and contaminate the run.
 
 Ask me only for missing required inputs, discovery confirmation, and the final
 approve or decline of the complete proposal. Present a short plain-language

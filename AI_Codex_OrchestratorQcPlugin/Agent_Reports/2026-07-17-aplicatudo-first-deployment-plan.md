@@ -44,7 +44,7 @@ Full-plugin install is mandatory for this deployment. Skill-only distribution wo
 
 ## Prerequisites
 
-1. **Plugin build current** — marketplace version 1.2.0+ (older 1.1.0 installs lack `oqc-upgrade` and upgrade orchestrator agents).
+1. **Plugin build current** — marketplace version 2.0.0+ (ships isolated three-agent topology only; older 1.1.0/1.2.0 installs lack the Claude marketplace parity and the single-topology contracts).
 2. **Legacy skills retired** — remove or rename `e2e-quality-control-validate` and `e2e-quality-control-execute` from skill discovery so the agent does not invoke the old path.
 3. **Stale state cleared** — archive or delete legacy checkpoint files under the old skill tree.
 4. **Workspace root** — open the monorepo root, not a subdirectory, so hooks resolve checkpoints correctly.
@@ -79,7 +79,7 @@ Full-plugin install is mandatory for this deployment. Skill-only distribution wo
 
 | # | Criterion |
 | --- | --- |
-| 1 | Plugin 1.2.0+ installed; three QC subagents discoverable |
+| 1 | Plugin 2.0.0+ installed; three QC subagents discoverable |
 | 2 | `validate` on `login.flow.yaml` produces structured findings and plain report |
 | 3 | Hook blocks unapproved target edits while checkpoint is pending |
 | 4 | `execute` with `decision: none` closes checkpoint without file mutation |

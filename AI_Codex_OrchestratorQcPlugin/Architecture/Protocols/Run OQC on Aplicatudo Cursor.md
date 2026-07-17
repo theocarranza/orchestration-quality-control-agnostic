@@ -98,7 +98,7 @@ profile: core
 language: en
 ```
 
-**Guided upgrade (plugin 1.2.0+):**
+**Guided upgrade (plugin 2.0.0+):**
 
 ```text
 /oqc-upgrade
