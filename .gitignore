@@ -1,6 +1,13 @@
 # Runtime state is never part of source control — the package ships only schema and lifecycle rules.
 .orchestration-qc/
 
+# Generated release and evaluation outputs
+dist/
+orchestration-quality-control-workspace/
+
+# Local Obsidian editor state
+AI_Codex_OrchestratorQcPlugin/.obsidian/
+
 # Python bytecode cache
 __pycache__/
 *.pyc

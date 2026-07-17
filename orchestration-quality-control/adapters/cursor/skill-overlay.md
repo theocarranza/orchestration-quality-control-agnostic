@@ -1,0 +1,30 @@
+## Cursor adapter execution
+
+This installed Cursor edition uses the host-specific nested topology below. It
+does not silently fall back to the portable single-agent pipeline:
+
+```text
+root Cursor session
+└── oqc_cursor_orchestrator
+    ├── oqc_cursor_validator
+    └── oqc_cursor_remediator
+```
+
+Before starting either operation:
+
+1. Confirm that the three named Cursor subagents are available from the
+   installed plugin.
+2. If any required subagent is unavailable, return a `blocked` result with
+   `stage: cursor_adapter` and reason code `adapter_not_installed`. Do not run
+   the portable single-agent fallback.
+3. Spawn exactly one `oqc_cursor_orchestrator` with the absolute path of this
+   installed skill directory and the complete input contract.
+4. Wait for the orchestrator and return its structured result without
+   re-reading targets or applying edits in the root session.
+
+The orchestrator owns routing, deterministic checkpoints, decision
+reconciliation, authorization creation, and worker coordination. The
+validator is read-only. The remediator applies only the approved literal
+changes. The Cursor hook separately denies protected edits that are not exact
+authorized changes. The hook can prove approval integrity, but it cannot prove
+which agent submitted an authorized change.

@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "command": "python3 ${CURSOR_PLUGIN_ROOT}/hooks/oqc_cursor_guard.py",
+        "timeout": 5
+      }
+    ],
+    "beforeShellExecution": [
+      {
+        "command": "python3 ${CURSOR_PLUGIN_ROOT}/hooks/oqc_cursor_guard.py",
+        "timeout": 5
+      }
+    ]
+  }
+}
