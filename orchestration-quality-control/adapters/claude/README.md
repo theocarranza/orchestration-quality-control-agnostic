@@ -4,9 +4,9 @@ This adapter mechanizes the portable core's rules into three separate
 subagents with distinct tool grants, matching the benchmarked design of the
 retired `e2e-quality-control` skill (see
 `legacy/e2e-quality-control-workspace/iteration-1/benchmark.json`: 100% pass
-rate with the skill enabled). It is one way to run this package, not the
-only way — see the core `README.md` for the single-agent default every host
-can fall back to.
+rate with the skill enabled). This isolated three-agent topology is the only
+execution shape this package ships; see the core `README.md` for the shared
+Orchestrator/Validator/Remediator contracts every host adapter mechanizes.
 
 ## What this adapter adds beyond the portable core
 
@@ -25,6 +25,37 @@ can fall back to.
 | `hooks/oqc-block-main-edits.py` | A `PreToolUse` hook that blocks the main session's own `Edit`/`Write` on any path listed in an active checkpoint's `targets`, so a user cannot bypass the approval gate by editing the file directly while a review is pending. |
 
 ## Installation
+
+### Marketplace (recommended)
+
+Build the marketplace repository with:
+
+```bash
+python3 orchestration-quality-control/adapters/claude/build_plugin.py
+```
+
+The generated `dist/claude-marketplace/` contains a Claude Code plugin
+marketplace manifest (`.claude-plugin/marketplace.json`) and the plugin under
+`plugins/orchestration-quality-control/` — agents, commands, hooks, and the
+canonical skill plus the `orchestration-upgrade` skill, all in one bundle.
+
+Add and install it from a Claude Code session:
+
+```text
+/plugin marketplace add /absolute/path/to/dist/claude-marketplace
+/plugin install orchestration-quality-control@orchestration-qc-local
+```
+
+(Or point `/plugin marketplace add` at a Git repository built from this
+output for team/public distribution.) Installing the plugin registers the
+`agents/*.md` subagents, the `commands/*.md` slash commands, and the
+`PreToolUse` hook automatically — no manual `settings.json` edit or file
+copying is required. Use `/plugin` to inspect installed components or
+uninstall.
+
+### Manual copy (fallback)
+
+If a host cannot install a plugin from a marketplace:
 
 1. Copy `agents/*.md` into the target project's `.claude/agents/`.
 2. Copy `commands/*.md` into the target project's `.claude/commands/`.
@@ -52,17 +83,31 @@ can fall back to.
    calls, including the hook, is stdlib-only and needs no package
    installation.
 
+### OpenSkills / skill-only install (unsupported)
+
+`npx openskills install` can fetch the canonical `orchestration-quality-control/`
+package by itself (it is a spec-compliant `SKILL.md` package). Doing so
+installs the rules, workflows, and scripts but none of the `agents/*.md`
+subagents or the `PreToolUse` hook, since OpenSkills installs a skill
+directory, not a plugin. Without the Orchestrator/Validator/Remediator
+subagents available, the skill must return `blocked` with reason code
+`adapter_not_installed` rather than run the checks itself — this is the same
+reduced-enforcement tradeoff already documented for the Codex adapter's
+`npx skills add` path (see `adapters/codex/README.md`) and for the
+product-wide full-plugin-only decision in ADR 0009. Prefer the marketplace
+install above whenever the host is Claude Code.
+
 ## Capability matrix
 
-| Guarantee | Claude adapter | A host with no subagent isolation |
+| Guarantee | Claude adapter (plugin install) | Skill-only install, no subagents |
 | --- | --- | --- |
-| Validator cannot write a file | Mechanical — the subagent's tool grant excludes every write-capable tool | Not enforced by the host; the core's rules ask a single agent not to write during validation, but nothing prevents it if the agent disregards the instruction |
-| Direct edits blocked while a run is pending | Mechanical — the `PreToolUse` hook intercepts every `Edit`/`Write` call | Not enforced; disclose this explicitly rather than implying parity |
-| Checkpoint state transitions are legal | Enforced by `scripts/checkpoint_state.py` on every host, including this one | Same — this guarantee does not depend on subagent isolation |
-| Finding identity survives partial apply | Enforced by `scripts/derive_finding_id.py` on every host | Same |
-| Report built only from structured findings, never raw target text | An instruction every agent (orchestrator, single-agent core, or otherwise) must follow; not currently mechanically enforced on any host | Same |
+| Validator cannot write a file | Mechanical — the subagent's tool grant excludes every write-capable tool | Not applicable — the skill returns `blocked` instead of running |
+| Direct edits blocked while a run is pending | Mechanical — the `PreToolUse` hook intercepts every `Edit`/`Write` call | Not applicable — no hook is installed |
+| Checkpoint state transitions are legal | Enforced by `scripts/checkpoint_state.py` | Not applicable — the skill returns `blocked` instead of running |
+| Finding identity survives partial apply | Enforced by `scripts/derive_finding_id.py` | Not applicable — the skill returns `blocked` instead of running |
+| Report built only from structured findings, never raw target text | An instruction every subagent must follow; not currently mechanically enforced | Not applicable — the skill returns `blocked` instead of running |
 
-A host adapter without subagent isolation must state plainly, wherever it
-documents itself, that tool-boundary enforcement is prompt-based rather than
-mechanical — it must never claim Claude-level guarantees it cannot back with
-a tool grant or a hook.
+A skill-only install without the nested subagents must state plainly that it
+cannot run the checks at all — it must never claim Claude-level guarantees,
+and it must never silently substitute a single unrestricted agent for the
+Orchestrator/Validator/Remediator topology.

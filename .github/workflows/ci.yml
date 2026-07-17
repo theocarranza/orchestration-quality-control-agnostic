@@ -21,5 +21,6 @@ jobs:
         run: |
           python3 -m unittest discover -s orchestration-quality-control/scripts/tests -p 'test_*.py'
           python3 -m unittest discover -s orchestration-quality-control/adapters/codex/tests -p 'test_*.py'
+          python3 -m unittest discover -s orchestration-quality-control/adapters/claude/tests -p 'test_*.py'
           python3 -m unittest discover -s eval-harness/tests -p 'test_*.py'
 
