@@ -45,20 +45,19 @@ it judges the documents that define and coordinate an agentic process.
   apply the exact checkpointed proposal, and run the same QC/template checks
   against the result.
 
-## Default execution shape
+## Execution shape
 
-The portable core's default is a **single-agent pipeline with code-enforced
-gates**: one agent runs both operations, calling the deterministic scripts
-under `scripts/` at every point the process claims determinism —
-classification, finding identity, checkpoint state transitions, decision
-reconciliation, and diff rendering. Nothing about correctness depends on a
-host's ability to isolate subagents.
+This skill runs as an **isolated three-agent pipeline with code-enforced
+gates**: a root-owned Orchestrator delegates to a read-only Validator and an
+apply-only Remediator, calling the deterministic scripts under `scripts/` at
+every point the process claims determinism — classification, finding
+identity, checkpoint state transitions, decision reconciliation, and diff
+rendering. See `adapters/claude/` for the reference implementation
+(Orchestrator, Validator, Remediator) and its Codex/Cursor counterparts.
 
-A host that supports subagent isolation may instead mechanize this pipeline
-across separate tool-scoped workers — see `adapters/claude/` for the
-reference implementation (Orchestrator, Validator, Remediator). That
-topology is strictly an adapter concern: it strengthens the *enforcement*
-of the same rules and contracts documented here, it does not change them.
+This topology is the only shipped execution shape. A host that cannot
+complete the nested Orchestrator/Validator/Remediator handoff must return a
+`blocked` result rather than silently run the checks in a single agent.
 
 ## Input contract
 
@@ -72,11 +71,10 @@ decision: all | none | [finding-id]   # required for execute
 
 operation: upgrade_prepare | upgrade_apply
 mechanism_path: relative/path         # required for upgrade_prepare
-template_id: portable-single-agent | isolated-three-agent
+template_id: isolated-three-agent     # fixed; the only shipped template
 apply_mode: side-by-side | in-place
 output_root: relative/path            # required for side-by-side
 documentation_path: relative/path     # defaults to <new-version>/ARCHITECTURE.md
-isolation_reason: <text>               # required for isolated-three-agent
 checkpoint_path: <path>               # required for upgrade_apply
 decision: approve | decline            # required for upgrade_apply
 ```
@@ -150,7 +148,7 @@ core` (the default) runs the generic checks only.
 - `references/workflows/` — the ordered procedures those rules are applied
   through.
 - `references/templates/` — canonical section skeletons plus the versioned
-  portable-single-agent and isolated-three-agent reference architectures.
+  isolated-three-agent reference architecture.
 - `references/schemas/` — the finding, checkpoint, input, blocked, and
   profile-manifest contracts, plus the namespaced kind registry.
 - `references/plain-language/` — report-writing standard and glossary

@@ -11,7 +11,7 @@
     "run_id": { "type": "string" },
     "status": { "enum": ["pending_approval", "consumed", "aborted"] },
     "targets": { "type": "array", "minItems": 1, "items": { "type": "string" } },
-    "template_id": { "enum": ["portable-single-agent", "isolated-three-agent"] },
+    "template_id": { "enum": ["isolated-three-agent"] },
     "template_version": { "const": 1 },
     "apply_mode": { "enum": ["side-by-side", "in-place"] },
     "manifest": { "$ref": "structure-manifest.schema.json" },

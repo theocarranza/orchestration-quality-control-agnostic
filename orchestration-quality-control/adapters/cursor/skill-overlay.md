@@ -1,7 +1,7 @@
 ## Cursor adapter execution
 
-This installed Cursor edition uses the host-specific nested topology below. It
-does not silently fall back to the portable single-agent pipeline:
+This installed Cursor edition uses the host-specific nested topology below.
+This nested topology is the only shipped execution shape:
 
 ```text
 root Cursor session
@@ -16,7 +16,7 @@ For `validate` or `execute`:
    installed plugin.
 2. If any required subagent is unavailable, return a `blocked` result with
    `stage: cursor_adapter` and reason code `adapter_not_installed`. Do not run
-   the portable single-agent fallback.
+   the checks in a single agent.
 3. Spawn exactly one `oqc_cursor_orchestrator` with the absolute path of this
    installed skill directory and the complete input contract.
 4. Wait for the orchestrator and return its structured result without

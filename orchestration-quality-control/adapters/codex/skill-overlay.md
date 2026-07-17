@@ -1,7 +1,7 @@
 ## Codex adapter execution
 
-This installed Codex edition uses the host-specific nested topology below. It
-does not silently fall back to the portable single-agent pipeline:
+This installed Codex edition uses the host-specific nested topology below.
+This nested topology is the only shipped execution shape:
 
 ```text
 root Codex session
@@ -17,7 +17,7 @@ For `validate` or `execute`:
 2. If either prerequisite is missing, return a `blocked` result with
    `stage: codex_adapter`, reason code `adapter_not_installed` or
    `insufficient_agent_depth`, and the recovery command documented in
-   `adapters/codex/README.md`. Do not execute the single-agent fallback.
+   `adapters/codex/README.md`. Do not run the checks in a single agent.
 3. Spawn exactly one `oqc_codex_orchestrator`. Give it the absolute path of
    this installed skill directory plus the complete input contract
    (`operation`, `targets`, `profile`, `language`, `checkpoint_path`, and

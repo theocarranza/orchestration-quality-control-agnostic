@@ -7,7 +7,7 @@
   "additionalProperties": false,
   "properties": {
     "id": { "type": "string", "pattern": "^TG-[a-z0-9-]+-[0-9a-f]{10}$" },
-    "template_id": { "enum": ["portable-single-agent", "isolated-three-agent"] },
+    "template_id": { "enum": ["isolated-three-agent"] },
     "invariant": { "type": "string", "minLength": 1 },
     "evidence": { "type": "array", "items": { "type": "string" } },
     "proposed_resolution": { "type": "string", "minLength": 1 },

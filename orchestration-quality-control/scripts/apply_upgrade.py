@@ -51,7 +51,6 @@ def apply(workspace: Path, checkpoint_path: Path) -> dict:
         apply_mode=checkpoint["apply_mode"],
         output_root=checkpoint.get("output_root"),
         documentation_path=checkpoint["documentation_path"],
-        isolation_reason=checkpoint.get("isolation_reason"),
     )
 
     staged = []

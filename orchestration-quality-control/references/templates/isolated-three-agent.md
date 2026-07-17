@@ -12,13 +12,12 @@ derived_from:
 
 # Reference Architecture: Isolated Three-Agent
 
-Use this template only when the host can enforce separate capabilities and the
-caller records why a single agent is insufficient.
+Use this template when the host can enforce separate capabilities for the
+checking, editing, and coordinating roles.
 
 ## Inputs
 
 - Explicit target set, workspace boundary, profile, and output contract.
-- A written isolation reason tied to tool or context boundaries.
 - Human decisions collected by the root session and passed as data.
 
 ## Workers

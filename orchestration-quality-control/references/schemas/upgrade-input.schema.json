@@ -12,11 +12,10 @@
         "mechanism_path": { "type": "string", "minLength": 1 },
         "profile": { "type": "string", "default": "core" },
         "language": { "enum": ["en", "pt-br"], "default": "en" },
-        "template_id": { "enum": ["portable-single-agent", "isolated-three-agent"], "default": "portable-single-agent" },
+        "template_id": { "enum": ["isolated-three-agent"], "default": "isolated-three-agent" },
         "apply_mode": { "enum": ["side-by-side", "in-place"], "default": "side-by-side" },
         "output_root": { "type": ["string", "null"] },
-        "documentation_path": { "type": "string", "minLength": 1 },
-        "isolation_reason": { "type": ["string", "null"] }
+        "documentation_path": { "type": "string", "minLength": 1 }
       }
     },
     {

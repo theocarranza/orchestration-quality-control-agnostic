@@ -65,11 +65,10 @@ class UpgradeScriptTest(unittest.TestCase):
             self.workspace,
             manifest,
             proposal,
-            template_id="portable-single-agent",
+            template_id="isolated-three-agent",
             apply_mode="side-by-side",
             output_root="orchestration-v2",
             documentation_path="orchestration-v2/ARCHITECTURE.md",
-            isolation_reason=None,
         )
         checkpoint = {
             "schema_version": 3,
@@ -80,12 +79,11 @@ class UpgradeScriptTest(unittest.TestCase):
             "targets": sorted({entry["path"] for entry in manifest["candidates"]} | {entry["path"] for entry in rendered["actions"]}),
             "profile": "core",
             "language": "en",
-            "template_id": "portable-single-agent",
+            "template_id": "isolated-three-agent",
             "template_version": 1,
             "apply_mode": "side-by-side",
             "output_root": "orchestration-v2",
             "documentation_path": "orchestration-v2/ARCHITECTURE.md",
-            "isolation_reason": None,
             "manifest": manifest,
             "findings": [],
             "template_gaps": [],
@@ -118,7 +116,7 @@ class UpgradeScriptTest(unittest.TestCase):
             discover_structure.discover(self.workspace, "../outside")
         self.assertEqual(ctx.exception.reason_code, "target_outside_approved_set")
 
-    def test_render_upgrade_requires_isolation_reason_for_isolated_template(self):
+    def test_render_upgrade_rejects_unknown_template(self):
         manifest = self._manifest()
         proposal = self._proposal()
         with self.assertRaises(Blocked) as ctx:
@@ -126,15 +124,14 @@ class UpgradeScriptTest(unittest.TestCase):
                 self.workspace,
                 manifest,
                 proposal,
-                template_id="isolated-three-agent",
+                template_id="portable-single-agent",
                 apply_mode="side-by-side",
                 output_root="orchestration-v2",
                 documentation_path="orchestration-v2/ARCHITECTURE.md",
-                isolation_reason=None,
             )
         self.assertEqual(ctx.exception.reason_code, "invalid_template")
 
-    def test_render_upgrade_accepts_isolated_template_with_reason(self):
+    def test_render_upgrade_accepts_isolated_template_without_reason(self):
         manifest = self._manifest()
         proposal = self._proposal()
         rendered = render_upgrade.validate_proposal(
@@ -145,7 +142,6 @@ class UpgradeScriptTest(unittest.TestCase):
             apply_mode="side-by-side",
             output_root="orchestration-v2",
             documentation_path="orchestration-v2/ARCHITECTURE.md",
-            isolation_reason="separate tool grants required",
         )
         self.assertTrue(rendered["actions"])
 
@@ -158,11 +154,10 @@ class UpgradeScriptTest(unittest.TestCase):
                 self.workspace,
                 manifest,
                 proposal,
-                template_id="portable-single-agent",
+                template_id="isolated-three-agent",
                 apply_mode="side-by-side",
                 output_root="orchestration-v2",
                 documentation_path="orchestration-v2/ARCHITECTURE.md",
-                isolation_reason=None,
             )
         self.assertEqual(ctx.exception.reason_code, "target_outside_approved_set")
 
@@ -191,11 +186,10 @@ class UpgradeScriptTest(unittest.TestCase):
                 self.workspace,
                 manifest,
                 proposal,
-                template_id="portable-single-agent",
+                template_id="isolated-three-agent",
                 apply_mode="in-place",
                 output_root=None,
                 documentation_path="orchestration/ARCHITECTURE.md",
-                isolation_reason=None,
             )
         self.assertEqual(ctx.exception.reason_code, "target_outside_approved_set")
 
@@ -225,11 +219,10 @@ class UpgradeScriptTest(unittest.TestCase):
                 self.workspace,
                 manifest,
                 proposal,
-                template_id="portable-single-agent",
+                template_id="isolated-three-agent",
                 apply_mode="in-place",
                 output_root=None,
                 documentation_path="orchestration/ARCHITECTURE.md",
-                isolation_reason=None,
             )
         self.assertEqual(ctx.exception.reason_code, "stale_target")
 
@@ -242,11 +235,10 @@ class UpgradeScriptTest(unittest.TestCase):
                 self.workspace,
                 manifest,
                 proposal,
-                template_id="portable-single-agent",
+                template_id="isolated-three-agent",
                 apply_mode="side-by-side",
                 output_root="orchestration-v2",
                 documentation_path="orchestration-v2/ARCHITECTURE.md",
-                isolation_reason=None,
             )
         self.assertEqual(ctx.exception.reason_code, "destination_exists")
 
@@ -263,11 +255,10 @@ class UpgradeScriptTest(unittest.TestCase):
             run_id="upgrade-run",
             profile="core",
             language="en",
-            template_id="portable-single-agent",
+            template_id="isolated-three-agent",
             apply_mode="side-by-side",
             output_root="orchestration-v2",
             documentation_path="orchestration-v2/ARCHITECTURE.md",
-            isolation_reason=None,
             manifest_json=self._write_json(manifest),
             findings_json=self._write_json([]),
             gaps_json=self._write_json([]),

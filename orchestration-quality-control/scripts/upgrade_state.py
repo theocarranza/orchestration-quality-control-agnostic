@@ -51,7 +51,6 @@ def create(args: argparse.Namespace) -> dict:
         apply_mode=args.apply_mode,
         output_root=args.output_root,
         documentation_path=args.documentation_path,
-        isolation_reason=args.isolation_reason,
     )
     source_targets = [entry["path"] for entry in manifest.get("candidates", [])]
     action_targets = [entry["path"] for entry in rendered["actions"]]
@@ -69,7 +68,6 @@ def create(args: argparse.Namespace) -> dict:
         "apply_mode": args.apply_mode,
         "output_root": args.output_root,
         "documentation_path": args.documentation_path,
-        "isolation_reason": args.isolation_reason,
         "manifest": manifest,
         "findings": findings,
         "template_gaps": gaps,
@@ -128,7 +126,6 @@ def main() -> None:
     for name in ("workspace", "state-dir", "run-id", "profile", "language", "template-id", "apply-mode", "documentation-path", "manifest-json", "findings-json", "gaps-json", "proposal-json", "report"):
         create_parser.add_argument(f"--{name}", required=True)
     create_parser.add_argument("--output-root")
-    create_parser.add_argument("--isolation-reason")
     decide_parser = sub.add_parser("decide")
     decide_parser.add_argument("--checkpoint", required=True)
     decide_parser.add_argument("--decision", required=True)

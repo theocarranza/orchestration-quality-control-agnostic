@@ -23,7 +23,7 @@ Cursor documents named subagents but does not expose a Codex-style configurable
 maximum nesting depth. This adapter still requires the orchestrator to spawn
 the validator and remediator. If the installed Cursor runtime cannot perform
 that nested handoff, the adapter must return `blocked`; it must not silently
-fall back to a single-agent run.
+run the checks in a single agent.
 
 
 For guided upgrade, invoke `/oqc-upgrade`. It bundles the

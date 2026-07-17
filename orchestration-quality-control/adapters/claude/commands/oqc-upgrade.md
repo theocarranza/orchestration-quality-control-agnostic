@@ -2,14 +2,14 @@
 name: oqc-upgrade
 description: >
   Guided orchestration upgrade. Collects a mechanism path, profile, language,
-  template, apply mode, and documentation path, confirms the discovery
-  manifest, delegates to the oqc-upgrade-orchestrator subagent
-  (operation: upgrade_prepare), presents the plain-language report and
-  literal preview, asks for an atomic approve/decline decision, then
-  delegates upgrade_apply in the same turn. Use whenever the user runs
-  `/oqc-upgrade`, asks to upgrade, redesign, version, normalize, or
-  template an orchestration mechanism. Do not use this command for ordinary
-  finding-by-finding QC — that is `oqc-validate`.
+  apply mode, and documentation path, confirms the discovery manifest,
+  delegates to the oqc-upgrade-orchestrator subagent (operation:
+  upgrade_prepare), presents the plain-language report and literal preview,
+  asks for an atomic approve/decline decision, then delegates upgrade_apply
+  in the same turn. Use whenever the user runs `/oqc-upgrade`, asks to
+  upgrade, redesign, version, normalize, or template an orchestration
+  mechanism. Do not use this command for ordinary finding-by-finding QC —
+  that is `oqc-validate`.
 license: MIT
 model: sonnet
 effort: high
@@ -36,11 +36,12 @@ atomic approval decision.
      orchestration mechanism.
    - `profile`: rule profile, default `core`.
    - `language`: report language, default English.
-   - `template_id`: `portable-single-agent` or `isolated-three-agent`.
    - `apply_mode`: `side-by-side` or `in-place`.
    - `output_root`: required when `apply_mode` is `side-by-side`.
    - `documentation_path`: default `<output_root or mechanism>/ARCHITECTURE.md`.
-   - `isolation_reason`: required when `template_id` is `isolated-three-agent`.
+
+   `template_id` is fixed to `isolated-three-agent` — the only shipped
+   reference architecture — and is not asked as a question.
 
 2. Confirm discovery:
    - Run `scripts/discover_structure.py` with the workspace and

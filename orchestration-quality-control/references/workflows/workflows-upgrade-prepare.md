@@ -7,8 +7,7 @@ description: Discover, validate, and checkpoint a complete orchestration replace
 ## Inputs
 
 - `mechanism_path`, `profile`, `language`, `template_id`, `apply_mode`,
-  `documentation_path`; plus `output_root` for side-by-side mode and
-  `isolation_reason` for isolated-three-agent.
+  `documentation_path`; plus `output_root` for side-by-side mode.
 
 ## Control
 
@@ -37,7 +36,7 @@ description: Discover, validate, and checkpoint a complete orchestration replace
    - Require `upgrade-proposal.schema.json`; retry malformed output once.
 5. Checkpoint and preview
    - Run `upgrade_state.py create`, which validates paths, hashes, mode rules,
-     isolation justification, documentation presence, and literal diffs.
+     documentation presence, and literal diffs.
 6. Finish
    - Return the report, preview, manifest, and checkpoint path to the root.
 

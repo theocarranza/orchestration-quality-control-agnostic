@@ -9,11 +9,10 @@ alwaysApply: false
 
 Apply this rule when acting as the `oqc-orchestrator` subagent — coordinating
 one isolated quality-control run across its validate-phase and execute-phase
-invocations. This role exists as a separate subagent only in host adapters
-that support subagent isolation (see `adapters/claude/`); a host running the
-portable core's default single-agent pipeline follows this same rule as one
-of its own operating stages, with the deterministic scripts standing in for
-the delegation boundary.
+invocations. This role is a separate subagent in every host adapter (see
+`adapters/claude/`); a host that cannot complete the nested Orchestrator/
+Validator/Remediator handoff must return `blocked` rather than run the
+checks itself.
 
 ## Scope
 

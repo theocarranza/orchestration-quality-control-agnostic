@@ -5,8 +5,8 @@ alwaysApply: false
 
 # Rule: Reference Architecture Conformance
 
-Apply this rule only during `upgrade_prepare` and post-apply verification, after
-the caller explicitly selects one reference template.
+Apply this rule only during `upgrade_prepare` and post-apply verification,
+against the isolated-three-agent reference architecture.
 
 ## Scope
 
@@ -51,21 +51,11 @@ workspace or approved-path escape.
 Require the same rules and selected template to be checked after application;
 remaining failures are reported, never silently repaired.
 
-### T8 — Portable-template phase separation
+### T8 — Isolated-template role separation
 
-For `portable-single-agent`, require one controller with explicitly separated
-validation and application phases. Do not require subagents.
-
-### T9 — Isolated-template role separation
-
-For `isolated-three-agent`, require root-owned UI, an Orchestrator that authors
-no worker artifacts, a read-only Validator, and an apply-only Remediator with
-control returning to Orchestrator after each delegation.
-
-### T10 — Isolation justification
-
-For `isolated-three-agent`, require a concrete reason that separate tool or
-context boundaries are necessary. A host name by itself is not a justification.
+Require root-owned UI, an Orchestrator that authors no worker artifacts, a
+read-only Validator, and an apply-only Remediator with control returning to
+Orchestrator after each delegation.
 
 ## Output
 
@@ -76,13 +66,11 @@ context boundaries are necessary. A host name by itself is not a justification.
 
 ## Boundaries
 
-- Do not force the isolated topology on a portable selection.
 - Do not treat naming differences as defects when responsibilities and gates
   are equivalent.
-- Do not apply changes or choose the template for the user.
+- Do not apply changes for the user.
 
 ## References
 
-@../templates/portable-single-agent.md
 @../templates/isolated-three-agent.md
 @../schemas/template-gap.schema.json

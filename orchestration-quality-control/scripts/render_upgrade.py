@@ -12,7 +12,7 @@ import qc_lib
 from qc_lib import Blocked, normalize_path
 
 STAGE = "render_upgrade"
-TEMPLATES = {"portable-single-agent", "isolated-three-agent"}
+TEMPLATES = {"isolated-three-agent"}
 APPLY_MODES = {"side-by-side", "in-place"}
 
 
@@ -39,12 +39,9 @@ def validate_proposal(
     apply_mode: str,
     output_root: str | None,
     documentation_path: str,
-    isolation_reason: str | None,
 ) -> dict:
     if template_id not in TEMPLATES:
         _fail("invalid_template", f"unknown template: {template_id}", f"choose one of {sorted(TEMPLATES)}")
-    if template_id == "isolated-three-agent" and not (isolation_reason or "").strip():
-        _fail("invalid_template", "isolated-three-agent requires an isolation reason", "record why separate tool grants are required")
     if apply_mode not in APPLY_MODES:
         _fail("invalid_proposal", f"unknown apply mode: {apply_mode}", f"choose one of {sorted(APPLY_MODES)}")
     actions = proposal.get("actions")
@@ -127,7 +124,6 @@ def main() -> None:
     parser.add_argument("--apply-mode", required=True)
     parser.add_argument("--output-root")
     parser.add_argument("--documentation-path", required=True)
-    parser.add_argument("--isolation-reason")
     args = parser.parse_args()
     qc_lib.run_main(STAGE, lambda: validate_proposal(
         Path(args.workspace).resolve(),
@@ -137,7 +133,6 @@ def main() -> None:
         apply_mode=args.apply_mode,
         output_root=args.output_root,
         documentation_path=args.documentation_path,
-        isolation_reason=args.isolation_reason,
     ))
 
 
