@@ -1,0 +1,18 @@
+{
+  "id": "aplicatudo-e2e",
+  "classification": [
+    { "glob": "**/*.domain.md", "class": "artifact" },
+    { "glob": "**/*.test_plan.md", "class": "artifact" },
+    { "glob": "**/*.blueprint.md", "class": "artifact" },
+    { "glob": "**/*.data.yaml", "class": "artifact" },
+    { "glob": "**/*.yaml", "class": "artifact" },
+    { "glob": "**/*.yml", "class": "artifact" }
+  ],
+  "artifact_rules": [
+    "rules/rules-e2e-artifact-quality-control.md"
+  ],
+  "kinds": [
+    "aplicatudo-e2e/artifact"
+  ],
+  "evals_path": "evals/evals.json"
+}
