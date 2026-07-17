@@ -1,2 +1,6 @@
 # Runtime state is never part of source control — the package ships only schema and lifecycle rules.
 .orchestration-qc/
+
+# Python bytecode cache
+__pycache__/
+*.pyc
