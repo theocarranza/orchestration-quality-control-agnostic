@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestration-quality-control/schemas/upgrade-input.schema.json",
+  "title": "Guided orchestration upgrade input",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["operation", "mechanism_path", "profile", "language", "template_id", "apply_mode", "documentation_path"],
+      "additionalProperties": false,
+      "properties": {
+        "operation": { "const": "upgrade_prepare" },
+        "mechanism_path": { "type": "string", "minLength": 1 },
+        "profile": { "type": "string", "default": "core" },
+        "language": { "enum": ["en", "pt-br"], "default": "en" },
+        "template_id": { "enum": ["portable-single-agent", "isolated-three-agent"], "default": "portable-single-agent" },
+        "apply_mode": { "enum": ["side-by-side", "in-place"], "default": "side-by-side" },
+        "output_root": { "type": ["string", "null"] },
+        "documentation_path": { "type": "string", "minLength": 1 },
+        "isolation_reason": { "type": ["string", "null"] }
+      }
+    },
+    {
+      "type": "object",
+      "required": ["operation", "checkpoint_path", "decision"],
+      "additionalProperties": false,
+      "properties": {
+        "operation": { "const": "upgrade_apply" },
+        "checkpoint_path": { "type": "string", "minLength": 1 },
+        "decision": { "enum": ["approve", "decline"] }
+      }
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestration-quality-control/schemas/template-gap.schema.json",
+  "title": "Reference-template conformance gap",
+  "type": "object",
+  "required": ["id", "template_id", "invariant", "evidence", "proposed_resolution", "confidence"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^TG-[a-z0-9-]+-[0-9a-f]{10}$" },
+    "template_id": { "enum": ["portable-single-agent", "isolated-three-agent"] },
+    "invariant": { "type": "string", "minLength": 1 },
+    "evidence": { "type": "array", "items": { "type": "string" } },
+    "proposed_resolution": { "type": "string", "minLength": 1 },
+    "confidence": { "enum": ["high", "medium", "low"] }
+  }
+}

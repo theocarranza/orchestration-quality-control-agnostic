@@ -50,6 +50,11 @@ REASON_CODES = frozenset(
         "concurrent_run_active",
         "capability_insufficient",
         "target_outside_approved_set",
+        "destination_exists",
+        "invalid_proposal",
+        "invalid_template",
+        "stale_target",
+        "unsafe_path",
     ]
 )
 

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestration-quality-control/schemas/upgrade-checkpoint.schema.json",
+  "title": "Guided orchestration upgrade checkpoint",
+  "description": "A version-3 checkpoint sharing the same pending_approval active-run signal as ordinary QC checkpoints.",
+  "type": "object",
+  "required": ["schema_version", "run_type", "run_id", "status", "targets", "template_id", "template_version", "apply_mode", "manifest", "findings", "template_gaps", "actions", "plain_language_report", "preview", "created_at"],
+  "properties": {
+    "schema_version": { "const": 3 },
+    "run_type": { "const": "upgrade" },
+    "run_id": { "type": "string" },
+    "status": { "enum": ["pending_approval", "consumed", "aborted"] },
+    "targets": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "template_id": { "enum": ["portable-single-agent", "isolated-three-agent"] },
+    "template_version": { "const": 1 },
+    "apply_mode": { "enum": ["side-by-side", "in-place"] },
+    "manifest": { "$ref": "structure-manifest.schema.json" },
+    "findings": { "type": "array", "items": { "$ref": "finding.schema.json" } },
+    "template_gaps": { "type": "array", "items": { "$ref": "template-gap.schema.json" } },
+    "actions": { "type": "array", "minItems": 1 },
+    "plain_language_report": { "type": "string" },
+    "preview": { "type": "string" },
+    "created_at": { "type": "string" }
+  }
+}

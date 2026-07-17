@@ -10,7 +10,10 @@ description: >
   findings plus a plain-language report. Requires an explicit human
   approval decision (all, none, or a named subset) before applying any
   finding, and confirms every approved finding ends applied or explicitly
-  skipped. Use whenever the user asks to check, validate, or review a
+  skipped. It also provides a guided upgrade that discovers an orchestration,
+  checks it against a selected OQC reference architecture, drafts an atomic
+  replacement plus diagrams, and applies it only after approval. Use whenever
+  the user asks to check, validate, review, redesign, upgrade, or version a
   workflow document, an orchestrator document, a rules file, or a
   generator source for orchestration-quality problems — delegation gaps,
   missing approval gates, non-durable state, unbounded loops, or
@@ -35,6 +38,12 @@ it judges the documents that define and coordinate an agentic process.
 - **`execute`** — read a pending checkpoint, resolve the caller-supplied
   decision (`all`, `none`, or a named subset of finding ids), apply exactly
   the approved findings, and close the run.
+- **`upgrade_prepare`** — discover and confirm an orchestration mechanism,
+  run ordinary QC plus a selected reference-template comparison, and return a
+  complete proposal, documentation preview, and durable checkpoint.
+- **`upgrade_apply`** — resolve an atomic `approve` or `decline` decision,
+  apply the exact checkpointed proposal, and run the same QC/template checks
+  against the result.
 
 ## Default execution shape
 
@@ -60,9 +69,20 @@ profile: core | <profile-id>          # default: core
 language: en | pt-br                  # default: en
 checkpoint_path: <path>               # required for execute
 decision: all | none | [finding-id]   # required for execute
+
+operation: upgrade_prepare | upgrade_apply
+mechanism_path: relative/path         # required for upgrade_prepare
+template_id: portable-single-agent | isolated-three-agent
+apply_mode: side-by-side | in-place
+output_root: relative/path            # required for side-by-side
+documentation_path: relative/path     # defaults to <new-version>/ARCHITECTURE.md
+isolation_reason: <text>               # required for isolated-three-agent
+checkpoint_path: <path>               # required for upgrade_apply
+decision: approve | decline            # required for upgrade_apply
 ```
 
-See `references/schemas/input.schema.json`. `validate` requires at least
+See `references/schemas/input.schema.json` and
+`references/schemas/upgrade-input.schema.json`. `validate` requires at least
 one readable, workspace-relative target. `execute` requires a valid
 `pending_approval` checkpoint and an explicit decision. A host collects
 these values through a question interface, command arguments, or another
@@ -109,7 +129,8 @@ Runtime checkpoints live outside this package, at
 checkpoint's `status` (`pending_approval | consumed | aborted`) is the
 entire state machine — see `scripts/checkpoint_state.py`. There is no
 marker file: a `pending_approval` checkpoint under the documented state
-directory **is** the active-run signal
+directory **is** the active-run signal for both ordinary QC and guided-upgrade
+checkpoints
 (`scripts/checkpoint_state.py is-run-active`), and every host adapter must
 answer "is a run active?" by checking exactly that.
 
@@ -128,8 +149,8 @@ core` (the default) runs the generic checks only.
   validator/remediator/orchestrator subagent behavior).
 - `references/workflows/` — the ordered procedures those rules are applied
   through.
-- `references/templates/` — canonical section skeletons for rules,
-  workflow, and orchestrator documents.
+- `references/templates/` — canonical section skeletons plus the versioned
+  portable-single-agent and isolated-three-agent reference architectures.
 - `references/schemas/` — the finding, checkpoint, input, blocked, and
   profile-manifest contracts, plus the namespaced kind registry.
 - `references/plain-language/` — report-writing standard and glossary
