@@ -14,10 +14,14 @@ can fall back to.
 | --- | --- |
 | `commands/oqc-validate.md` | Main-session entry point for the validate operation: collects target/profile/language, delegates, presents the report, asks the apply decision. |
 | `commands/oqc-execute.md` | Main-session entry point for the execute operation: resolves the apply decision, delegates, presents the final report. |
+| `commands/oqc-upgrade.md` | Main-session entry point for guided orchestration upgrade: confirms discovery, delegates prepare/apply, records atomic approval. |
 | `commands/e2e-quality-control-validate.md`, `commands/e2e-quality-control-execute.md` | Compatibility aliases for the retired 3.0.0 command names — see the migration table in `profiles/aplicatudo-e2e/README.md`. |
 | `agents/oqc-orchestrator.md` | Opus, tools `Agent, Read, Write, Bash` (Bash restricted to `scripts/`). Owns routing, checkpoint bookkeeping, and gate validation. Never reads or edits target content. |
 | `agents/oqc-validator.md` | Sonnet, tools `Read, Grep, Glob, Bash` (Bash restricted to `scripts/classify_targets.py` and `scripts/derive_finding_id.py`). Mechanically read-only — this subagent has no tool capable of writing a file. |
 | `agents/oqc-remediator.md` | Sonnet, tools `Read, Edit, Bash` (Bash restricted to `scripts/render_diff.py`). Applies only findings the orchestrator hands it, only inside the checkpoint's target set. |
+| `agents/oqc-upgrade-orchestrator.md` | Opus, tools `Agent, Read, Write, Bash` (Bash restricted to `discover_structure.py` and `upgrade_state.py`). Coordinates upgrade prepare/apply. |
+| `agents/oqc-proposal-author.md` | Sonnet, tools `Read, Grep, Glob`. Drafts one atomic upgrade proposal; never writes targets. |
+| `agents/oqc-upgrade-applier.md` | Sonnet, tools `Read, Bash` (Bash restricted to `scripts/apply_upgrade.py`). Applies one approved upgrade checkpoint. |
 | `hooks/oqc-block-main-edits.py` | A `PreToolUse` hook that blocks the main session's own `Edit`/`Write` on any path listed in an active checkpoint's `targets`, so a user cannot bypass the approval gate by editing the file directly while a review is pending. |
 
 ## Installation

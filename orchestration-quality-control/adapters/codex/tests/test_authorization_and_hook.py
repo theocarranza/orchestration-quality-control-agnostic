@@ -164,6 +164,16 @@ class AuthorizationAndHookTest(unittest.TestCase):
         payload["tool_input"]["command"] += " && touch workflow.md"
         self.assertEqual(self._permission(self._run(payload)), "deny")
 
+    def test_allowlisted_upgrade_scripts_are_allowed(self):
+        scripts = self.plugin / "skills" / "orchestration-quality-control" / "scripts"
+        for name in ("discover_structure.py", "upgrade_state.py", "apply_upgrade.py"):
+            payload = {
+                "cwd": str(self.workspace),
+                "tool_name": "Bash",
+                "tool_input": {"command": f"python3 {scripts / name} --help"},
+            }
+            self.assertEqual(self._permission(self._run(payload)), "allow", name)
+
     def test_consumed_and_aborted_checkpoints_allow_normal_tools(self):
         for status in ("consumed", "aborted"):
             self._write_checkpoint(status=status)

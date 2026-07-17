@@ -43,7 +43,8 @@ class BuildPluginTest(unittest.TestCase):
         self.assertEqual(marketplace["name"], BUILDER.MARKETPLACE_NAME)
         self.assertEqual(marketplace["plugins"][0]["source"], "plugins/orchestration-quality-control")
         self.assertTrue((plugin / "hooks" / "hooks.json").is_file())
-        self.assertEqual(len(list((plugin / "agents").glob("*.md"))), 3)
+        self.assertEqual(len(list((plugin / "agents").glob("*.md"))), 6)
+        self.assertTrue((plugin / "skills" / "oqc-upgrade" / "SKILL.md").is_file())
         self.assertTrue((self.output / "install_cursor.py").is_file())
         self.assertTrue((self.output / "README.md").is_file())
 

@@ -10,7 +10,7 @@ root Codex session
     └── oqc_codex_remediator
 ```
 
-Before starting either operation:
+For `validate` or `execute`:
 
 1. Confirm the custom agent `oqc_codex_orchestrator` is available and the
    effective Codex configuration permits agent nesting to depth 2.
@@ -29,3 +29,9 @@ The orchestrator is responsible for loading the portable rules and workflows,
 spawning the two named workers, and enforcing every deterministic gate. The
 Codex hook separately protects pending target files; custom agent identity is
 not itself an authorization token.
+
+For `upgrade_prepare` or `upgrade_apply`, spawn exactly one
+`oqc_codex_upgrade_orchestrator` instead. It delegates semantic checks to the
+existing Validator, proposal authorship to `oqc_codex_proposal_author`, and
+approved deterministic application to `oqc_codex_upgrade_applier`. The root
+session owns manifest confirmation and the atomic human decision.

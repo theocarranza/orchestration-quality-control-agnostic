@@ -13,7 +13,7 @@ from pathlib import Path
 
 PLUGIN_NAME = "orchestration-quality-control"
 MARKETPLACE_NAME = "orchestration-qc-local"
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 FIXED_ZIP_TIME = (2026, 7, 17, 0, 0, 0)
 
 
@@ -69,6 +69,11 @@ def build(output: Path) -> Path:
     skill_root = plugin_root / "skills" / PLUGIN_NAME
     shutil.copytree(_package_root(), skill_root, ignore=_ignore)
     _inject_overlay(skill_root / "SKILL.md", _adapter_root() / "skill-overlay.md")
+    shutil.copytree(
+        _package_root() / "entrypoints" / "orchestration-upgrade",
+        plugin_root / "skills" / "orchestration-upgrade",
+        ignore=_ignore,
+    )
 
     manifest = json.loads((_adapter_root() / "plugin.template.json").read_text(encoding="utf-8"))
     if manifest.get("name") != PLUGIN_NAME or manifest.get("version") != VERSION:

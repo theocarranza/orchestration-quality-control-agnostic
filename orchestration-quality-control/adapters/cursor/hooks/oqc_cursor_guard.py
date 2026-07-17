@@ -15,12 +15,16 @@ from cursor_authorization import change_digest
 
 STATE_SUBDIR = Path(".orchestration-qc/state")
 ALLOWED_SCRIPTS = {
+    "apply_upgrade.py",
     "checkpoint_state.py",
     "classify_targets.py",
     "cursor_authorization.py",
     "derive_finding_id.py",
+    "discover_structure.py",
     "reconcile_decision.py",
     "render_diff.py",
+    "render_upgrade.py",
+    "upgrade_state.py",
 }
 WRITE_TOOLS = {"edit", "write", "applypatch", "delete", "move", "notebookedit"}
 

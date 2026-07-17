@@ -10,7 +10,7 @@ root Cursor session
     └── oqc_cursor_remediator
 ```
 
-Before starting either operation:
+For `validate` or `execute`:
 
 1. Confirm that the three named Cursor subagents are available from the
    installed plugin.
@@ -28,3 +28,8 @@ validator is read-only. The remediator applies only the approved literal
 changes. The Cursor hook separately denies protected edits that are not exact
 authorized changes. The hook can prove approval integrity, but it cannot prove
 which agent submitted an authorized change.
+
+For `upgrade_prepare` or `upgrade_apply`, invoke exactly one
+`oqc_cursor_upgrade_orchestrator`. It coordinates the existing Validator,
+`oqc_cursor_proposal_author`, and `oqc_cursor_upgrade_applier`. The root Cursor
+session owns every question and the atomic approval decision.

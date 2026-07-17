@@ -99,6 +99,29 @@ class CursorHookTest(unittest.TestCase):
         )
         self.assertEqual(self._decision(result)["permission"], "allow")
 
+    def test_pending_shell_allows_upgrade_deterministic_scripts(self):
+        scripts = ADAPTER.parents[1] / "scripts"
+        plugin_root = self.root / "plugin"
+        plugin_scripts = plugin_root / "skills" / "orchestration-quality-control" / "scripts"
+        plugin_scripts.mkdir(parents=True)
+        for name in ("discover_structure.py", "upgrade_state.py", "apply_upgrade.py"):
+            target = plugin_scripts / name
+            target.write_text((scripts / name).read_text(encoding="utf-8"), encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(HOOK)],
+                input=json.dumps(
+                    {
+                        "hook_event_name": "beforeShellExecution",
+                        "tool_input": {"command": f"python3 {target}"},
+                        "workspace_roots": [str(self.root)],
+                    }
+                ),
+                capture_output=True,
+                text=True,
+                env={**os.environ, "CURSOR_PLUGIN_ROOT": str(plugin_root)},
+            )
+            self.assertEqual(self._decision(result)["permission"], "allow", name)
+
     def test_unapproved_protected_edit_is_denied(self):
         result = self._run(self._edit())
         self.assertEqual(self._decision(result)["permission"], "deny")

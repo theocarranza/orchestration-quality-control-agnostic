@@ -16,6 +16,9 @@ AGENT_FILENAMES = (
     "oqc_codex_orchestrator.toml",
     "oqc_codex_validator.toml",
     "oqc_codex_remediator.toml",
+    "oqc_codex_upgrade_orchestrator.toml",
+    "oqc_codex_proposal_author.toml",
+    "oqc_codex_upgrade_applier.toml",
 )
 REQUIRED_DEPTH = 2
 RECORD_NAME = "oqc-codex-adapter-install.json"

@@ -9,9 +9,13 @@ adapter.
 
 ```text
 root Codex session
-└── oqc_codex_orchestrator
+├── oqc_codex_orchestrator
+│   ├── oqc_codex_validator
+│   └── oqc_codex_remediator
+└── oqc_codex_upgrade_orchestrator
     ├── oqc_codex_validator
-    └── oqc_codex_remediator
+    ├── oqc_codex_proposal_author
+    └── oqc_codex_upgrade_applier
 ```
 
 Codex plugins discover skills and hooks, but custom agent TOML files are
@@ -20,10 +24,13 @@ discovered separately under `~/.codex/agents/` or a project's
 install the plugin, then run the adapter bootstrap. The nested topology
 requires `agents.max_depth = 2`.
 
+
+For guided upgrade, use the packaged `orchestration-upgrade` skill and
+spawn `oqc_codex_upgrade_orchestrator` instead of the QC orchestrator.
 ## Codex installation (required nested adapter)
 
 The Codex adapter has one supported installation path. It installs the plugin,
-the three custom agents, `agents.max_depth = 2`, and the approval hook together.
+the six custom agents, `agents.max_depth = 2`, and the approval hook together.
 From the repository root (`orchestrator_qc_plugin`):
 
 ```bash
@@ -42,7 +49,7 @@ The installer also resolves its repository paths from the script location, so
 you may invoke it from another directory with its absolute path.
 
 That single command builds the local marketplace, registers it with Codex,
-installs the OQC plugin, installs the three custom agents, and verifies
+installs the OQC plugin, installs the six custom agents, and verifies
 `agents.max_depth = 2`.
 
 Use `--scope project --project /path/to/project` for a project-local

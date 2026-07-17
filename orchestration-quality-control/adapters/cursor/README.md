@@ -6,13 +6,17 @@ adapter:
 
 ```text
 Cursor session
-└── oqc_cursor_orchestrator
+├── oqc_cursor_orchestrator
+│   ├── oqc_cursor_validator
+│   └── oqc_cursor_remediator
+└── oqc_cursor_upgrade_orchestrator
     ├── oqc_cursor_validator
-    └── oqc_cursor_remediator
+    ├── oqc_cursor_proposal_author
+    └── oqc_cursor_upgrade_applier
 ```
 
 Cursor plugins can bundle skills, custom subagents, and hooks in one plugin
-directory. The three roles are therefore distributed inside the plugin; no
+directory. The QC and upgrade roles are distributed inside the plugin; no
 separate agent bootstrap or depth setting is required.
 
 Cursor documents named subagents but does not expose a Codex-style configurable
@@ -21,6 +25,9 @@ the validator and remediator. If the installed Cursor runtime cannot perform
 that nested handoff, the adapter must return `blocked`; it must not silently
 fall back to a single-agent run.
 
+
+For guided upgrade, invoke `/oqc-upgrade`. It bundles the
+`oqc-upgrade` skill and delegates to `oqc_cursor_upgrade_orchestrator`.
 ## Local installation
 
 From the repository root, run the single front-door installer:

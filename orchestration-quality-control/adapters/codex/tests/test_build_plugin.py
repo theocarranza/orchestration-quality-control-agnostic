@@ -45,7 +45,10 @@ class BuildPluginTest(unittest.TestCase):
         self.assertTrue((self.output / "install_codex_adapter.py").is_file())
         self.assertTrue((self.output / "install_codex.py").is_file())
         self.assertTrue((self.output / "README.md").is_file())
-        self.assertEqual(len(list((self.output / "agents").glob("*.toml"))), 3)
+        self.assertEqual(len(list((self.output / "agents").glob("*.toml"))), 6)
+        self.assertTrue(
+            (plugin / "skills" / "orchestration-upgrade" / "SKILL.md").is_file()
+        )
 
     def test_build_injects_overlay_without_mutating_canonical_skill(self):
         canonical = BUILDER._package_root() / "SKILL.md"
