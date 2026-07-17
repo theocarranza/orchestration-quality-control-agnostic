@@ -43,6 +43,13 @@ Two operations, always in this order:
    could not safely apply is reported as skipped, with a reason — never
    silently dropped and never falsely claimed as done.
 
+3. **`upgrade_prepare` / `upgrade_apply`** — discover an existing
+   orchestration mechanism, compare it with a selected OQC reference template,
+   draft a complete replacement plus `ARCHITECTURE.md`, checkpoint the literal
+   preview, and apply only an atomic approve/decline decision. Host entry
+   points: Claude `/oqc-upgrade`, Cursor `/oqc-upgrade`, Codex
+   `orchestration-upgrade`.
+
 ## What makes the checks trustworthy
 
 A quality-control tool is only useful if running it twice on the same input

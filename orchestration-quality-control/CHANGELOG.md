@@ -1,3 +1,18 @@
+## 1.2.0 — 2026-07-17
+
+- Added guided orchestration upgrade operations (`upgrade_prepare`,
+  `upgrade_apply`) with portable reference templates, deterministic
+  discovery/render/state/apply scripts, and schema-version 3 upgrade
+  checkpoints plus verification records.
+- Added Proposal Author, Upgrade Orchestrator, and Upgrade Applier roles
+  across Claude (`/oqc-upgrade`), Cursor (`/oqc-upgrade`), and Codex
+  (`orchestration-upgrade`) adapters while reusing the existing Validator for
+  semantic QC at nesting depth 2.
+- Extended Codex/Cursor hook deterministic-script allowlists and packaging
+  tests; added focused offline tests for upgrade path containment, template
+  selection, stale hashes, collisions, atomic apply/rollback, shared
+  active-run exclusion, and verification persistence.
+
 # Changelog
 
 ## 1.1.0 — 2026-07-17
