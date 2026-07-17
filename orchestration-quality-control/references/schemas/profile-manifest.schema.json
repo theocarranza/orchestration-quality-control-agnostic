@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestration-quality-control/schemas/profile-manifest.schema.json",
+  "title": "Profile manifest",
+  "description": "profile.json at the root of a profiles/<id>/ directory. Supplies the classification globs, artifact rule set, and namespaced kinds a profile adds on top of the core.",
+  "type": "object",
+  "required": ["id", "classification", "artifact_rules", "kinds", "evals_path"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "classification": {
+      "type": "array",
+      "description": "Merged into classify_targets.py's built-in core globs when this profile is selected.",
+      "items": {
+        "type": "object",
+        "required": ["glob", "class"],
+        "additionalProperties": false,
+        "properties": {
+          "glob": { "type": "string" },
+          "class": { "type": "string" }
+        }
+      }
+    },
+    "artifact_rules": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Paths (relative to the profile directory) to the profile's artifact rule files. This is what references/rules/rules-generator-quality-control.md consumes instead of a hardcoded reference, decoupling the generic generator-contradiction/gap framework from any one profile's artifact vocabulary."
+    },
+    "kinds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9-]+/[a-z0-9-]+$"
+      },
+      "description": "Namespaced kinds this profile may emit, e.g. 'aplicatudo-e2e/artifact'. Must use the profile's own id as namespace."
+    },
+    "evals_path": {
+      "type": "string",
+      "description": "Path (relative to the profile directory) to this profile's evals.json."
+    }
+  }
+}

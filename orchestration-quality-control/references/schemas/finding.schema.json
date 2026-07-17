@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestration-quality-control/schemas/finding.schema.json",
+  "title": "Finding",
+  "description": "One detected problem in a target document. Identity is content-anchored (rule + kind + normalized anchor text), never line-number-anchored, so it survives re-validation after a partial fix shifts subsequent lines.",
+  "type": "object",
+  "required": ["id", "kind", "rule", "location", "anchor", "violation", "suggested_change", "confidence"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "<rule-code>-<kind-shortname>-<hash10>[-<occurrence>]. Derived by scripts/derive_finding_id.py; never hand-authored.",
+      "pattern": "^[A-Za-z0-9]+-[a-z0-9-]+-[0-9a-f]{10}(-[0-9]+)?$"
+    },
+    "kind": {
+      "type": "string",
+      "description": "Namespaced category, '<namespace>/<name>'. Core namespace is 'core'; profile kinds use the profile id. See references/schemas/kinds.md.",
+      "pattern": "^[a-z0-9-]+/[a-z0-9-]+$"
+    },
+    "rule": {
+      "type": "string",
+      "description": "The rule file and rule code this finding violates, e.g. 'rules-workflow-quality-control.md#W6'.",
+      "pattern": "^[a-z0-9-]+\\.md#[A-Za-z0-9]+$"
+    },
+    "location": {
+      "type": "object",
+      "required": ["path", "section"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Workspace-relative path. Never absolute; never contains '..'."
+        },
+        "section": {
+          "type": "string",
+          "description": "Human-readable location within the file (heading, step name, or similar)."
+        },
+        "line_hint": {
+          "type": ["integer", "null"],
+          "description": "Advisory display-only line number. Never part of finding identity and never used for re-validation."
+        }
+      }
+    },
+    "anchor": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Verbatim excerpt copied from the target file. Required: derive_finding_id.py rejects any finding whose anchor cannot be found in the target by normalized substring search (reason_code anchor_not_found). This is both the re-validation mechanism and a mechanical injection-containment gate — a finding that cannot quote real target text is refused."
+    },
+    "violation": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Plain-language explanation of what is wrong."
+    },
+    "suggested_change": {
+      "type": "object",
+      "required": ["before", "after"],
+      "additionalProperties": false,
+      "description": "A structured, bounded edit span. Never free prose — render_diff.py turns this into a literal unified diff for human review; prose suggestions are not accepted by the schema.",
+      "properties": {
+        "before": {
+          "type": "string",
+          "description": "Verbatim text to be replaced. Must be found in the target or render_diff.py returns blocked."
+        },
+        "after": {
+          "type": "string",
+          "description": "Replacement text."
+        }
+      }
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low"]
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestration-quality-control/schemas/blocked.schema.json",
+  "title": "Blocked result",
+  "description": "The fail-closed result every deterministic script returns on stdout, with exit code 2, whenever it cannot proceed safely. Never silently treat an omitted finding as applied or a skipped edit as successful — a blocked result is the only way a script reports failure.",
+  "type": "object",
+  "required": ["status", "stage", "reason_code", "detail", "recovery_action"],
+  "additionalProperties": false,
+  "properties": {
+    "status": { "const": "blocked" },
+    "stage": {
+      "type": "string",
+      "description": "Which pipeline stage produced the block, e.g. 'classify', 'derive_finding_id', 'checkpoint_state.create', 'reconcile_decision', 'render_diff'."
+    },
+    "reason_code": {
+      "type": "string",
+      "enum": [
+        "missing_target",
+        "malformed_checkpoint",
+        "unknown_profile",
+        "invalid_decision",
+        "unknown_finding_id",
+        "anchor_not_found",
+        "checkpoint_already_consumed",
+        "concurrent_run_active",
+        "capability_insufficient",
+        "target_outside_approved_set"
+      ]
+    },
+    "detail": {
+      "type": "string",
+      "description": "The failing transition or field, in plain language."
+    },
+    "recovery_action": {
+      "type": "string",
+      "description": "What the caller (host adapter or command) should do next."
+    }
+  }
+}

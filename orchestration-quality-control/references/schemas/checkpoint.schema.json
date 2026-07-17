@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestration-quality-control/schemas/checkpoint.schema.json",
+  "title": "Checkpoint",
+  "description": "The durable record of one validation run awaiting, or resolved by, a human decision. Runtime state — never shipped inside the package; lives at <workspace>/.orchestration-qc/state/checkpoint-<run_id>.json. A checkpoint with status pending_approval under the documented state directory IS the active-run signal; there is no separate marker file.",
+  "type": "object",
+  "required": [
+    "schema_version", "run_id", "status", "targets", "profile",
+    "language", "findings", "plain_language_report", "created_at"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 2,
+      "description": "Bumped from the legacy (unversioned-in-practice) schema because the finding id algorithm, kind namespace, and state machine all changed. Never inferred; always checked explicitly."
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[0-9]{8}-[a-z0-9-]+$",
+      "description": "Filename convention: checkpoint-<run_id>.json, where run_id is <YYYYMMDD>-<slug>."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending_approval", "consumed", "aborted"],
+      "description": "State machine: created as pending_approval; checkpoint_state.py consume moves it to consumed once every approved finding is resolved; checkpoint_state.py abort moves it to aborted on a stop condition. There is no 'active'/'deleted' distinction — absence of a pending_approval checkpoint under the state directory is itself the absent/terminal signal."
+    },
+    "targets": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "description": "Workspace-relative paths only. reconcile_decision.py rejects any applied edit outside this list (reason_code target_outside_approved_set)."
+    },
+    "profile": {
+      "type": "string",
+      "description": "Selected rule profile id, e.g. 'core' or 'aplicatudo-e2e'."
+    },
+    "language": {
+      "type": "string",
+      "enum": ["en", "pt-br"]
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "finding.schema.json" }
+    },
+    "plain_language_report": {
+      "type": "string",
+      "description": "Generated only from the structured findings above — never by re-reading raw target content — so a target file cannot inject instructions into the human-facing summary."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "resolution": {
+      "type": "array",
+      "description": "Present once status is consumed or aborted. One entry per approved finding; reconcile_decision.py refuses to mark a checkpoint consumed until every approved finding has an outcome here.",
+      "items": {
+        "type": "object",
+        "required": ["finding_id", "outcome"],
+        "additionalProperties": false,
+        "properties": {
+          "finding_id": { "type": "string" },
+          "outcome": {
+            "type": "string",
+            "enum": ["applied", "skipped", "declined"]
+          },
+          "reason": {
+            "type": "string",
+            "description": "Required when outcome is 'skipped' (e.g. capability_insufficient) so a claimed remediation is never silently reported as done when it was not safely possible."
+          }
+        }
+      }
+    }
+  }
+}

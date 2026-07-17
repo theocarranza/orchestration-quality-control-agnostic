@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestration-quality-control/schemas/input.schema.json",
+  "title": "Input",
+  "description": "What a host collects before invoking either operation, through a question interface, command arguments, or another documented adapter mechanism.",
+  "type": "object",
+  "required": ["operation", "targets", "profile", "language"],
+  "additionalProperties": false,
+  "properties": {
+    "operation": {
+      "type": "string",
+      "enum": ["validate", "execute"]
+    },
+    "targets": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "description": "validate requires at least one readable, workspace-relative target."
+    },
+    "profile": {
+      "type": "string",
+      "default": "core",
+      "description": "'core' or a profile id such as 'aplicatudo-e2e'."
+    },
+    "language": {
+      "type": "string",
+      "enum": ["en", "pt-br"],
+      "default": "en"
+    },
+    "checkpoint_path": {
+      "type": ["string", "null"],
+      "description": "Required for execute; must point at a pending_approval checkpoint under the documented state directory."
+    },
+    "decision": {
+      "description": "Required for execute.",
+      "oneOf": [
+        { "const": "all" },
+        { "const": "none" },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        }
+      ]
+    }
+  }
+}
