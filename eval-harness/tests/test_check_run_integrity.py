@@ -44,6 +44,26 @@ class SnapshotTest(unittest.TestCase):
         self.assertFalse(result["unedited"])
         self.assertEqual(result["added_files"], ["new.md"])
 
+    def test_ignored_prefix_does_not_count_as_edit(self):
+        baseline = integrity.snapshot(self.sandbox)
+        state_dir = self.sandbox / ".orchestration-qc" / "state"
+        state_dir.mkdir(parents=True)
+        (state_dir / "checkpoint-1.json").write_text("{}\n")
+        current = integrity.snapshot(self.sandbox)
+        result = integrity.diff_snapshots(baseline, current, ignore_prefixes=[".orchestration-qc/"])
+        self.assertTrue(result["unedited"])
+        self.assertEqual(result["added_files"], [])
+
+    def test_ignored_prefix_does_not_hide_real_edits(self):
+        baseline = integrity.snapshot(self.sandbox)
+        (self.sandbox / "fixture.md").write_text("edited\n")
+        (self.sandbox / ".orchestration-qc").mkdir()
+        (self.sandbox / ".orchestration-qc" / "marker.json").write_text("{}\n")
+        current = integrity.snapshot(self.sandbox)
+        result = integrity.diff_snapshots(baseline, current, ignore_prefixes=[".orchestration-qc/"])
+        self.assertFalse(result["unedited"])
+        self.assertEqual(result["changed_files"], ["fixture.md"])
+
 
 class IsolationTest(unittest.TestCase):
     def setUp(self):

@@ -88,6 +88,15 @@ that:
   including the option to isolate the checking, editing, and coordinating
   roles into three separate, narrowly-permissioned agents for stronger
   guarantees than a single agent can offer on its own.
+- `adapters/codex/` — a reproducible Codex plugin build, three nested custom
+  agent profiles, an approval-enforcement hook, and the explicit bootstrap
+  required because Codex discovers custom agents outside plugin manifests. Its
+  README documents the only supported Codex installation path via the single
+  `install_codex.py` front door; installing the portable skill alone is
+  intentionally not sufficient for Codex.
+- `adapters/cursor/` — a native Cursor plugin build with the same three-role
+  topology, bundled subagents, an approval-enforcement hook, and a local
+  installer for `~/.cursor/plugins/local/`.
 
 ## Where runtime data lives
 

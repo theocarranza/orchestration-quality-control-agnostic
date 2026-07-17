@@ -21,12 +21,18 @@ Two subcommands:
       to sandbox_dir. Run this once, before the executor subagent starts.
 
   verify <sandbox_dir> <baseline_hashes.json> --transcript <transcript.md>
-         [--allow <prefix> ...] -o <integrity.json>
+         [--allow <prefix> ...] [--ignore <path-prefix> ...] -o <integrity.json>
       Recomputes hashes and diffs against the baseline (-> unedited /
       changed_files / added_files / removed_files). Scans the transcript for
       file-like paths; anything outside sandbox_dir and not matching an
       --allow prefix is recorded under paths_outside_sandbox
       (-> isolation_ok). Run this once, after the run completes.
+
+      --ignore excludes paths (relative to sandbox_dir) from the edit diff
+      entirely — for runtime state the package itself is expected to create
+      alongside the fixture, such as `.orchestration-qc/`, which is not an
+      edit to the target file and shouldn't fail the "left unedited"
+      assertion just for existing.
 """
 import argparse
 import hashlib
@@ -49,7 +55,14 @@ def snapshot(sandbox_dir: Path) -> dict:
     }
 
 
-def diff_snapshots(baseline: dict, current: dict) -> dict:
+def diff_snapshots(baseline: dict, current: dict, ignore_prefixes: list[str] | None = None) -> dict:
+    ignore_prefixes = ignore_prefixes or []
+    def ignored(path: str) -> bool:
+        return any(path == p or path.startswith(p.rstrip("/") + "/") for p in ignore_prefixes)
+
+    baseline = {k: v for k, v in baseline.items() if not ignored(k)}
+    current = {k: v for k, v in current.items() if not ignored(k)}
+
     changed = sorted(k for k in baseline if k in current and baseline[k] != current[k])
     added = sorted(k for k in current if k not in baseline)
     removed = sorted(k for k in baseline if k not in current)
@@ -58,6 +71,7 @@ def diff_snapshots(baseline: dict, current: dict) -> dict:
         "changed_files": changed,
         "added_files": added,
         "removed_files": removed,
+        "ignored_prefixes": ignore_prefixes,
     }
 
 
@@ -89,7 +103,7 @@ def cmd_snapshot(args: argparse.Namespace) -> None:
 def cmd_verify(args: argparse.Namespace) -> None:
     baseline = json.loads(args.baseline_hashes.read_text())
     current = snapshot(args.sandbox_dir)
-    result = diff_snapshots(baseline, current)
+    result = diff_snapshots(baseline, current, args.ignore or [])
 
     transcript_text = args.transcript.read_text() if args.transcript else ""
     result.update(check_isolation(transcript_text, args.sandbox_dir, args.allow or []))
@@ -112,6 +126,7 @@ def main() -> None:
     p_verify.add_argument("baseline_hashes", type=Path)
     p_verify.add_argument("--transcript", type=Path)
     p_verify.add_argument("--allow", action="append")
+    p_verify.add_argument("--ignore", action="append")
     p_verify.add_argument("-o", "--output", type=Path, required=True)
     p_verify.set_defaults(func=cmd_verify)
 

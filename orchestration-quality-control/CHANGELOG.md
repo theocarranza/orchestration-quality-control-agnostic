@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.1.0 — 2026-07-17
+
+- Added a Codex distribution adapter without changing the portable package
+  boundary: a reproducible local marketplace and ZIP, a generated
+  Codex-specific skill entry overlay, and a bundled `PreToolUse` hook.
+- Added the explicitly selected nested Codex topology
+  (`oqc_codex_orchestrator` → Validator/Remediator) plus an idempotent,
+  reversible bootstrap for custom-agent discovery and `agents.max_depth = 2`.
+- Added checkpoint-bound approval authorization so pending target patches must
+  exactly match an approved finding's literal change; shell execution is
+  restricted to the deterministic package scripts while approval is pending.
+- Added offline regression suites for packaging, bootstrap/config preservation,
+  authorization lifecycle, and hook enforcement.
+- Added a native Cursor distribution adapter with bundled nested subagents,
+  Cursor plugin and marketplace manifests, a local-plugin installer, and
+  checkpoint-bound `preToolUse`/`beforeShellExecution` enforcement.
+
 ## 1.0.0 — 2026-07-16
 
 First release of the portable core, extracted from the Aplicatudo-specific

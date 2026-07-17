@@ -98,8 +98,15 @@ python3 eval-harness/check_run_integrity.py verify \
   <run_sandbox_dir> <workspace>/eval-<slug>/baseline-hashes.json \
   --transcript <workspace>/eval-<slug>/<config>/run-<N>/outputs/transcript.md \
   --allow "orchestration-quality-control/" --allow "legacy/" \
+  --ignore ".orchestration-qc/" \
   -o <workspace>/eval-<slug>/<config>/run-<N>/integrity.json
 ```
+
+`--ignore ".orchestration-qc/"` excludes the package's own runtime-state
+directory (checkpoints) from the edit diff — a with_skill run legitimately
+creates this alongside the fixture as part of a real `validate` pass; it is
+not an edit to the fixture itself and must not fail the "left unedited"
+assertion just for existing.
 
 `isolation_ok`/`paths_outside_sandbox` is heuristic evidence, not a verdict
 — the grader weighs it, it doesn't replace the grader's read of the
