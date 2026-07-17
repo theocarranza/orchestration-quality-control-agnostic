@@ -2,7 +2,12 @@
 
 ## Status
 
-Accepted, 2026-07-17.
+Accepted, 2026-07-17. Context note amended by
+[ADR 0010](0010-isolated-three-agent-only.md), 2026-07-17: the portable
+package no longer defaults to a single-agent pipeline; nested three-agent
+topology is now the only shipped execution shape. The Codex-specific
+decision below (custom agents outside the plugin manifest, depth 2) remains
+in force.
 
 ## Context
 

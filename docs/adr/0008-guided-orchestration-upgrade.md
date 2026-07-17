@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted, 2026-07-17.
+Amended by [ADR 0010](0010-isolated-three-agent-only.md), 2026-07-17: the
+`portable-single-agent` template and the `isolation_reason` requirement
+described below were removed. Accepted, 2026-07-17.
 
 ## Context
 

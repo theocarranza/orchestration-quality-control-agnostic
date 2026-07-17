@@ -2,6 +2,7 @@
 
 ## Status
 
+Superseded by [ADR 0010](0010-isolated-three-agent-only.md), 2026-07-17.
 Accepted, 2026-07-16.
 
 ## Context

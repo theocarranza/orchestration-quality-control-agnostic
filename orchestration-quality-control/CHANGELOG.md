@@ -1,3 +1,35 @@
+## 2.0.0 — 2026-07-17
+
+- **Breaking:** removed the `portable-single-agent` execution shape and
+  reference template. This skill now ships and documents exactly one
+  execution shape — the isolated three-agent topology (Orchestrator,
+  Validator, Remediator) — across the core `SKILL.md`, the guided-upgrade
+  `template_id` input (now fixed to `isolated-three-agent`), and every host
+  adapter. A host that cannot complete the nested handoff returns `blocked`
+  instead of silently running the checks in a single agent. See ADR 0010,
+  which supersedes ADR 0003.
+- **Breaking:** removed the `isolation_reason` field entirely — from
+  `upgrade-input.schema.json`, `upgrade-checkpoint.schema.json`,
+  `render_upgrade.py`, `upgrade_state.py`, `apply_upgrade.py`, the
+  `workflows-upgrade-prepare.md` inputs, rule T10, and the `/oqc-upgrade`
+  command/skill UI on every adapter. Selecting the isolated three-agent
+  topology no longer requires a justification.
+- Added a native Claude Code distribution adapter: `adapters/claude/build_plugin.py`
+  produces a reproducible `dist/claude-marketplace/` with a
+  `.claude-plugin/marketplace.json`, a bundled plugin manifest, the existing
+  six subagents and five slash commands, and a plugin-shipped `PreToolUse`
+  hook using `${CLAUDE_PLUGIN_ROOT}` — reaching build/test/distribution
+  parity with the Codex and Cursor adapters. See ADR 0009.
+- Installing the Claude plugin from a marketplace now auto-registers the hook
+  and components; the previous manual `.claude/agents/`/`.claude/commands/`
+  copy plus hand-edited `settings.json` remains documented as a fallback.
+- Documented OpenSkills / skill-only install of the canonical package as an
+  unsupported path for Claude Code: without the bundled subagents it must
+  return `blocked` rather than run a reduced pipeline, matching the existing
+  Codex `npx skills add` disclosure.
+- Bumped `plugin.template.json`/`build_plugin.py` `VERSION` to `2.0.0` across
+  the Claude, Codex, and Cursor adapters to keep them in lockstep.
+
 ## 1.2.0 — 2026-07-17
 
 - Added guided orchestration upgrade operations (`upgrade_prepare`,

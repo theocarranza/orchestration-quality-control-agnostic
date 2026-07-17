@@ -91,10 +91,13 @@ that:
   Brazilian Portuguese reports.
 - `profiles/` — optional add-ons, such as the Aplicatudo E2E profile, that
   extend the core with domain-specific checks.
-- `adapters/claude/` — how this skill runs inside Claude Code specifically,
-  including the option to isolate the checking, editing, and coordinating
-  roles into three separate, narrowly-permissioned agents for stronger
-  guarantees than a single agent can offer on its own.
+- `adapters/claude/` — how this skill runs inside Claude Code specifically:
+  the checking, editing, and coordinating roles are isolated into three
+  separate, narrowly-permissioned agents (Orchestrator, Validator,
+  Remediator). A reproducible `build_plugin.py` produces
+  `dist/claude-marketplace/` for `/plugin marketplace add` install; the
+  README documents marketplace as preferred, manual copy as fallback, and
+  OpenSkills/skill-only install as unsupported (returns `blocked`).
 - `adapters/codex/` — a reproducible Codex plugin build, three nested custom
   agent profiles, an approval-enforcement hook, and the explicit bootstrap
   required because Codex discovers custom agents outside plugin manifests. Its

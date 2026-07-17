@@ -1,9 +1,9 @@
 # Orchestration Quality Control
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](orchestration-quality-control/SKILL.md)
-[![Version](https://img.shields.io/badge/version-1.2.0-green)](orchestration-quality-control/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.0.0-green)](orchestration-quality-control/CHANGELOG.md)
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](orchestration-quality-control/scripts/)
-[![Offline tests](https://img.shields.io/badge/offline%20tests-149-brightgreen)](orchestration-quality-control/scripts/tests/)
+[![Offline tests](https://img.shields.io/badge/offline%20tests-155-brightgreen)](orchestration-quality-control/scripts/tests/)
 [![Agent Skills](https://img.shields.io/badge/spec-Agent%20Skills-8A2BE2)](https://github.com/agentskills/agentskills)
 
 **Quality control for the documents that run your agents** — workflow files, orchestrator documents, and rules files — not the application code agents write. The package classifies targets, checks them against packaged policy, returns structured findings with literal before/after diffs, and applies nothing until a human explicitly approves.
@@ -97,9 +97,9 @@ sequenceDiagram
 
 **Checkpoints** (durable run records) live in the workspace under `.orchestration-qc/state/`, not inside the package. A checkpoint with status `pending_approval` is the only active-run signal — there is no separate marker file. Host adapters with hooks can block direct edits to target files while a review is pending.
 
-The portable core's **default** is a single agent calling the same scripts at every deterministic gate. Hosts that support **subagent isolation** (Claude, Cursor, Codex adapters) may split Validator (read-only) and Remediator (apply-only) for stronger mechanical boundaries; that topology strengthens enforcement of the same contracts, it does not change them ([ADR 0003](docs/adr/0003-single-agent-core-default.md)).
+Every host adapter (Claude, Cursor, Codex) mechanizes the same **isolated three-agent topology**: Validator (read-only) and Remediator (apply-only) run as separate, narrowly-permissioned subagents under an Orchestrator, calling the same deterministic scripts at every gate. A host that cannot complete that nested handoff returns `blocked` rather than silently running the checks in a single agent ([ADR 0010](docs/adr/0010-isolated-three-agent-only.md)).
 
-**Guided upgrade** (`upgrade_prepare` / `upgrade_apply`) discovers an existing orchestration, compares it to a selected reference template (`portable-single-agent` or `isolated-three-agent`), drafts a complete replacement plus `ARCHITECTURE.md`, checkpoints the literal preview, and applies only an atomic approve/decline decision ([ADR 0008](docs/adr/0008-guided-orchestration-upgrade.md)).
+**Guided upgrade** (`upgrade_prepare` / `upgrade_apply`) discovers an existing orchestration, compares it to the isolated-three-agent reference template, drafts a complete replacement plus `ARCHITECTURE.md`, checkpoints the literal preview, and applies only an atomic approve/decline decision ([ADR 0008](docs/adr/0008-guided-orchestration-upgrade.md)).
 
 ---
 
@@ -128,12 +128,13 @@ The definition of done ([ADR 0005](docs/adr/0005-definition-of-done.md)) require
 
 ### Offline deterministic tests
 
-**149** automated tests run with no model call (counts as of v1.2.0):
+**155** automated tests run with no model call (counts as of v2.0.0):
 
 | Suite | Tests |
 | --- | ---: |
 | Core scripts (`scripts/tests/`) | 69 |
 | Claude hook | 8 |
+| Claude adapter build | 6 |
 | Codex adapter | 36 |
 | Cursor adapter | 19 |
 | Eval harness | 17 |
@@ -171,7 +172,7 @@ Compatibility aliases `e2e-quality-control-validate` / `-execute` remain on the 
 2. **Auditing an orchestrator document** — Flag unbounded retry loops, state kept only in chat context, or missing delegation specs (see core eval fixture `deploy-orchestrator.md`).
 3. **Rules authoring hygiene** — Detect rationale clauses (`because`, `so that`) and step sequencing that belongs in workflow files, not rule bullets.
 4. **Generator-source review** — Check whether prompts or generators that produce orchestration artifacts would violate packaged rules (core) or profile artifact rules (e.g. Maestro flows).
-5. **Replacing a legacy orchestration** — Use guided upgrade with `portable-single-agent` when one controller is enough, or `isolated-three-agent` when separate tool grants are required and documented.
+5. **Replacing a legacy orchestration** — Use guided upgrade to compare an existing mechanism against the isolated-three-agent reference architecture, draft a complete replacement, and apply it atomically.
 6. **Product-specific E2E artifact QC** — Select `profile: aplicatudo-e2e` for Maestro/domain/data-file checks without loading that vocabulary into generic runs.
 
 ---
@@ -207,10 +208,8 @@ Expected outcome: only those findings are applied; others remain untouched; the 
 ```yaml
 operation: upgrade_prepare
 mechanism_path: .claude/agents/my-orchestrator.md
-template_id: isolated-three-agent
 apply_mode: side-by-side
 output_root: docs/agent/oqc-v2/
-isolation_reason: Validator must be mechanically read-only via separate tool grant
 ```
 
 Expected outcome: a full proposal tree under `output_root`, an `ARCHITECTURE.md` preview, and a pending upgrade checkpoint for atomic approval.
@@ -224,7 +223,7 @@ Expected outcome: a full proposal tree under `output_root`, an `ARCHITECTURE.md`
 | [`orchestration-quality-control/`](orchestration-quality-control/) | Portable skill — rules, workflows, schemas, scripts, profiles, adapters |
 | [`eval-harness/`](eval-harness/) | Benchmark conversion and run-integrity tooling (repo-local, not shipped in the skill) |
 | [`docs/adr/`](docs/adr/) | Architecture decision records |
-| [`dist/`](dist/) | Generated Cursor and Codex marketplace bundles |
+| [`dist/`](dist/) | Generated Claude, Cursor, and Codex marketplace bundles |
 | [`legacy/`](legacy/) | Archived predecessor material and baseline benchmark |
 | [`AI_Codex_OrchestratorQcPlugin/`](AI_Codex_OrchestratorQcPlugin/) | Project knowledge vault (sessions, reports, plans) |
 
@@ -238,7 +237,7 @@ Runtime checkpoints and workspace state stay **outside** the package and **outsi
 
 **Full enforcement** — use a host adapter so subagents and hooks match the benchmarked topology:
 
-- Claude: [`adapters/claude/README.md`](orchestration-quality-control/adapters/claude/README.md)
+- Claude: [`adapters/claude/README.md`](orchestration-quality-control/adapters/claude/README.md) — build with `python3 orchestration-quality-control/adapters/claude/build_plugin.py`, then `/plugin marketplace add` + `/plugin install` the generated `dist/claude-marketplace/`
 - Cursor: [`adapters/cursor/README.md`](orchestration-quality-control/adapters/cursor/README.md)
 - Codex: [`adapters/codex/README.md`](orchestration-quality-control/adapters/codex/README.md) — single entry: `python3 orchestration-quality-control/adapters/codex/install_codex.py --scope user`
 
@@ -249,6 +248,7 @@ PYTHONPATH=orchestration-quality-control/scripts:orchestration-quality-control/s
   python3 -m unittest discover -s orchestration-quality-control/scripts/tests -p 'test_*.py'
 
 python3 -m unittest discover -s orchestration-quality-control/adapters/claude/hooks/tests -p 'test_*.py'
+python3 -m unittest discover -s orchestration-quality-control/adapters/claude/tests -p 'test_*.py'
 python3 -m unittest discover -s orchestration-quality-control/adapters/codex/tests -p 'test_*.py'
 python3 -m unittest discover -s orchestration-quality-control/adapters/cursor/tests -p 'test_*.py'
 python3 -m unittest discover -s eval-harness/tests -p 'test_*.py'
@@ -264,11 +264,13 @@ Public behavior changes belong in [`orchestration-quality-control/CHANGELOG.md`]
 | --- | --- |
 | [0001](docs/adr/0001-freeze-baseline-and-legacy-archival.md) | Freeze baseline and archive legacy |
 | [0002](docs/adr/0002-agent-skills-spec-anchor.md) | Anchor on Agent Skills spec, not OpenSkills alone |
-| [0003](docs/adr/0003-single-agent-core-default.md) | Single-agent pipeline as core default |
+| [0003](docs/adr/0003-single-agent-core-default.md) | Single-agent pipeline as core default (superseded by 0010) |
 | [0005](docs/adr/0005-definition-of-done.md) | Extraction definition of done (incl. benchmark parity) |
 | [0006](docs/adr/0006-codex-nested-adapter.md) | Codex nested adapter |
 | [0007](docs/adr/0007-cursor-native-adapter.md) | Cursor native adapter |
-| [0008](docs/adr/0008-guided-orchestration-upgrade.md) | Guided orchestration upgrade |
+| [0008](docs/adr/0008-guided-orchestration-upgrade.md) | Guided orchestration upgrade (amended by 0010) |
+| [0009](docs/adr/0009-claude-native-plugin-marketplace.md) | Claude native plugin marketplace |
+| [0010](docs/adr/0010-isolated-three-agent-only.md) | Ship the isolated three-agent topology only |
 
 Deeper design narrative: [`AI_Codex_OrchestratorQcPlugin/Agent_Reports/2026-07-15-orchestration-qc-openskills-architecture.md`](AI_Codex_OrchestratorQcPlugin/Agent_Reports/2026-07-15-orchestration-qc-openskills-architecture.md) (vault report; same facts as the ADRs above).
 
@@ -281,16 +283,16 @@ Deeper design narrative: [`AI_Codex_OrchestratorQcPlugin/Agent_Reports/2026-07-1
 - [Agent Skills specification](https://github.com/agentskills/agentskills) — `SKILL.md` frontmatter, progressive disclosure, optional `scripts/` and `references/` ([ADR 0002](docs/adr/0002-agent-skills-spec-anchor.md))
 - [OpenSkills](https://github.com/numman-ali/openskills) — one supported installer for the open standard
 
-**Why single-agent is the core default**
+**Why isolated three-agent is the only shipped topology**
 
-- Anthropic's published multi-agent research system notes substantially higher token use than a single agent for many tasks; multi-agent breadth is justified mainly when context exceeds one window ([ADR 0003](docs/adr/0003-single-agent-core-default.md))
-- Cognition's public critique of multi-agent setups attributes much unreliability to context fragmented across agents — relevant to inconsistent validator/remediator results on identical input
+- A mechanically read-only Validator (tool grant excludes `Edit`/`Write`) and an apply-only Remediator are the one concrete, host-enforceable guarantee this package can offer beyond prompt instructions — every shipped adapter (Claude, Cursor, Codex) mechanizes exactly this shape ([ADR 0010](docs/adr/0010-isolated-three-agent-only.md), superseding [ADR 0003](docs/adr/0003-single-agent-core-default.md))
+- A host that cannot complete the nested handoff returns `blocked` rather than quietly running the checks in a single, unrestricted agent
 
 **In-repo contracts**
 
 - Skill entry: [`orchestration-quality-control/SKILL.md`](orchestration-quality-control/SKILL.md)
 - Package overview: [`orchestration-quality-control/README.md`](orchestration-quality-control/README.md)
-- Reference templates: [`references/templates/portable-single-agent.md`](orchestration-quality-control/references/templates/portable-single-agent.md), [`isolated-three-agent.md`](orchestration-quality-control/references/templates/isolated-three-agent.md)
+- Reference template: [`references/templates/isolated-three-agent.md`](orchestration-quality-control/references/templates/isolated-three-agent.md)
 
 ---
 
