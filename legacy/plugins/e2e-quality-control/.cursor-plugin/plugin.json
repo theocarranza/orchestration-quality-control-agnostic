@@ -1,0 +1,17 @@
+{
+  "name": "e2e-quality-control",
+  "description": "Isolated end-to-end quality-control skill for Aplicatudo. Validates finished Maestro artifacts and generator sources (rules, workflows, prompts) against packaged quality rules, with a plain-language report and an apply gate.",
+  "version": "1.2.0",
+  "author": {
+    "name": "Aplicatudo"
+  },
+  "keywords": [
+    "e2e",
+    "maestro",
+    "quality-control",
+    "aplicatudo",
+    "flutter"
+  ],
+  "skills": "./skills/",
+  "commands": "./commands/"
+}

@@ -1,0 +1,12 @@
+{
+  "eval_id": 2,
+  "eval_name": "folder-orphan-collision",
+  "prompt": "Please check this whole folder of end-to-end test files for quality problems. Use the e2e-quality-control skill. Look for helper flows that nothing calls, and for screen ids that collide when only the first nineteen characters are compared. Stay inside this folder.",
+  "assertions": [
+    "Treats the folder as the target set and does not open files outside it",
+    "Flags an unused helper flow and/or colliding screen ids within the folder",
+    "Produces a short plain-language report",
+    "Asks before applying edits",
+    "Avoids abbreviations and acronyms in the reader-facing report"
+  ]
+}

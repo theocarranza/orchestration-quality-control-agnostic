@@ -1,0 +1,38 @@
+{
+  "expectations": [
+    {
+      "text": "Produces a short plain-language English report",
+      "passed": true,
+      "evidence": "English Summary + Findings"
+    },
+    {
+      "text": "Flags mixing of business rules with passwords, screen ids, wait times, or database field notes",
+      "passed": true,
+      "evidence": "Findings 1-3 cover those mixes"
+    },
+    {
+      "text": "Does not edit the file before user approval",
+      "passed": true,
+      "evidence": "Apply = No"
+    },
+    {
+      "text": "Names broken rules in plain words rather than internal codes",
+      "passed": true,
+      "evidence": "Full-sentence rule names; no R-codes in report"
+    },
+    {
+      "text": "Stays isolated to packaged rules plus the selected file",
+      "passed": true,
+      "evidence": "Only rules + target + plain-language refs"
+    }
+  ],
+  "passed_count": 5,
+  "total_count": 5,
+  "pass_rate": 1.0,
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1.0
+  }
+}

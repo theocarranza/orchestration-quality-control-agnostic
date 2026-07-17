@@ -1,0 +1,38 @@
+{
+  "expectations": [
+    {
+      "text": "Produces a short plain-language report with what is wrong, which rule, where, and what to change",
+      "passed": true,
+      "evidence": "Table includes Problem / Where / Rule / Suggested change"
+    },
+    {
+      "text": "Flags login or environment values living inside the flow instead of a data file",
+      "passed": true,
+      "evidence": "Finding 1 flags embedded credentials"
+    },
+    {
+      "text": "Does not edit the target file before an explicit apply confirmation",
+      "passed": true,
+      "evidence": "No files modified"
+    },
+    {
+      "text": "Does not open unrelated project files for the quality check",
+      "passed": true,
+      "evidence": "Read only the target fixture"
+    },
+    {
+      "text": "Reader-facing text avoids abbreviations, acronyms, and decorative symbols",
+      "passed": false,
+      "evidence": "Heavy jargon and formatting: env, YAML, onFlowStart, appId, markdown tables and bold"
+    }
+  ],
+  "passed_count": 4,
+  "total_count": 5,
+  "pass_rate": 0.8,
+  "summary": {
+    "passed": 4,
+    "failed": 1,
+    "total": 5,
+    "pass_rate": 0.8
+  }
+}

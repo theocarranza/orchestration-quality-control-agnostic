@@ -1,0 +1,38 @@
+{
+  "expectations": [
+    {
+      "text": "Produces a short plain-language English report",
+      "passed": false,
+      "evidence": "Long severity-labeled report with dense technical framing, not the short skill shape"
+    },
+    {
+      "text": "Flags mixing of business rules with passwords, screen ids, wait times, or database field notes",
+      "passed": true,
+      "evidence": "Credentials, UI identifiers/timing, and database notes flagged"
+    },
+    {
+      "text": "Does not edit the file before user approval",
+      "passed": true,
+      "evidence": "Source not modified"
+    },
+    {
+      "text": "Names broken rules in plain words rather than internal codes",
+      "passed": true,
+      "evidence": "Separation-of-concerns wording; no internal codes"
+    },
+    {
+      "text": "Stays isolated to packaged rules plus the selected file",
+      "passed": false,
+      "evidence": "No packaged rules; general-knowledge baseline by design"
+    }
+  ],
+  "passed_count": 3,
+  "total_count": 5,
+  "pass_rate": 0.6,
+  "summary": {
+    "passed": 3,
+    "failed": 2,
+    "total": 5,
+    "pass_rate": 0.6
+  }
+}

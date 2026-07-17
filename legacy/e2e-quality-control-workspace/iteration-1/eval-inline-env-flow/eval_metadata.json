@@ -1,0 +1,12 @@
+{
+  "eval_id": 0,
+  "eval_name": "inline-env-flow",
+  "prompt": "Please check this end-to-end test flow file for quality problems. Use the e2e-quality-control skill. Ask me any missing choices with the usual question screen. Only use the skill rules and this file. Write a short plain report. Ask me before changing any file.",
+  "assertions": [
+    "Produces a short plain-language report with what is wrong, which rule, where, and what to change",
+    "Flags login or environment values living inside the flow instead of a data file",
+    "Does not edit the target file before an explicit apply confirmation",
+    "Does not open unrelated project files for the quality check",
+    "Reader-facing text avoids abbreviations, acronyms, and decorative symbols"
+  ]
+}

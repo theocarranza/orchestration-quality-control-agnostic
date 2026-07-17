@@ -1,0 +1,38 @@
+{
+  "expectations": [
+    {
+      "text": "Treats the folder as the target set and does not open files outside it",
+      "passed": true,
+      "evidence": "Limited to three files in folder"
+    },
+    {
+      "text": "Flags an unused helper flow and/or colliding screen ids within the folder",
+      "passed": true,
+      "evidence": "Orphan and collision both reported"
+    },
+    {
+      "text": "Produces a short plain-language report",
+      "passed": false,
+      "evidence": "Severity labels and markdown tables; denser than the skill report shape"
+    },
+    {
+      "text": "Asks before applying edits",
+      "passed": true,
+      "evidence": "Read-only; no changes"
+    },
+    {
+      "text": "Avoids abbreviations and acronyms in the reader-facing report",
+      "passed": false,
+      "evidence": "Uses E2E, YAML, runFlow, and table-heavy formatting"
+    }
+  ],
+  "passed_count": 3,
+  "total_count": 5,
+  "pass_rate": 0.6,
+  "summary": {
+    "passed": 3,
+    "failed": 2,
+    "total": 5,
+    "pass_rate": 0.6
+  }
+}

@@ -1,0 +1,323 @@
+{
+  "metadata": {
+    "skill_name": "e2e-quality-control",
+    "skill_path": "<path/to/skill>",
+    "executor_model": "<model-name>",
+    "analyzer_model": "<model-name>",
+    "timestamp": "2026-07-11T07:42:52Z",
+    "evals_run": [
+      0,
+      1,
+      2
+    ],
+    "runs_per_configuration": 3
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Produces a short plain-language English report",
+          "passed": true,
+          "evidence": "English Summary + Findings"
+        },
+        {
+          "text": "Flags mixing of business rules with passwords, screen ids, wait times, or database field notes",
+          "passed": true,
+          "evidence": "Findings 1-3 cover those mixes"
+        },
+        {
+          "text": "Does not edit the file before user approval",
+          "passed": true,
+          "evidence": "Apply = No"
+        },
+        {
+          "text": "Names broken rules in plain words rather than internal codes",
+          "passed": true,
+          "evidence": "Full-sentence rule names; no R-codes in report"
+        },
+        {
+          "text": "Stays isolated to packaged rules plus the selected file",
+          "passed": true,
+          "evidence": "Only rules + target + plain-language refs"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Treats the folder as the target set and does not open files outside it",
+          "passed": true,
+          "evidence": "Only the three folder files plus skill refs"
+        },
+        {
+          "text": "Flags an unused helper flow and/or colliding screen ids within the folder",
+          "passed": true,
+          "evidence": "Unused dead_subflow and nineteen-character collision"
+        },
+        {
+          "text": "Produces a short plain-language report",
+          "passed": true,
+          "evidence": "Short Finding sections"
+        },
+        {
+          "text": "Asks before applying edits",
+          "passed": true,
+          "evidence": "No edits"
+        },
+        {
+          "text": "Avoids abbreviations and acronyms in the reader-facing report",
+          "passed": true,
+          "evidence": "Explains truncation in plain words"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 0,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Produces a short plain-language report with what is wrong, which rule, where, and what to change",
+          "passed": true,
+          "evidence": "Finding sections with What is wrong / Rule / Where / Suggested change"
+        },
+        {
+          "text": "Flags login or environment values living inside the flow instead of a data file",
+          "passed": true,
+          "evidence": "Finding 1 covers inline env credentials"
+        },
+        {
+          "text": "Does not edit the target file before an explicit apply confirmation",
+          "passed": true,
+          "evidence": "Apply = No; no edits"
+        },
+        {
+          "text": "Does not open unrelated project files for the quality check",
+          "passed": true,
+          "evidence": "Only skill rules, target, plain-language refs"
+        },
+        {
+          "text": "Reader-facing text avoids abbreviations, acronyms, and decorative symbols",
+          "passed": true,
+          "evidence": "Plain sentences; no emoji; no internal rule codes"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.6,
+        "passed": 3,
+        "failed": 2,
+        "total": 5,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Produces a short plain-language English report",
+          "passed": false,
+          "evidence": "Long severity-labeled report with dense technical framing, not the short skill shape"
+        },
+        {
+          "text": "Flags mixing of business rules with passwords, screen ids, wait times, or database field notes",
+          "passed": true,
+          "evidence": "Credentials, UI identifiers/timing, and database notes flagged"
+        },
+        {
+          "text": "Does not edit the file before user approval",
+          "passed": true,
+          "evidence": "Source not modified"
+        },
+        {
+          "text": "Names broken rules in plain words rather than internal codes",
+          "passed": true,
+          "evidence": "Separation-of-concerns wording; no internal codes"
+        },
+        {
+          "text": "Stays isolated to packaged rules plus the selected file",
+          "passed": false,
+          "evidence": "No packaged rules; general-knowledge baseline by design"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.6,
+        "passed": 3,
+        "failed": 2,
+        "total": 5,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Treats the folder as the target set and does not open files outside it",
+          "passed": true,
+          "evidence": "Limited to three files in folder"
+        },
+        {
+          "text": "Flags an unused helper flow and/or colliding screen ids within the folder",
+          "passed": true,
+          "evidence": "Orphan and collision both reported"
+        },
+        {
+          "text": "Produces a short plain-language report",
+          "passed": false,
+          "evidence": "Severity labels and markdown tables; denser than the skill report shape"
+        },
+        {
+          "text": "Asks before applying edits",
+          "passed": true,
+          "evidence": "Read-only; no changes"
+        },
+        {
+          "text": "Avoids abbreviations and acronyms in the reader-facing report",
+          "passed": false,
+          "evidence": "Uses E2E, YAML, runFlow, and table-heavy formatting"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 0,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8,
+        "passed": 4,
+        "failed": 1,
+        "total": 5,
+        "time_seconds": 0.0,
+        "tokens": 0,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Produces a short plain-language report with what is wrong, which rule, where, and what to change",
+          "passed": true,
+          "evidence": "Table includes Problem / Where / Rule / Suggested change"
+        },
+        {
+          "text": "Flags login or environment values living inside the flow instead of a data file",
+          "passed": true,
+          "evidence": "Finding 1 flags embedded credentials"
+        },
+        {
+          "text": "Does not edit the target file before an explicit apply confirmation",
+          "passed": true,
+          "evidence": "No files modified"
+        },
+        {
+          "text": "Does not open unrelated project files for the quality check",
+          "passed": true,
+          "evidence": "Read only the target fixture"
+        },
+        {
+          "text": "Reader-facing text avoids abbreviations, acronyms, and decorative symbols",
+          "passed": false,
+          "evidence": "Heavy jargon and formatting: env, YAML, onFlowStart, appId, markdown tables and bold"
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.6667,
+        "stddev": 0.1155,
+        "min": 0.6,
+        "max": 0.8
+      },
+      "time_seconds": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "tokens": {
+        "mean": 0.0,
+        "stddev": 0.0,
+        "min": 0,
+        "max": 0
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.33",
+      "time_seconds": "+0.0",
+      "tokens": "+0"
+    }
+  },
+  "notes": []
+}

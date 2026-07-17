@@ -1,0 +1,10 @@
+appId: br.com.aplicatudo
+---
+- launchApp
+env:
+  EMAIL: teacher@example.com
+  PASSWORD: secret123
+---
+- tapOn:
+    id: login_button
+- assertVisible: "Home"
