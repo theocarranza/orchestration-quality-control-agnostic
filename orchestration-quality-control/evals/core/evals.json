@@ -1,0 +1,122 @@
+{
+  "skill_name": "orchestration-quality-control",
+  "profile": "core",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Please check this orchestrator document for quality problems. Use the orchestration-quality-control skill with profile: core. Only use the skill rules and this file. Write a short plain report. Ask me before changing any file.",
+      "expected_output": "Finds that a failed stage is retried with no cap or fallback, and that cross-stage progress is tracked only in conversation rather than a durable store. May also flag incomplete delegation specs for the Build, Test, and Publish worker hand-offs. Does not edit until the user agrees.",
+      "files": [
+        "fixtures/deploy-orchestrator.md"
+      ],
+      "assertions": [
+        {
+          "id": "a1",
+          "text": "Produces a short plain-language report with what is wrong, which rule, where, and what to change"
+        },
+        {
+          "id": "a2",
+          "text": "Flags the uncapped retry loop with no defined fallback"
+        },
+        {
+          "id": "a3",
+          "text": "Flags cross-stage state tracked only in conversation context rather than a durable store"
+        },
+        {
+          "id": "a4",
+          "text": "Does not edit the target file before an explicit apply confirmation"
+        },
+        {
+          "id": "a5",
+          "text": "Reader-facing text avoids abbreviations, acronyms, and decorative symbols"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Please check this rules file for quality problems. Use the orchestration-quality-control skill with profile: core. Write the report in English. Do not change the file until I say yes.",
+      "expected_output": "Uses English. Finds rationale clauses (because, so that) and first/then sequencing language in the rule bullets. Suggests rewriting them as firm, rationale-free constraints. Does not edit until the user agrees.",
+      "files": [
+        "fixtures/rules-generic-with-rationale.md"
+      ],
+      "assertions": [
+        {
+          "id": "a1",
+          "text": "Produces a short plain-language English report"
+        },
+        {
+          "id": "a2",
+          "text": "Flags rationale clauses such as 'because' or 'so that' in the rule bullets"
+        },
+        {
+          "id": "a3",
+          "text": "Flags first/then sequencing language as belonging in a workflow file instead"
+        },
+        {
+          "id": "a4",
+          "text": "Does not edit the file before user approval"
+        },
+        {
+          "id": "a5",
+          "text": "Stays isolated to packaged rules plus the selected file"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Please check this workflow document for quality problems. Use the orchestration-quality-control skill with profile: core. Write the report in English. Only use the skill rules and this file. Ask me before changing any file.",
+      "expected_output": "Finds that the delegation to the Drafting worker does not state an output format, tool guidance, or explicit boundaries. Suggests completing the delegation spec. Does not edit until the user agrees.",
+      "files": [
+        "fixtures/workflows-generic-missing-delegation-spec.md"
+      ],
+      "assertions": [
+        {
+          "id": "a1",
+          "text": "Treats the target as a workflow document"
+        },
+        {
+          "id": "a2",
+          "text": "Flags the Drafting worker delegation as missing output format, tool guidance, or explicit boundaries"
+        },
+        {
+          "id": "a3",
+          "text": "Produces a short plain-language English report"
+        },
+        {
+          "id": "a4",
+          "text": "Does not edit the file before user approval"
+        },
+        {
+          "id": "a5",
+          "text": "Names broken rules in plain words rather than internal codes"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Please check this workflow document for quality problems. Use the orchestration-quality-control skill with profile: core. Only use the skill rules and this file. Write a short plain report.",
+      "expected_output": "Finds no problems. Reports a clear all-passed result with no findings.",
+      "files": [
+        "fixtures/workflows-generic-clean.md"
+      ],
+      "assertions": [
+        {
+          "id": "a1",
+          "text": "Reports that no problems were found, with no fabricated findings"
+        },
+        {
+          "id": "a2",
+          "text": "Does not propose any edit, since there is nothing to fix"
+        },
+        {
+          "id": "a3",
+          "text": "Stays isolated to packaged rules plus the selected file"
+        },
+        {
+          "id": "a4",
+          "text": "Report contains no Aplicatudo, Maestro, or Flutter vocabulary"
+        }
+      ]
+    }
+  ]
+}
