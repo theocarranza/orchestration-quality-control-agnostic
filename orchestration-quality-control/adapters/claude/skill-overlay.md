@@ -30,7 +30,8 @@ the orchestrator hands it, inside the checkpoint's target set. The plugin's
 `PreToolUse` hook separately blocks the root session's own `Edit`/`Write` on
 any path listed in an active checkpoint's `targets`.
 
-For `upgrade_prepare` or `upgrade_apply`, invoke `/oqc-upgrade`, which
-delegates to exactly one `oqc-upgrade-orchestrator`. It coordinates the
-existing validator, `oqc-proposal-author`, and `oqc-upgrade-applier`. The
-root session owns every question and the atomic approval decision.
+For `upgrade_prepare` or `upgrade_apply`, invoke `/oqc-upgrade`. For
+`author_prepare` or `author_apply`, invoke `/oqc-author`. Both delegate to
+exactly one `oqc-upgrade-orchestrator`. It coordinates the existing
+validator, `oqc-proposal-author`, and `oqc-upgrade-applier`. The root
+session owns every question and the atomic approval decision.

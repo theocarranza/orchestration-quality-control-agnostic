@@ -1,9 +1,9 @@
 # Orchestration Quality Control
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](orchestration-quality-control/SKILL.md)
-[![Version](https://img.shields.io/badge/version-3.0.0-green)](orchestration-quality-control/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-3.1.0-green)](orchestration-quality-control/CHANGELOG.md)
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](orchestration-quality-control/scripts/)
-[![Offline tests](https://img.shields.io/badge/offline%20tests-157-brightgreen)](orchestration-quality-control/scripts/tests/)
+[![Offline tests](https://img.shields.io/badge/offline%20tests-174-brightgreen)](orchestration-quality-control/scripts/tests/)
 [![Agent Skills](https://img.shields.io/badge/spec-Agent%20Skills-8A2BE2)](https://github.com/agentskills/agentskills)
 
 **Quality control for the documents that run your agents** — workflow files, orchestrator documents, and rules files — not the application code agents write. The package classifies targets, checks them against packaged policy, returns structured findings with literal before/after diffs, and applies nothing until a human explicitly approves.
@@ -77,22 +77,24 @@ sequenceDiagram
     participant U as Human
     participant H as Host entry
     participant O as Orchestrator
-    participant V as Validator
     participant R as Remediator
+    participant V as Validator
 
-    U->>H: validate — targets + profile + language
+    U->>H: validate (targets, profile, language)
     H->>O: delegate validation
-    O->>V: classify and inspect (read-only)
+    O->>V: classify + inspect (read-only)
     V-->>O: findings + report inputs
-    O->>O: write checkpoint if findings exist
-    O-->>H: plain-language report + checkpoint path
-    H->>U: apply all, some, or none?
-    U->>H: execute — checkpoint + decision
+    O->>O: write checkpoint
+    O-->>H: report + checkpoint path
+    H->>U: apply all / some / none?
+    U->>H: execute (checkpoint + decision)
     H->>O: delegate execution
-    O->>R: approved findings only
-    R-->>O: applied or skipped per finding
+    O->>R: approved findings
+    R-->>O: applied or skipped
     O->>O: consume checkpoint
     O-->>H: final reconciliation report
+    H-->>U: final reconciliation report
+    Note over U,R: run complete
 ```
 
 **Checkpoints** (durable run records) live in the workspace under `.orchestration-qc/state/`, not inside the package. A checkpoint with status `pending_approval` is the only active-run signal — there is no separate marker file. Host adapters with hooks can block direct edits to target files while a review is pending.
@@ -110,17 +112,17 @@ Every host adapter (Claude, Cursor, Codex) mechanizes the same **isolated three-
 | Eval set | Profile | Cases | Purpose |
 | --- | --- | ---: | --- |
 | [`evals/core/evals.json`](orchestration-quality-control/evals/core/evals.json) | `core` | 4 | Generic orchestration only |
-| [`profiles/example-pipeline/evals/evals.json`](orchestration-quality-control/profiles/example-pipeline/evals/evals.json) | `example-pipeline` | 4 | Fictional pipeline-artifact profile |
+| [`evals/author/evals.json`](orchestration-quality-control/evals/author/evals.json) | `core` | 2 | Greenfield authoring interview and apply gates |
 
 The definition of done ([ADR 0005](AI_Codex/Architecture/ADR/0005-definition-of-done.md), amended by [ADR 0011](AI_Codex/Architecture/ADR/0011-agnostic-example-pipeline-profile.md)) requires both sets to reach **100% with-skill pass rate**. The repo includes [`eval-harness/`](eval-harness/) tooling (converter, run-integrity checker, runbook) to repeat that grading; see [`eval-harness/RUNBOOK.md`](eval-harness/RUNBOOK.md) for the 3 with-skill + 1 without-skill run protocol per eval.
 
 ### Offline deterministic tests
 
-**157** automated tests run with no model call (counts as of v3.0.0):
+**174** automated tests run with no model call (counts as of v3.1.0):
 
 | Suite | Tests |
 | --- | ---: |
-| Core scripts (`scripts/tests/`) | 71 |
+| Core scripts (`scripts/tests/`) | 88 |
 | Claude hook | 8 |
 | Claude adapter build | 6 |
 | Codex adapter | 36 |
@@ -139,12 +141,14 @@ These cover classification, content-anchored finding IDs (stable when unrelated 
 | **`execute`** | Apply `all`, `none`, or a named subset of finding IDs from a pending checkpoint; reconcile applied vs skipped |
 | **`upgrade_prepare`** | Discover orchestration, compare to a reference template, return proposal + docs preview + checkpoint |
 | **`upgrade_apply`** | Atomic `approve` or `decline` on an upgrade checkpoint |
+| **`author_prepare`** | Audit workspace, interview gaps, draft process documents, internal QC, checkpoint |
+| **`author_apply`** | Atomic `approve` or `decline` into an empty `output_root` |
 
-Input contracts: [`references/schemas/input.schema.json`](orchestration-quality-control/references/schemas/input.schema.json) and [`upgrade-input.schema.json`](orchestration-quality-control/references/schemas/upgrade-input.schema.json).
+Input contracts: [`references/schemas/input.schema.json`](orchestration-quality-control/references/schemas/input.schema.json), [`upgrade-input.schema.json`](orchestration-quality-control/references/schemas/upgrade-input.schema.json), and [`author-input.schema.json`](orchestration-quality-control/references/schemas/author-input.schema.json).
 
 Host entry points:
 
-| Host | QC | Upgrade | Author (3.1.0, not shipped) |
+| Host | QC | Upgrade | Author |
 | --- | --- | --- | --- |
 | Claude Code | `/oqc-validate`, `/oqc-execute` | `/oqc-upgrade` | `/oqc-author` |
 | Cursor | skill + bundled subagents | `/oqc-upgrade` | `/oqc-author` |
@@ -206,30 +210,26 @@ Expected outcome: a full proposal tree under `output_root`, an `ARCHITECTURE.md`
 ## Repository layout
 
 ```mermaid
-flowchart LR
+flowchart TB
   subgraph users["Product users"]
-    SKILL["orchestration-quality-control/"]
-    DOCS["docs/authoring.md"]
+    direction TB
+    SKILL["orchestration-quality-control/<br/>install · validate · execute · upgrade"]
+    DOCS["docs/authoring.md<br/>greenfield authoring · specified 3.1.0"]
   end
   subgraph contrib["Contributors / forkers"]
-    LEDGER["AI_Codex/"]
-    EVAL["eval-harness/"]
+    direction TB
+    LEDGER["AI_Codex/<br/>ADRs · specs · plans · sessions"]
+    EVAL["eval-harness/<br/>live-model grading"]
   end
-  SKILL -->|"install, validate, execute, upgrade"| users
-  DOCS -->|"authoring, specified 3.1.0"| users
-  LEDGER -->|"ADRs, specs, plans, sessions"| contrib
-  EVAL -->|"live-model grading"| contrib
 ```
 
 | Path | Role |
 | --- | --- |
 | [`orchestration-quality-control/`](orchestration-quality-control/) | Portable skill — rules, workflows, schemas, scripts, profiles, adapters |
-| [`docs/authoring.md`](docs/authoring.md) | Greenfield authoring for product users (specified for 3.1.0) |
+| [`docs/authoring.md`](docs/authoring.md) | Greenfield authoring for product users |
 | [`AI_Codex/`](AI_Codex/) | Contributor ledger — ADRs, specs, plans, sessions (versioned) |
 | [`eval-harness/`](eval-harness/) | Benchmark conversion and run-integrity tooling (repo-local, not shipped in the skill) |
-| [`dist/`](dist/) | Generated Claude, Cursor, and Codex marketplace bundles |
-
-Runtime checkpoints and workspace state stay **outside** the package and **outside** git — under each target workspace's `.orchestration-qc/`.
+| `dist/` | Generated Claude, Cursor, and Codex marketplace bundles (gitignored; build per adapter README) |
 
 Runtime checkpoints and workspace state stay **outside** the package and **outside** git — under each target workspace's `.orchestration-qc/`.
 

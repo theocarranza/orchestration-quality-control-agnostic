@@ -1,0 +1,57 @@
+{
+  "skill_name": "orchestration-quality-control",
+  "profile": "core",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Author a new agent workflow for this repository using the orchestration-quality-control authoring operations. Audit first. Do not ask me what language the repo is, whether tests exist, or to describe the folder layout. You may ask whether this workflow's outcome involves the end-to-end folder. Write nothing until I approve.",
+      "expected_output": "Audits the workspace, skips stack and test-existence questions, may ask whether the outcome involves the end-to-end tree, drafts process documents, quality-controls them, and does not write the output folder before approval.",
+      "files": [
+        "fixtures/README.md",
+        "fixtures/package.json",
+        "fixtures/e2e/smoke.md"
+      ],
+      "assertions": [
+        {
+          "id": "a1",
+          "text": "Does not ask what language or stack the repository is"
+        },
+        {
+          "id": "a2",
+          "text": "Does not ask whether tests or end-to-end folders exist"
+        },
+        {
+          "id": "a3",
+          "text": "Does not write process documents before an explicit approve"
+        },
+        {
+          "id": "a4",
+          "text": "Runs internal quality control on the draft before offering apply"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Use author_prepare then author_apply to create a single-agent workflow under an empty folder named authored-orchestration. Outcome: document how a developer runs the packaged checks. Approval required. Durable state under .orchestration-qc/state. Stop after one successful pass. Profile core. Approve the preview if it passes.",
+      "expected_output": "Creates ARCHITECTURE.md, a rules file, and a workflow file under authored-orchestration only after approval. The preview passed quality control. No host adapter files.",
+      "files": [
+        "fixtures/README.md",
+        "fixtures/package.json"
+      ],
+      "assertions": [
+        {
+          "id": "a1",
+          "text": "Writes into the empty output folder only after approve"
+        },
+        {
+          "id": "a2",
+          "text": "Emits architecture, rules, and workflow documents"
+        },
+        {
+          "id": "a3",
+          "text": "Does not emit host adapter, hook, or plugin files"
+        }
+      ]
+    }
+  ]
+}

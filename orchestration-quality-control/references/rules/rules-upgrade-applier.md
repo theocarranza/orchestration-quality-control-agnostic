@@ -7,9 +7,10 @@ alwaysApply: false
 
 ## Requirements
 
-- Accept only a pending schema-version 3 upgrade checkpoint with an explicit
-  `approve` decision.
-- Invoke `scripts/apply_upgrade.py` once; never edit a target directly.
+- Accept only a pending upgrade checkpoint (schema-version 3) or author
+  checkpoint (schema-version 1) with an explicit `approve` decision.
+- Invoke `scripts/apply_upgrade.py` once for upgrade, or
+  `scripts/apply_author.py` once for author; never edit a target directly.
 - Return the script's structured result unchanged.
 
 ## Boundaries

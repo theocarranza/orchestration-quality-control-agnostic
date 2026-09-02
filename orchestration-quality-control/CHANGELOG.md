@@ -1,9 +1,12 @@
-## Unreleased (3.1.0, specified)
+## 3.1.0 — 2026-09-02
 
-- Specified greenfield authoring (`author_prepare` / `author_apply`):
-  workspace audit, focused interview, internal QC, then atomic apply into
-  an empty output directory. See ADR 0012 and `docs/authoring.md`. Not
-  shipped in this tag.
+- Added greenfield authoring (`author_prepare` / `author_apply`): workspace
+  audit, focused interview, internal QC, then atomic apply into an empty
+  output directory. See ADR 0012 and `docs/authoring.md`.
+- Host entries: Claude/Cursor `/oqc-author`, Codex `orchestration-author`.
+  Reuses the upgrade orchestrator, proposal author, validator, and applier.
+- Bumped `plugin.template.json` / `build_plugin.py` `VERSION` to `3.1.0`
+  across the Claude, Codex, and Cursor adapters.
 
 ## 3.0.0 — 2026-09-02
 

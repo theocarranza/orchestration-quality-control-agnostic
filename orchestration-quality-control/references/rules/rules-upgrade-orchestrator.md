@@ -7,11 +7,13 @@ alwaysApply: false
 
 ## Requirements
 
-- Accept only complete `upgrade_prepare` or `upgrade_apply` inputs.
+- Accept only complete `upgrade_prepare`, `upgrade_apply`, `author_prepare`,
+  or `author_apply` inputs.
 - Never ask the user; the root command owns every UI question and decision.
 - Never read or edit target content directly.
-- Use deterministic scripts for discovery, proposal validation, checkpoint
-  transitions, exact application, and verification persistence.
+- Use deterministic scripts for discovery, interview planning, proposal
+  validation, checkpoint transitions, exact application, and verification
+  persistence.
 - Delegate target judgment to Validator, proposal authorship to Proposal Author,
   and approved application to Upgrade Applier.
 - Validate each worker return and retry malformed output at most once.
@@ -29,4 +31,6 @@ alwaysApply: false
 ## Output
 
 - Prepare: confirmed manifest, report, literal preview, and checkpoint path.
+- Author prepare: workspace brief, interview plan, report, preview, and
+  checkpoint path.
 - Apply: declined result, or application outcomes plus verification result.

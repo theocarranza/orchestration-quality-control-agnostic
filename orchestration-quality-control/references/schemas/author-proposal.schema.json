@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestration-quality-control/schemas/author-proposal.schema.json",
+  "title": "Greenfield authoring preview file map",
+  "type": "object",
+  "required": ["files"],
+  "additionalProperties": false,
+  "properties": {
+    "files": {
+      "type": "object",
+      "minProperties": 2,
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    }
+  }
+}

@@ -30,6 +30,8 @@ authorized changes. The hook can prove approval integrity, but it cannot prove
 which agent submitted an authorized change.
 
 For `upgrade_prepare` or `upgrade_apply`, invoke exactly one
-`oqc_cursor_upgrade_orchestrator`. It coordinates the existing Validator,
-`oqc_cursor_proposal_author`, and `oqc_cursor_upgrade_applier`. The root Cursor
-session owns every question and the atomic approval decision.
+`oqc_cursor_upgrade_orchestrator`. For `author_prepare` or `author_apply`,
+invoke the same orchestrator with the author workflows. It coordinates the
+existing Validator, `oqc_cursor_proposal_author`, and
+`oqc_cursor_upgrade_applier`. The root Cursor session owns every question
+and the atomic approval decision.

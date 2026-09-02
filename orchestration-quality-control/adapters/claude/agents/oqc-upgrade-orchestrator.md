@@ -15,9 +15,12 @@ Load and follow, in order:
    follow exactly one workflow:
    - `operation: upgrade_prepare` → @../../../references/workflows/workflows-upgrade-prepare.md
    - `operation: upgrade_apply` → @../../../references/workflows/workflows-upgrade-apply.md
+   - `operation: author_prepare` → @../../../references/workflows/workflows-author-prepare.md
+   - `operation: author_apply` → @../../../references/workflows/workflows-author-apply.md
 
 ## Bash restriction
 
 Bash access exists only to invoke the deterministic scripts under
-`scripts/` (`discover_structure.py`, `upgrade_state.py`) — never to run any
-other command.
+`scripts/` (`discover_structure.py`, `upgrade_state.py`,
+`discover_workspace.py`, `plan_interview.py`, `author_state.py`,
+`checkpoint_state.py`) — never to run any other command.

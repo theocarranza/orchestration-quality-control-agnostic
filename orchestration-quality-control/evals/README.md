@@ -7,9 +7,8 @@ of `{id, prompt, expected_output, files, assertions}`):
   in `core/fixtures/`. This is the fixture set
   `AI_Codex/Architecture/ADR/0005-definition-of-done.md` requires to exist for item 2 of the
   extraction's definition of done.
-- `../profiles/example-pipeline/evals/evals.json` — four scenarios for the
-  fictional pipeline-artifact profile (inline env or secrets, missing gates,
-  a disconnected job, and a generator source with rationale clauses).
+- `author/evals.json` — two scenarios for greenfield authoring (does not
+  re-ask brief facts; preview is QC-clean before apply).
 
 ```mermaid
 flowchart LR

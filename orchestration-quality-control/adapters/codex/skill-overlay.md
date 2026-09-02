@@ -31,7 +31,9 @@ Codex hook separately protects pending target files; custom agent identity is
 not itself an authorization token.
 
 For `upgrade_prepare` or `upgrade_apply`, spawn exactly one
-`oqc_codex_upgrade_orchestrator` instead. It delegates semantic checks to the
-existing Validator, proposal authorship to `oqc_codex_proposal_author`, and
-approved deterministic application to `oqc_codex_upgrade_applier`. The root
-session owns manifest confirmation and the atomic human decision.
+`oqc_codex_upgrade_orchestrator` instead. For `author_prepare` or
+`author_apply`, spawn that same agent with the author workflows. It delegates
+semantic checks to the existing Validator, proposal authorship to
+`oqc_codex_proposal_author`, and approved deterministic application to
+`oqc_codex_upgrade_applier`. The root session owns the interview and the
+atomic human decision.

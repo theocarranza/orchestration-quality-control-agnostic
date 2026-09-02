@@ -12,8 +12,11 @@ description: >
   finding, and confirms every approved finding ends applied or explicitly
   skipped. It also provides a guided upgrade that discovers an orchestration,
   checks it against a selected OQC reference architecture, drafts an atomic
-  replacement plus diagrams, and applies it only after approval. Use whenever
-  the user asks to check, validate, review, redesign, upgrade, or version a
+  replacement plus diagrams, and applies it only after approval. It can also
+  author a new process-document tree after a workspace audit and a short
+  interview. Use whenever
+  the user asks to check, validate, review, redesign, upgrade, version, or
+  author a
   workflow document, an orchestrator document, a rules file, or a
   generator source for orchestration-quality problems — delegation gaps,
   missing approval gates, non-durable state, unbounded loops, or
@@ -44,8 +47,6 @@ it judges the documents that define and coordinate an agentic process.
 - **`upgrade_apply`** — resolve an atomic `approve` or `decline` decision,
   apply the exact checkpointed proposal, and run the same QC/template checks
   against the result.
-
-Specified for 3.1.0, not shipped — see `docs/authoring.md` and ADR 0012:
 
 - **`author_prepare`** — audit the workspace, interview only unresolved
   orchestration choices, draft process documents, run internal QC, and
@@ -96,7 +97,6 @@ documentation_path: relative/path     # defaults to <new-version>/ARCHITECTURE.m
 checkpoint_path: <path>               # required for upgrade_apply
 decision: approve | decline            # required for upgrade_apply
 
-# Specified for 3.1.0 — not collected by shipped hosts yet
 operation: author_prepare | author_apply
 output_root: relative/path            # required for author_prepare; empty or missing
 # remaining author_prepare fields come from workspace_brief + focused interview
@@ -104,8 +104,9 @@ checkpoint_path: <path>               # required for author_apply
 decision: approve | decline            # required for author_apply
 ```
 
-See `references/schemas/input.schema.json` and
-`references/schemas/upgrade-input.schema.json`. `validate` requires at least
+See `references/schemas/input.schema.json`,
+`references/schemas/upgrade-input.schema.json`, and
+`references/schemas/author-input.schema.json`. `validate` requires at least
 one readable, workspace-relative target. `execute` requires a valid
 `pending_approval` checkpoint and an explicit decision. A host collects
 these values through a question interface, command arguments, or another
@@ -153,7 +154,7 @@ checkpoint's `status` (`pending_approval | consumed | aborted`) is the
 entire state machine — see `scripts/checkpoint_state.py`. There is no
 marker file: a `pending_approval` checkpoint under the documented state
 directory **is** the active-run signal for ordinary QC, guided-upgrade, and
-(specified) author checkpoints
+author checkpoints
 (`scripts/checkpoint_state.py is-run-active`), and every host adapter must
 answer "is a run active?" by checking exactly that.
 

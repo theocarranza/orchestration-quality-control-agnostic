@@ -49,6 +49,9 @@ class BuildPluginTest(unittest.TestCase):
         self.assertTrue(
             (plugin / "skills" / "orchestration-upgrade" / "SKILL.md").is_file()
         )
+        self.assertTrue(
+            (plugin / "skills" / "orchestration-author" / "SKILL.md").is_file()
+        )
 
     def test_build_injects_overlay_without_mutating_canonical_skill(self):
         canonical = BUILDER._package_root() / "SKILL.md"

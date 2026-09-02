@@ -23,7 +23,8 @@ description: Draft one complete, traceable orchestration upgrade without writing
 2. Map every finding and template gap to the selected template invariants.
 3. Build the complete target file set while preserving source intent.
 4. Add the complete architecture document and traceability.
-5. Return one `upgrade-proposal.schema.json` object.
+5. Return one `upgrade-proposal.schema.json` object, or for authoring one
+   `author-proposal.schema.json` object.
 
 ## Stop Conditions
 

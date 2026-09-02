@@ -23,7 +23,7 @@ flowchart TD
 | --- | --- |
 | `commands/oqc-validate.md` | Main-session entry point for the validate operation: collects target/profile/language, delegates, presents the report, asks the apply decision. |
 | `commands/oqc-execute.md` | Main-session entry point for the execute operation: resolves the apply decision, delegates, presents the final report. |
-| `commands/oqc-upgrade.md` | Main-session entry point for guided orchestration upgrade: confirms discovery, delegates prepare/apply, records atomic approval. |
+| `commands/oqc-author.md` | Main-session entry point for greenfield authoring: audit, interview gaps, delegate prepare/apply, record atomic approval. |
 | `agents/oqc-orchestrator.md` | Opus, tools `Agent, Read, Write, Bash` (Bash restricted to `scripts/`). Owns routing, checkpoint bookkeeping, and gate validation. Never reads or edits target content. |
 | `agents/oqc-validator.md` | Sonnet, tools `Read, Grep, Glob, Bash` (Bash restricted to `scripts/classify_targets.py` and `scripts/derive_finding_id.py`). Mechanically read-only — this subagent has no tool capable of writing a file. |
 | `agents/oqc-remediator.md` | Sonnet, tools `Read, Edit, Bash` (Bash restricted to `scripts/render_diff.py`). Applies only findings the orchestrator hands it, only inside the checkpoint's target set. |
@@ -45,7 +45,8 @@ python3 orchestration-quality-control/adapters/claude/build_plugin.py
 The generated `dist/claude-marketplace/` contains a Claude Code plugin
 marketplace manifest (`.claude-plugin/marketplace.json`) and the plugin under
 `plugins/orchestration-quality-control/` — agents, commands, hooks, and the
-canonical skill plus the `orchestration-upgrade` skill, all in one bundle.
+canonical skill plus the `orchestration-upgrade` and `orchestration-author`
+skills, all in one bundle.
 
 Add and install it from a Claude Code session:
 

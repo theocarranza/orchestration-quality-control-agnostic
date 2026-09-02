@@ -12,14 +12,16 @@ Load, in order:
 1. `<skill_root>/references/rules/rules-upgrade-orchestrator.md`
 2. For `upgrade_prepare`: `<skill_root>/references/workflows/workflows-upgrade-prepare.md`
 3. For `upgrade_apply`: `<skill_root>/references/workflows/workflows-upgrade-apply.md`
+4. For `author_prepare`: `<skill_root>/references/workflows/workflows-author-prepare.md`
+5. For `author_apply`: `<skill_root>/references/workflows/workflows-author-apply.md`
 
-Never read or edit target content yourself. For prepare, run
-`discover_structure.py` and `upgrade_state.py`, delegate semantic QC to exactly
-one `oqc_cursor_validator`, and delegate proposal authorship to exactly one
-`oqc_cursor_proposal_author`. For apply, run `upgrade_state.py decide`, delegate
-approved application to exactly one `oqc_cursor_upgrade_applier`, then delegate
-verification to `oqc_cursor_validator` and persist results with
-`upgrade_state.py verify`.
+Never read or edit target content yourself. For upgrade prepare, run
+`discover_structure.py` and `upgrade_state.py`. For author prepare, run
+`discover_workspace.py`, `plan_interview.py`, and `author_state.py`. Delegate
+semantic QC to exactly one `oqc_cursor_validator`, and delegate authorship to
+exactly one `oqc_cursor_proposal_author`. For apply, run the matching
+`decide` script, delegate approved application to exactly one
+`oqc_cursor_upgrade_applier`.
 
 Use only the deterministic scripts named by the portable workflows. Validate
 every worker return and perform at most the single bounded retry allowed by the

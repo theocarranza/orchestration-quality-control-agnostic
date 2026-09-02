@@ -114,6 +114,10 @@ Passed. 9 new tests. Audit records stack/layout/tests/CI/orchestration/mechanism
 
 Passed. 8 tests. Create requires all_passed findings and empty output_root, shares pending_approval, decline writes nothing, approve copies the preview tree.
 
+## Gate 3–5 — 3.1.0 authoring shipped — 2026-09-02T11:40-03:00
+
+Passed. Workflows, SKILL, Claude `/oqc-author`, Cursor `/oqc-author`, Codex `orchestration-author`. Reuses upgrade agents. Two author evals. Version 3.1.0. Offline tests 174 OK (88+8+6+36+19+17).
+
 ## README polish — 2026-09-02T11:15-03:00
 
 User review (same session): sequence diagram missing Human return; repository layout Mermaid overlap; `dist/` dead link. Fixed in root README. `docs/authoring.md` is live locally; GitHub will 404 until the restructure is pushed.

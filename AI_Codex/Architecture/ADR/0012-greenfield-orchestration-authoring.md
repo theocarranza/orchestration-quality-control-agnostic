@@ -2,8 +2,7 @@
 
 ## Status
 
-Accepted as specification, 2026-09-02. Runtime not shipped. Target
-release 3.1.0.
+Accepted, 2026-09-02. Shipped in 3.1.0.
 
 Amends [ADR 0008](0008-guided-orchestration-upgrade.md): the Proposal
 Author role also drafts greenfield process documents. Does not change

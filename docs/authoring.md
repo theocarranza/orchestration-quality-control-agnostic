@@ -1,10 +1,9 @@
-# Greenfield authoring (specified for 3.1.0)
+# Greenfield authoring
 
-This skill will be able to **write** the documents that run an agentic
-process, not only check or upgrade ones that already exist.
+This skill can **write** the documents that run an agentic process, not
+only check or upgrade ones that already exist.
 
-The operations are specified, not shipped. Until 3.1.0, use
-`validate` / `execute` / `upgrade_*` only.
+Use `/oqc-author` (Codex: `orchestration-author`).
 
 ```mermaid
 flowchart TD
@@ -67,7 +66,7 @@ flowchart LR
 
 ## Planned host entry
 
-| Host | Entry (not shipped) |
+| Host | Entry |
 | --- | --- |
 | Claude Code, Cursor | `/oqc-author` |
 | Codex | `orchestration-author` |

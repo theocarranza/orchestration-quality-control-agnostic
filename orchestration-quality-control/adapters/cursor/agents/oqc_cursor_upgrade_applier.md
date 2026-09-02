@@ -10,5 +10,6 @@ approval recorded.
 
 Load `<skill_root>/references/rules/rules-upgrade-applier.md`.
 
-Invoke `scripts/apply_upgrade.py` once. Never edit a target directly or use
-any other shell command. Return the script result unchanged.
+Invoke `scripts/apply_upgrade.py` or `scripts/apply_author.py` once, matching
+the checkpoint `run_type`. Never edit a target directly or use any other
+shell command. Return the script result unchanged.

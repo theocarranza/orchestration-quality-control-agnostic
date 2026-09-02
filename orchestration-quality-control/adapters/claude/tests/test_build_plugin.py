@@ -45,8 +45,9 @@ class BuildPluginTest(unittest.TestCase):
         self.assertTrue((plugin / "hooks" / "hooks.json").is_file())
         self.assertEqual(len(list((plugin / "agents").glob("*.md"))), 6)
         command_stems = sorted(path.stem for path in (plugin / "commands").glob("*.md"))
-        self.assertEqual(command_stems, ["oqc-execute", "oqc-upgrade", "oqc-validate"])
+        self.assertEqual(command_stems, ["oqc-author", "oqc-execute", "oqc-upgrade", "oqc-validate"])
         self.assertTrue((plugin / "skills" / "orchestration-upgrade" / "SKILL.md").is_file())
+        self.assertTrue((plugin / "skills" / "orchestration-author" / "SKILL.md").is_file())
         self.assertTrue((self.output / "README.md").is_file())
 
     def test_build_injects_claude_overlay_without_mutating_canonical_skill(self):

@@ -48,10 +48,11 @@ Two operations, always in this order:
    points: Claude `/oqc-upgrade`, Cursor `/oqc-upgrade`, Codex
    `orchestration-upgrade`.
 
-Specified for 3.1.0, not shipped: **`author_prepare` / `author_apply`** —
-audit the workspace, interview only what the audit cannot answer, draft
-process documents, QC them internally, apply into an empty directory after
-approval. See [`docs/authoring.md`](../docs/authoring.md).
+**`author_prepare` / `author_apply`** — audit the workspace, interview only
+what the audit cannot answer, draft process documents, QC them internally,
+apply into an empty directory after approval. See
+[`docs/authoring.md`](../docs/authoring.md). Host entry points: Claude
+`/oqc-author`, Cursor `/oqc-author`, Codex `orchestration-author`.
 
 ```mermaid
 sequenceDiagram

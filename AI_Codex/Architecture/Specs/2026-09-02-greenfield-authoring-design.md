@@ -1,7 +1,7 @@
 ---
 date: 2026-09-02
 type: design
-status: draft
+status: implemented
 ---
 
 # Design: Greenfield orchestration authoring
@@ -11,8 +11,7 @@ documents (workflow, rules, orchestrator, `ARCHITECTURE.md`) from a
 workspace plus a short interview — not only judge or upgrade documents
 that already exist.
 
-Shipped in this repository as specification for **3.1.0**. Runtime
-operations, schemas, scripts, and host commands are not implemented yet.
+Shipped in this repository as **3.1.0**.
 
 ## Goal
 
@@ -170,7 +169,7 @@ Specified schemas (not yet in `references/schemas/`):
 `author-input.schema.json`, `author-checkpoint.schema.json` (includes
 `workspace_brief` and the preview file map).
 
-Host entry points (not shipped): Claude/Cursor `/oqc-author`, Codex
+Host entry points: Claude/Cursor `/oqc-author`, Codex
 `orchestration-author`.
 
 ## Error handling

@@ -14,5 +14,6 @@ Load and follow, in order:
 
 ## Bash restriction
 
-Bash access exists only to invoke `scripts/apply_upgrade.py` — never to run
-any other command or edit a file directly.
+Bash access exists only to invoke `scripts/apply_upgrade.py` or
+`scripts/apply_author.py` — never to run any other command or edit a file
+directly.
