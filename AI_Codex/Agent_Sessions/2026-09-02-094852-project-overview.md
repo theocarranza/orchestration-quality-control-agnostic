@@ -16,9 +16,9 @@ Next Session:
 
 | Field | Value |
 | --- | --- |
-| **Branch** | `main` (ahead of `origin/main` by 1 commit as of 2026-09-02T11:14-03:00) |
-| **Latest commit** | `83f2981` — `docs: split the contributor ledger from user docs and specify authoring` |
-| **Uncommitted** | `README.md` (diagram + link polish), this session note |
+| **Branch** | `main` (ahead of `origin/main` by 5 commits as of 2026-09-02T11:30-03:00; not pushed) |
+| **Latest commit** | `92fd5c1` — `feat: ship 3.1.0 greenfield authoring on the upgrade topology` |
+| **Uncommitted** | this session note only (working tree was otherwise clean) |
 | **Commit policy** | User must explicitly ask before any commit or push |
 
 ### What landed in `83f2981`
@@ -46,11 +46,9 @@ User asked to clean up bottom-of-diagram appearance. Reordered participants (Rem
 
 ### Pending / next steps
 
-- [ ] User review of README fixes (preview Mermaid + links)
-- [ ] Commit README polish if user asks (can amend into docs commit or separate — ask user)
-- [ ] Push to `origin` when user asks (fixes GitHub dead links)
-- [ ] **New origin** (user intent, not executed): rename current remote to `upstream`, create `orchestration-quality-control-agnostic` as `origin`, push 3.0.0+ work there only — see checkpoint below
-- [ ] Live-model eval parity (ADR 0005 item 3) still open from 2.0.0 era
+- [x] README polish committed with later 3.1.0 docs work
+- [ ] Push to `origin` when user asks
+- [ ] Live-model eval grading (ADR 0005 item 3: core + example-pipeline; plus new author evals). Offline tests are not a substitute.
 
 ### Key paths
 
@@ -129,3 +127,16 @@ User asked to strip every the former product reference so the tool is truly agno
 ## New origin — 2026-09-02T10:27-03:00
 
 Parallel investigation: keep history, rename original remote to `upstream` (push disabled), create GitHub repo `orchestration-quality-control-agnostic` as `origin`, commit and push 3.0.0 work there only.
+
+## Bootstrap (continued)
+
+- **Timestamp:** 2026-09-02T11:30-03:00
+- **Branch:** `main` at `92fd5c1`, ahead of `origin/main` by 5
+- **Carried forward:** 3.1.0 authoring shipped locally; live-model evals still open
+- **Current intent:** Commit remaining work if any; explain evals. Working tree was clean except this note.
+
+## Commit + evals briefing — 2026-09-02T11:30-03:00
+
+User asked to commit and explain evals. No product code was uncommitted. This ledger handoff was stale (still described README polish as uncommitted and `main` as 1 commit ahead). Updating this note, then committing it.
+
+Eval briefing delivered in chat: three live-model sets (core 4, example-pipeline 4, author 2); `eval-harness/` stages and integrity-checks them; ADR 0005 item 3 still open; author evals are extra and not yet in that ADR gate.
