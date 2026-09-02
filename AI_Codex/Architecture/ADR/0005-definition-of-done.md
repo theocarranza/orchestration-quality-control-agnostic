@@ -5,6 +5,15 @@
 Accepted, 2026-07-16. Item 3 below is open — see Consequences.
 Amended by [ADR 0011](0011-agnostic-example-pipeline-profile.md), 2026-09-02.
 
+```mermaid
+flowchart TD
+  I1["1. Offline script tests"] --> DONE["Extraction done"]
+  I2["2. Core fixture cycle"] --> DONE
+  I3["3. example-pipeline evals 100%"] --> DONE
+  I4["4. Finding-id stability"] --> DONE
+  I3 -.->|"live model, optional for merge"| LIVE["eval-harness"]
+```
+
 ## Context
 
 The architecture report's "Decisions, assumptions, and out of scope" section

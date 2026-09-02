@@ -1,3 +1,10 @@
+## Unreleased (3.1.0, specified)
+
+- Specified greenfield authoring (`author_prepare` / `author_apply`):
+  workspace audit, focused interview, internal QC, then atomic apply into
+  an empty output directory. See ADR 0012 and `docs/authoring.md`. Not
+  shipped in this tag.
+
 ## 3.0.0 — 2026-09-02
 
 - **Breaking:** removed the former product-specific profile and the

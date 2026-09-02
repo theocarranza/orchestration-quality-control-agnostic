@@ -17,10 +17,19 @@ directories at the repository root that had been assumed missing.
 ## Decision
 
 Everything present at the repository root except this vault
-(`AI_Codex_OrchestratorQcPlugin/`) and the live MCP configuration
+(`AI_Codex_OrchestratorQcPlugin/` at the time; later renamed to
+`AI_Codex/` without changing the freeze) and the live MCP configuration
 (`.mcp.json`) was moved into a historical tree and committed as-is, in a
 single initial commit, before any restructuring began. That tree was
 read-only reference source material for the rest of the 1.x/2.x build.
+
+```mermaid
+flowchart LR
+  COPY["Uncommitted predecessor copy"] --> FREEZE["Commit freeze + historical tree"]
+  FREEZE --> EXTRACT["Build portable package"]
+  EXTRACT --> STRIP["ADR 0011: remove historical tree"]
+  STRIP --> LEDGER["Vault renamed AI_Codex/"]
+```
 
 [ADR 0011](0011-agnostic-example-pipeline-profile.md) later **removed that
 historical tree** from the repository so the public project is not coupled

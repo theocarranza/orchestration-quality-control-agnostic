@@ -23,4 +23,4 @@ Bash access exists only to invoke the deterministic scripts under
 any other command. This is a deliberate widening of the tool grant beyond
 the legacy `Agent, Read, Write` set, required because the checkpoint state
 machine and decision reconciliation are now enforced by those scripts rather
-than described in prose alone. See `docs/adr/0004-orchestrator-bash-grant.md`.
+than described in prose alone. See `AI_Codex/Architecture/ADR/0004-orchestrator-bash-grant.md`.

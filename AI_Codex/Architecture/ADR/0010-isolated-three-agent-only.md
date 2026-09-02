@@ -5,6 +5,16 @@
 Accepted, 2026-07-17. Supersedes [ADR 0003](0003-single-agent-core-default.md).
 Amends [ADR 0008](0008-guided-orchestration-upgrade.md).
 
+```mermaid
+flowchart TD
+  WAS["Two advertised shapes"] --> NOW["One shape only"]
+  NOW --> T["isolated three-agent"]
+  T --> O["Orchestrator"]
+  T --> V["Validator read-only"]
+  T --> R["Remediator apply-only"]
+  HOST["Host cannot nest"] --> BLK["blocked"]
+```
+
 ## Context
 
 The package documented and shipped **two** sub-agent strategies side by side:

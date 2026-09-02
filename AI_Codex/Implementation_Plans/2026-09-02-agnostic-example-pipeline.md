@@ -1,7 +1,5 @@
 # Agnostic Example-Pipeline Profile Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans (inline; implementation already approved). Steps use checkbox (`- [x]`) syntax for tracking.
-
 **Goal:** Ship a product-agnostic core plus one fictional `example-pipeline` profile, and remove every former product/predecessor/mobile-test-stack string from the repository.
 
 **Architecture:** Keep the generic profile mechanism. Add `profiles/example-pipeline/` with classification globs, P1–P6 artifact rules, and four evals. Delete the former product profile, Claude predecessor aliases, and the archived predecessor tree. Rewrite docs/ADRs/CHANGELOG/vault. Breaking 3.0.0.

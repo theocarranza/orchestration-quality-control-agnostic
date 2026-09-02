@@ -4,6 +4,17 @@ This adapter packages the portable `orchestration-quality-control` skill as a
 native Cursor plugin. It includes the same nested review topology as the Codex
 adapter:
 
+```mermaid
+flowchart TD
+  SES["Cursor session"] --> QC["oqc_cursor_orchestrator"]
+  QC --> V["oqc_cursor_validator"]
+  QC --> R["oqc_cursor_remediator"]
+  SES --> UP["oqc_cursor_upgrade_orchestrator"]
+  UP --> V2["oqc_cursor_validator"]
+  UP --> A["oqc_cursor_proposal_author"]
+  UP --> P["oqc_cursor_upgrade_applier"]
+```
+
 ```text
 Cursor session
 ├── oqc_cursor_orchestrator

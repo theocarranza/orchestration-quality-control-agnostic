@@ -3,6 +3,14 @@
 - Status: accepted
 - Date: 2026-07-17
 
+```mermaid
+flowchart TD
+  SES["Cursor session"] --> ORCH["oqc_cursor_orchestrator"]
+  ORCH --> VAL["oqc_cursor_validator<br/>readonly"]
+  ORCH --> REM["oqc_cursor_remediator"]
+  PLUG["One plugin: skill + agents + hooks"] -.-> SES
+```
+
 ## Decision
 
 Add Cursor as a host adapter beside the Codex and Claude adapters. The

@@ -48,6 +48,21 @@ Two operations, always in this order:
    points: Claude `/oqc-upgrade`, Cursor `/oqc-upgrade`, Codex
    `orchestration-upgrade`.
 
+Specified for 3.1.0, not shipped: **`author_prepare` / `author_apply`** —
+audit the workspace, interview only what the audit cannot answer, draft
+process documents, QC them internally, apply into an empty directory after
+approval. See [`docs/authoring.md`](../docs/authoring.md).
+
+```mermaid
+sequenceDiagram
+  participant U as You
+  participant S as Skill
+  U->>S: validate (targets)
+  S-->>U: all passed or findings + checkpoint
+  U->>S: execute (all / none / named ids)
+  S-->>U: applied or skipped per finding
+```
+
 ## What makes the checks trustworthy
 
 A quality-control tool is only useful if running it twice on the same input

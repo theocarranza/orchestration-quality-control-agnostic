@@ -45,6 +45,24 @@ it judges the documents that define and coordinate an agentic process.
   apply the exact checkpointed proposal, and run the same QC/template checks
   against the result.
 
+Specified for 3.1.0, not shipped — see `docs/authoring.md` and ADR 0012:
+
+- **`author_prepare`** — audit the workspace, interview only unresolved
+  orchestration choices, draft process documents, run internal QC, and
+  return a pending checkpoint.
+- **`author_apply`** — atomic `approve` or `decline` into an empty
+  `output_root`.
+
+```mermaid
+flowchart LR
+  V["validate"] --> E["execute"]
+  UP["upgrade_prepare"] --> UA["upgrade_apply"]
+  AP["author_prepare<br/>specified 3.1.0"] --> AA["author_apply"]
+  V -.->|"pending_approval"| E
+  UP -.->|"pending_approval"| UA
+  AP -.->|"pending_approval"| AA
+```
+
 ## Execution shape
 
 This skill runs as an **isolated three-agent pipeline with code-enforced
@@ -77,6 +95,13 @@ output_root: relative/path            # required for side-by-side
 documentation_path: relative/path     # defaults to <new-version>/ARCHITECTURE.md
 checkpoint_path: <path>               # required for upgrade_apply
 decision: approve | decline            # required for upgrade_apply
+
+# Specified for 3.1.0 — not collected by shipped hosts yet
+operation: author_prepare | author_apply
+output_root: relative/path            # required for author_prepare; empty or missing
+# remaining author_prepare fields come from workspace_brief + focused interview
+checkpoint_path: <path>               # required for author_apply
+decision: approve | decline            # required for author_apply
 ```
 
 See `references/schemas/input.schema.json` and
@@ -127,8 +152,8 @@ Runtime checkpoints live outside this package, at
 checkpoint's `status` (`pending_approval | consumed | aborted`) is the
 entire state machine — see `scripts/checkpoint_state.py`. There is no
 marker file: a `pending_approval` checkpoint under the documented state
-directory **is** the active-run signal for both ordinary QC and guided-upgrade
-checkpoints
+directory **is** the active-run signal for ordinary QC, guided-upgrade, and
+(specified) author checkpoints
 (`scripts/checkpoint_state.py is-run-active`), and every host adapter must
 answer "is a run active?" by checking exactly that.
 

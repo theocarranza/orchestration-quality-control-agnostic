@@ -97,9 +97,9 @@ sequenceDiagram
 
 **Checkpoints** (durable run records) live in the workspace under `.orchestration-qc/state/`, not inside the package. A checkpoint with status `pending_approval` is the only active-run signal — there is no separate marker file. Host adapters with hooks can block direct edits to target files while a review is pending.
 
-Every host adapter (Claude, Cursor, Codex) mechanizes the same **isolated three-agent topology**: Validator (read-only) and Remediator (apply-only) run as separate, narrowly-permissioned subagents under an Orchestrator, calling the same deterministic scripts at every gate. A host that cannot complete that nested handoff returns `blocked` rather than silently running the checks in a single agent ([ADR 0010](docs/adr/0010-isolated-three-agent-only.md)).
+Every host adapter (Claude, Cursor, Codex) mechanizes the same **isolated three-agent topology**: Validator (read-only) and Remediator (apply-only) run as separate, narrowly-permissioned subagents under an Orchestrator, calling the same deterministic scripts at every gate. A host that cannot complete that nested handoff returns `blocked` rather than silently running the checks in a single agent ([ADR 0010](AI_Codex/Architecture/ADR/0010-isolated-three-agent-only.md)).
 
-**Guided upgrade** (`upgrade_prepare` / `upgrade_apply`) discovers an existing orchestration, compares it to the isolated-three-agent reference template, drafts a complete replacement plus `ARCHITECTURE.md`, checkpoints the literal preview, and applies only an atomic approve/decline decision ([ADR 0008](docs/adr/0008-guided-orchestration-upgrade.md)).
+**Guided upgrade** (`upgrade_prepare` / `upgrade_apply`) discovers an existing orchestration, compares it to the isolated-three-agent reference template, drafts a complete replacement plus `ARCHITECTURE.md`, checkpoints the literal preview, and applies only an atomic approve/decline decision ([ADR 0008](AI_Codex/Architecture/ADR/0008-guided-orchestration-upgrade.md)).
 
 ---
 
@@ -112,7 +112,7 @@ Every host adapter (Claude, Cursor, Codex) mechanizes the same **isolated three-
 | [`evals/core/evals.json`](orchestration-quality-control/evals/core/evals.json) | `core` | 4 | Generic orchestration only |
 | [`profiles/example-pipeline/evals/evals.json`](orchestration-quality-control/profiles/example-pipeline/evals/evals.json) | `example-pipeline` | 4 | Fictional pipeline-artifact profile |
 
-The definition of done ([ADR 0005](docs/adr/0005-definition-of-done.md), amended by [ADR 0011](docs/adr/0011-agnostic-example-pipeline-profile.md)) requires both sets to reach **100% with-skill pass rate**. The repo includes [`eval-harness/`](eval-harness/) tooling (converter, run-integrity checker, runbook) to repeat that grading; see [`eval-harness/RUNBOOK.md`](eval-harness/RUNBOOK.md) for the 3 with-skill + 1 without-skill run protocol per eval.
+The definition of done ([ADR 0005](AI_Codex/Architecture/ADR/0005-definition-of-done.md), amended by [ADR 0011](AI_Codex/Architecture/ADR/0011-agnostic-example-pipeline-profile.md)) requires both sets to reach **100% with-skill pass rate**. The repo includes [`eval-harness/`](eval-harness/) tooling (converter, run-integrity checker, runbook) to repeat that grading; see [`eval-harness/RUNBOOK.md`](eval-harness/RUNBOOK.md) for the 3 with-skill + 1 without-skill run protocol per eval.
 
 ### Offline deterministic tests
 
@@ -144,11 +144,11 @@ Input contracts: [`references/schemas/input.schema.json`](orchestration-quality-
 
 Host entry points:
 
-| Host | QC | Upgrade |
-| --- | --- | --- |
-| Claude Code | `/oqc-validate`, `/oqc-execute` | `/oqc-upgrade` |
-| Cursor | skill + bundled subagents | `/oqc-upgrade` |
-| Codex | packaged plugin + custom agents | `orchestration-upgrade` skill |
+| Host | QC | Upgrade | Author (3.1.0, not shipped) |
+| --- | --- | --- | --- |
+| Claude Code | `/oqc-validate`, `/oqc-execute` | `/oqc-upgrade` | `/oqc-author` |
+| Cursor | skill + bundled subagents | `/oqc-upgrade` | `/oqc-author` |
+| Codex | packaged plugin + custom agents | `orchestration-upgrade` skill | `orchestration-author` |
 
 ---
 
@@ -160,6 +160,7 @@ Host entry points:
 4. **Generator-source review** — Check whether prompts or generators that produce orchestration artifacts would violate packaged rules (core) or profile artifact rules (for example the fictional pipeline format).
 5. **Replacing a legacy orchestration** — Use guided upgrade to compare an existing mechanism against the isolated-three-agent reference architecture, draft a complete replacement, and apply it atomically.
 6. **Optional profile for a fictional pipeline artifact format** — Select `profile: example-pipeline` for `*.pipeline.yaml` checks without loading that vocabulary into generic runs.
+7. **Authoring a new process (specified, 3.1.0)** — `/oqc-author` after a workspace audit; see [`docs/authoring.md`](docs/authoring.md).
 
 ---
 
@@ -204,13 +205,31 @@ Expected outcome: a full proposal tree under `output_root`, an `ARCHITECTURE.md`
 
 ## Repository layout
 
+```mermaid
+flowchart LR
+  subgraph users["Product users"]
+    SKILL["orchestration-quality-control/"]
+    DOCS["docs/authoring.md"]
+  end
+  subgraph contrib["Contributors / forkers"]
+    LEDGER["AI_Codex/"]
+    EVAL["eval-harness/"]
+  end
+  SKILL -->|"install, validate, execute, upgrade"| users
+  DOCS -->|"authoring, specified 3.1.0"| users
+  LEDGER -->|"ADRs, specs, plans, sessions"| contrib
+  EVAL -->|"live-model grading"| contrib
+```
+
 | Path | Role |
 | --- | --- |
 | [`orchestration-quality-control/`](orchestration-quality-control/) | Portable skill — rules, workflows, schemas, scripts, profiles, adapters |
+| [`docs/authoring.md`](docs/authoring.md) | Greenfield authoring for product users (specified for 3.1.0) |
+| [`AI_Codex/`](AI_Codex/) | Contributor ledger — ADRs, specs, plans, sessions (versioned) |
 | [`eval-harness/`](eval-harness/) | Benchmark conversion and run-integrity tooling (repo-local, not shipped in the skill) |
-| [`docs/adr/`](docs/adr/) | Architecture decision records |
 | [`dist/`](dist/) | Generated Claude, Cursor, and Codex marketplace bundles |
-| [`AI_Codex_OrchestratorQcPlugin/`](AI_Codex_OrchestratorQcPlugin/) | Project knowledge vault (sessions, reports, plans) |
+
+Runtime checkpoints and workspace state stay **outside** the package and **outside** git — under each target workspace's `.orchestration-qc/`.
 
 Runtime checkpoints and workspace state stay **outside** the package and **outside** git — under each target workspace's `.orchestration-qc/`.
 
@@ -245,20 +264,23 @@ Public behavior changes belong in [`orchestration-quality-control/CHANGELOG.md`]
 
 ## Architecture decisions
 
+These records live in the [contributor ledger](AI_Codex/). They are linked from here because the same facts matter to a user who wants the *why* behind the shipped topology.
+
 | ADR | Topic |
 | --- | --- |
-| [0001](docs/adr/0001-freeze-baseline-and-legacy-archival.md) | Freeze baseline (predecessor tree later removed) |
-| [0002](docs/adr/0002-agent-skills-spec-anchor.md) | Anchor on Agent Skills spec, not OpenSkills alone |
-| [0003](docs/adr/0003-single-agent-core-default.md) | Single-agent pipeline as core default (superseded by 0010) |
-| [0005](docs/adr/0005-definition-of-done.md) | Extraction definition of done (incl. benchmark parity) |
-| [0006](docs/adr/0006-codex-nested-adapter.md) | Codex nested adapter |
-| [0007](docs/adr/0007-cursor-native-adapter.md) | Cursor native adapter |
-| [0008](docs/adr/0008-guided-orchestration-upgrade.md) | Guided orchestration upgrade (amended by 0010) |
-| [0009](docs/adr/0009-claude-native-plugin-marketplace.md) | Claude native plugin marketplace |
-| [0010](docs/adr/0010-isolated-three-agent-only.md) | Ship the isolated three-agent topology only |
-| [0011](docs/adr/0011-agnostic-example-pipeline-profile.md) | Replace the product profile with `example-pipeline` |
+| [0001](AI_Codex/Architecture/ADR/0001-freeze-baseline-and-legacy-archival.md) | Freeze baseline (predecessor tree later removed) |
+| [0002](AI_Codex/Architecture/ADR/0002-agent-skills-spec-anchor.md) | Anchor on Agent Skills spec, not OpenSkills alone |
+| [0003](AI_Codex/Architecture/ADR/0003-single-agent-core-default.md) | Single-agent pipeline as core default (superseded by 0010) |
+| [0005](AI_Codex/Architecture/ADR/0005-definition-of-done.md) | Extraction definition of done (incl. benchmark parity) |
+| [0006](AI_Codex/Architecture/ADR/0006-codex-nested-adapter.md) | Codex nested adapter |
+| [0007](AI_Codex/Architecture/ADR/0007-cursor-native-adapter.md) | Cursor native adapter |
+| [0008](AI_Codex/Architecture/ADR/0008-guided-orchestration-upgrade.md) | Guided orchestration upgrade (amended by 0010 and 0012) |
+| [0009](AI_Codex/Architecture/ADR/0009-claude-native-plugin-marketplace.md) | Claude native plugin marketplace |
+| [0010](AI_Codex/Architecture/ADR/0010-isolated-three-agent-only.md) | Ship the isolated three-agent topology only |
+| [0011](AI_Codex/Architecture/ADR/0011-agnostic-example-pipeline-profile.md) | Replace the product profile with `example-pipeline` |
+| [0012](AI_Codex/Architecture/ADR/0012-greenfield-orchestration-authoring.md) | Greenfield authoring (specified, 3.1.0) |
 
-Deeper design narrative: [`AI_Codex_OrchestratorQcPlugin/Agent_Reports/2026-07-15-orchestration-qc-openskills-architecture.md`](AI_Codex_OrchestratorQcPlugin/Agent_Reports/2026-07-15-orchestration-qc-openskills-architecture.md) (vault report; same facts as the ADRs above).
+Deeper design narrative: [`AI_Codex/Agent_Reports/2026-07-15-orchestration-qc-openskills-architecture.md`](AI_Codex/Agent_Reports/2026-07-15-orchestration-qc-openskills-architecture.md) (vault report; same facts as the ADRs above).
 
 ---
 
@@ -266,18 +288,19 @@ Deeper design narrative: [`AI_Codex_OrchestratorQcPlugin/Agent_Reports/2026-07-1
 
 **Standards and portability**
 
-- [Agent Skills specification](https://github.com/agentskills/agentskills) — `SKILL.md` frontmatter, progressive disclosure, optional `scripts/` and `references/` ([ADR 0002](docs/adr/0002-agent-skills-spec-anchor.md))
+- [Agent Skills specification](https://github.com/agentskills/agentskills) — `SKILL.md` frontmatter, progressive disclosure, optional `scripts/` and `references/` ([ADR 0002](AI_Codex/Architecture/ADR/0002-agent-skills-spec-anchor.md))
 - [OpenSkills](https://github.com/numman-ali/openskills) — one supported installer for the open standard
 
 **Why isolated three-agent is the only shipped topology**
 
-- A mechanically read-only Validator (tool grant excludes `Edit`/`Write`) and an apply-only Remediator are the one concrete, host-enforceable guarantee this package can offer beyond prompt instructions — every shipped adapter (Claude, Cursor, Codex) mechanizes exactly this shape ([ADR 0010](docs/adr/0010-isolated-three-agent-only.md), superseding [ADR 0003](docs/adr/0003-single-agent-core-default.md))
+- A mechanically read-only Validator (tool grant excludes `Edit`/`Write`) and an apply-only Remediator are the one concrete, host-enforceable guarantee this package can offer beyond prompt instructions — every shipped adapter (Claude, Cursor, Codex) mechanizes exactly this shape ([ADR 0010](AI_Codex/Architecture/ADR/0010-isolated-three-agent-only.md), superseding [ADR 0003](AI_Codex/Architecture/ADR/0003-single-agent-core-default.md))
 - A host that cannot complete the nested handoff returns `blocked` rather than quietly running the checks in a single, unrestricted agent
 
 **In-repo contracts**
 
 - Skill entry: [`orchestration-quality-control/SKILL.md`](orchestration-quality-control/SKILL.md)
 - Package overview: [`orchestration-quality-control/README.md`](orchestration-quality-control/README.md)
+- Authoring (specified): [`docs/authoring.md`](docs/authoring.md)
 - Reference template: [`references/templates/isolated-three-agent.md`](orchestration-quality-control/references/templates/isolated-three-agent.md)
 
 ---

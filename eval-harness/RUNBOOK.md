@@ -1,6 +1,6 @@
 # Eval-benchmark runbook
 
-Closes ADR 0005 item 3 (`docs/adr/0005-definition-of-done.md`): profile
+Closes ADR 0005 item 3 (`AI_Codex/Architecture/ADR/0005-definition-of-done.md`): profile
 evaluations at 100% with-skill pass rate. This harness is intentionally
 external to `orchestration-quality-control/` — the portable package stays
 free of test-running machinery; this folder is repo tooling.
@@ -25,6 +25,22 @@ workspaces since ADR 0005 gates on each independently:
 Run counts per eval, per this project's decision: **3 `with_skill` runs +
 1 `without_skill` run**. `with_skill` is the gating configuration (must
 reach 100% every run); `without_skill` only informs the delta.
+
+```mermaid
+flowchart LR
+  subgraph perEval["Per eval set"]
+    W1["with_skill run 1"]
+    W2["with_skill run 2"]
+    W3["with_skill run 3"]
+    WO["without_skill run 1"]
+  end
+  W1 --> GATE{"100% with-skill?"}
+  W2 --> GATE
+  W3 --> GATE
+  WO --> DELTA["delta only"]
+  GATE -->|yes| PASS["item 3 closed"]
+  GATE -->|no| FAIL["not done"]
+```
 
 ## Step 1 — Stage the workspace
 

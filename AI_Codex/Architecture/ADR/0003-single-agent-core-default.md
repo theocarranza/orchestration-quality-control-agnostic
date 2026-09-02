@@ -5,6 +5,11 @@
 Superseded by [ADR 0010](0010-isolated-three-agent-only.md), 2026-07-17.
 Accepted, 2026-07-16.
 
+```mermaid
+flowchart LR
+  OLD["0003: single-agent core default"] -->|superseded| NEW["0010: isolated three-agent only"]
+```
+
 ## Context
 
 The legacy v3 system split validation across three Claude subagents

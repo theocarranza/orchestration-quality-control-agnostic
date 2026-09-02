@@ -4,6 +4,13 @@
 
 Accepted, 2026-07-16.
 
+```mermaid
+flowchart LR
+  SPEC["Agent Skills spec<br/>name, description, license"] --> SKILL["portable SKILL.md"]
+  OS["OpenSkills"] -->|"one installer"| SKILL
+  HOST["Host adapters"] -->|"model, tools, agents"| CLAUDE["adapters/claude etc."]
+```
+
 ## Context
 
 The original architecture report cited the OpenSkills project

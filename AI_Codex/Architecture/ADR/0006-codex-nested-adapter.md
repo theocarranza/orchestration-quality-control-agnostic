@@ -9,6 +9,14 @@ topology is now the only shipped execution shape. The Codex-specific
 decision below (custom agents outside the plugin manifest, depth 2) remains
 in force.
 
+```mermaid
+flowchart TD
+  ROOT["Codex skill session"] --> ORCH["oqc_codex_orchestrator"]
+  ORCH --> VAL["oqc_codex_validator"]
+  ORCH --> REM["oqc_codex_remediator"]
+  BOOT["install_codex.py<br/>agents.max_depth = 2"] -.-> ROOT
+```
+
 ## Context
 
 The portable package deliberately defaults to a single-agent pipeline. Codex

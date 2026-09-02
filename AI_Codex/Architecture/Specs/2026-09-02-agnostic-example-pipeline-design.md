@@ -44,13 +44,15 @@ or that product's mobile test-stack vocabulary.
 
 ## Architecture
 
-```text
-orchestration-quality-control/
-  SKILL.md, scripts/, references/     # core — unchanged shape
-  profiles/example-pipeline/          # only shipped profile
-  adapters/{claude,cursor,codex}/     # no predecessor aliases
-docs/adr/                             # rewritten; ADR 0011 for this change
-eval-harness/                         # points at core + example-pipeline
+```mermaid
+flowchart TB
+  CORE["orchestration-quality-control/<br/>SKILL, scripts, references"]
+  PROF["profiles/example-pipeline/"]
+  ADP["adapters/claude, cursor, codex"]
+  ADR["AI_Codex/Architecture/ADR/"]
+  CORE --> PROF
+  CORE --> ADP
+  ADR -.->|"ADR 0011"| PROF
 ```
 
 Core classification, finding identity, checkpoints, and diffs stay in

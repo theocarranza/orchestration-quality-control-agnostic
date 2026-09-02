@@ -4,6 +4,13 @@
 
 Accepted, 2026-07-16.
 
+```mermaid
+flowchart TB
+  O["Orchestrator + Bash"] --> S1["checkpoint_state.py<br/>reconcile_decision.py"]
+  V["Validator + Bash"] --> S2["classify_targets.py<br/>derive_finding_id.py"]
+  R["Remediator + Bash"] --> S3["render_diff.py"]
+```
+
 ## Context
 
 The legacy v3 subagents' tool grants were `Agent, Read, Write`

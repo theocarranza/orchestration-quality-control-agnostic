@@ -6,6 +6,17 @@ the only execution shape this package ships; see the core `README.md` for
 the shared Orchestrator/Validator/Remediator contracts every host adapter
 mechanizes.
 
+```mermaid
+flowchart TD
+  CMD["/oqc-validate /oqc-execute /oqc-upgrade"] --> ORCH["oqc-orchestrator"]
+  ORCH --> VAL["oqc-validator<br/>read-only"]
+  ORCH --> REM["oqc-remediator<br/>apply-only"]
+  CMD --> UORCH["oqc-upgrade-orchestrator"]
+  UORCH --> VAL2["oqc-validator"]
+  UORCH --> AUTH["oqc-proposal-author"]
+  UORCH --> APL["oqc-upgrade-applier"]
+```
+
 ## What this adapter adds beyond the portable core
 
 | Piece | What it does |

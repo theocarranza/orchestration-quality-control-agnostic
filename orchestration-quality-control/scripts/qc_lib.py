@@ -4,7 +4,7 @@ Every script in this package is model-free: given the same inputs it produces th
 same outputs, every time, on any host with a stock python3. Nothing here calls out
 to a language model. That is the point of this module existing — see
 references/schemas/blocked.schema.json and the "Deterministic substrate" section
-of AI_Codex_OrchestratorQcPlugin/Agent_Reports/2026-07-16-adversarial-critique-qc-architecture-feedback.md.
+of AI_Codex/Agent_Reports/2026-07-16-adversarial-critique-qc-architecture-feedback.md.
 """
 
 import json

@@ -6,8 +6,8 @@ derived_from:
   - adapters/claude/agents/oqc-orchestrator.md
   - adapters/codex/agents/oqc_codex_orchestrator.toml
   - adapters/cursor/agents/oqc_cursor_orchestrator.md
-  - docs/adr/0006-codex-nested-adapter.md
-  - docs/adr/0007-cursor-native-adapter.md
+  - AI_Codex/Architecture/ADR/0006-codex-nested-adapter.md
+  - AI_Codex/Architecture/ADR/0007-cursor-native-adapter.md
 ---
 
 # Reference Architecture: Isolated Three-Agent
@@ -27,6 +27,15 @@ checking, editing, and coordinating roles.
 | Orchestrator | Routing, gates, durable state, structural validation | Worker delegation, checkpoint scripts | Structured operation result |
 | Validator | Read and judge untrusted targets | Read/search plus classification/id scripts | Findings and report |
 | Remediator | Apply exact approved changes | Read/edit plus diff/application script | One outcome per approved item |
+
+```mermaid
+flowchart TD
+  ROOT["Root session — talks to the human"] --> ORCH["Orchestrator"]
+  ORCH --> VAL["Validator — read-only"]
+  ORCH --> REM["Remediator — apply-only"]
+  VAL -.->|"never writes"| ORCH
+  REM -.->|"no approval authority"| ORCH
+```
 
 The root session owns user interaction. It spawns exactly one Orchestrator;
 the Orchestrator invokes Validator or Remediator and receives control after

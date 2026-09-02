@@ -16,7 +16,7 @@ how to close it.
 
 ## Background
 
-The decision record for this work, `docs/adr/0005-definition-of-done.md`
+The decision record for this work, `AI_Codex/Architecture/ADR/0005-definition-of-done.md`
 (a short document that states when a piece of work counts as complete),
 lists four conditions that must all be true. Three are already confirmed
 by automated checks that run without needing an active session with a
@@ -85,7 +85,7 @@ result recorded for the older tool.
 
 Save the results in the same shape as the earlier benchmark file, so future
 readers can compare the two directly. Then edit the status line at the top
-of `docs/adr/0005-definition-of-done.md`, which currently reads "Item 3
+of `AI_Codex/Architecture/ADR/0005-definition-of-done.md`, which currently reads "Item 3
 below is open," to reflect that the condition has been checked and passed
 (or, if it does not pass, to record what fell short instead of leaving the
 status unresolved).
@@ -111,7 +111,7 @@ comparing files before and after, rather than by reading the transcript.
 
 ## References
 
-- `docs/adr/0005-definition-of-done.md`
+- `AI_Codex/Architecture/ADR/0005-definition-of-done.md`
 - `orchestration-quality-control/evals/core/evals.json`
 - `orchestration-quality-control/profiles/former-product-profile/evals/evals.json`
 - `legacy/predecessor-skill-workspace/iteration-1/benchmark.json`

@@ -4,7 +4,19 @@
 
 Amended by [ADR 0010](0010-isolated-three-agent-only.md), 2026-07-17: the
 `portable-single-agent` template and the `isolation_reason` requirement
-described below were removed. Accepted, 2026-07-17.
+described below were removed. Amended by
+[ADR 0012](0012-greenfield-orchestration-authoring.md), 2026-09-02: the
+Proposal Author also drafts greenfield process documents (`author_prepare`).
+Accepted, 2026-07-17.
+
+```mermaid
+flowchart LR
+  PREP["upgrade_prepare"] --> AUTH["Proposal Author<br/>draft only"]
+  PREP --> VAL["Validator<br/>read-only QC"]
+  PREP --> CK["pending_approval"]
+  CK --> APP["upgrade_apply"]
+  APP --> AP["Upgrade Applier<br/>exact preview"]
+```
 
 ## Context
 

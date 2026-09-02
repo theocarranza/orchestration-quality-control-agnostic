@@ -6,7 +6,12 @@ dist/
 orchestration-quality-control-workspace/
 
 # Local Obsidian editor state
-AI_Codex_OrchestratorQcPlugin/.obsidian/
+AI_Codex/.obsidian/
+
+# The contributor ledger is part of this repository. A user-global
+# gitignore may list `AI_Codex/`; un-ignore the tree so it stays tracked.
+!AI_Codex/
+!AI_Codex/**
 
 # Python bytecode cache
 __pycache__/

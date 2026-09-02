@@ -4,6 +4,14 @@
 
 Accepted, 2026-07-17.
 
+```mermaid
+flowchart LR
+  SRC["adapters/claude/"] --> BUILD["build_plugin.py"]
+  BUILD --> DIST["dist/claude-marketplace/"]
+  DIST --> INST["/plugin marketplace add<br/>/plugin install"]
+  SKILL["skill-only install"] -.->|"unsupported, weaker"| WARN["no hook, no isolation"]
+```
+
 ## Context
 
 The Claude adapter (`orchestration-quality-control/adapters/claude/`) already
@@ -16,7 +24,7 @@ under `dist/<host>-marketplace/` with a `BUILD-MANIFEST.json` and a versioned
 release zip (ADR 0007 for the Cursor precedent).
 
 Separately, the 2026-07-17 standards report
-(`AI_Codex_OrchestratorQcPlugin/Agent_Reports/2026-07-17-agent-skills-standards-analysis.md`)
+(`AI_Codex/Agent_Reports/2026-07-17-agent-skills-standards-analysis.md`)
 fixed a product-wide rule: **full-plugin distribution only**. A skill-only
 install (via OpenSkills or Claude's native `npx skills add`-equivalent
 skill-directory install) would ship instructions without the nested subagent

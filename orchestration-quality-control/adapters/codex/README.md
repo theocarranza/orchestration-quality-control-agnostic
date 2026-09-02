@@ -7,6 +7,17 @@ adapter.
 
 ## Topology and installation boundary
 
+```mermaid
+flowchart TD
+  ROOT["root Codex session"] --> QC["oqc_codex_orchestrator"]
+  QC --> V["oqc_codex_validator"]
+  QC --> R["oqc_codex_remediator"]
+  ROOT --> UP["oqc_codex_upgrade_orchestrator"]
+  UP --> V2["oqc_codex_validator"]
+  UP --> A["oqc_codex_proposal_author"]
+  UP --> P["oqc_codex_upgrade_applier"]
+```
+
 ```text
 root Codex session
 ├── oqc_codex_orchestrator

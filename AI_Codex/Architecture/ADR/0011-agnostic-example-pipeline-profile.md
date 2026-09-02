@@ -7,6 +7,13 @@ Accepted, 2026-09-02.
 Amends [ADR 0001](0001-freeze-baseline-and-legacy-archival.md) and
 [ADR 0005](0005-definition-of-done.md).
 
+```mermaid
+flowchart LR
+  CORE["Generic profile mechanism"] --> EX["example-pipeline"]
+  CORE --> UNK["unknown id → blocked"]
+  GONE["Former product profile<br/>predecessor aliases<br/>archived tree"] --> RM["removed in 3.0.0"]
+```
+
 ## Context
 
 The 1.0.0 extraction kept a generic profile mechanism and shipped one

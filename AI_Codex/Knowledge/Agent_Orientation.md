@@ -8,6 +8,15 @@ created: 2026-07-16
 
 Use this note as the entry point for agents working in this vault.
 
+```mermaid
+flowchart TD
+  START["Start of session"] --> BOOT["Read this orientation"]
+  BOOT --> SESS["Newest Agent_Sessions note"]
+  SESS --> KNOW["Knowledge/Documentation<br/>docs vs ledger"]
+  KNOW --> WORK["Do the work"]
+  WORK --> LOG["Update the session note"]
+```
+
 ## Commands
 
 | Command | Purpose |
@@ -32,3 +41,4 @@ Use this note as the entry point for agents working in this vault.
 | Note | Role |
 | --- | --- |
 | [[Agent_Orientation]] | This orientation note |
+| [[Documentation]] | Audience split (`docs/` vs this ledger) and visual-docs rule |
