@@ -40,6 +40,10 @@ User reviewed rendered README and reported three issues:
 
 Also removed duplicate checkpoint paragraph in README (uncommitted).
 
+## Sequence diagram layout — 2026-09-02T11:16-03:00
+
+User asked to clean up bottom-of-diagram appearance. Reordered participants (Remediator before Validator so O↔R execution arrows are adjacent), shortened labels, added `Note over U,R: run complete` for visual closure.
+
 ### Pending / next steps
 
 - [ ] User review of README fixes (preview Mermaid + links)
@@ -105,6 +109,10 @@ Passed. `docs/` is user-facing (`authoring.md` only). Ledger is `AI_Codex/` (ver
 ## Gate 1 — discover_workspace + plan_interview — 2026-09-02T11:20-03:00
 
 Passed. 9 new tests. Audit records stack/layout/tests/CI/orchestration/mechanism/profile hints. Interview plan never asks those facts; forks author vs upgrade when something exists.
+
+## Gate 2 — author_state + apply_author — 2026-09-02T11:25-03:00
+
+Passed. 8 tests. Create requires all_passed findings and empty output_root, shares pending_approval, decline writes nothing, approve copies the preview tree.
 
 ## README polish — 2026-09-02T11:15-03:00
 

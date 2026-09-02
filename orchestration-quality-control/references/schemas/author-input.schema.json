@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestration-quality-control/schemas/author-input.schema.json",
+  "title": "Greenfield orchestration authoring input",
+  "oneOf": [
+    {
+      "type": "object",
+      "required": ["operation", "output_root", "outcome"],
+      "additionalProperties": false,
+      "properties": {
+        "operation": { "const": "author_prepare" },
+        "outcome": { "type": "string", "minLength": 1 },
+        "output_root": { "type": "string", "minLength": 1 },
+        "profile": { "type": "string", "default": "core" },
+        "language": { "enum": ["en", "pt-br"], "default": "en" },
+        "shape": { "enum": ["single-agent", "multi-worker"] },
+        "approval": { "enum": ["required", "none"] },
+        "state": { "type": "object" },
+        "stop": { "type": "string" },
+        "named_inputs": { "type": "array", "items": { "type": "string" } },
+        "intent": { "enum": ["author", "upgrade"] }
+      }
+    },
+    {
+      "type": "object",
+      "required": ["operation", "checkpoint_path", "decision"],
+      "additionalProperties": false,
+      "properties": {
+        "operation": { "const": "author_apply" },
+        "checkpoint_path": { "type": "string", "minLength": 1 },
+        "decision": { "enum": ["approve", "decline"] }
+      }
+    }
+  ]
+}

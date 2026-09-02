@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestration-quality-control/schemas/author-checkpoint.schema.json",
+  "title": "Greenfield orchestration authoring checkpoint",
+  "description": "Shares pending_approval with ordinary QC and upgrade checkpoints.",
+  "type": "object",
+  "required": ["schema_version", "run_type", "run_id", "status", "targets", "output_root", "workspace_brief", "preview_files", "plain_language_report", "created_at"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "run_type": { "const": "author" },
+    "run_id": { "type": "string" },
+    "status": { "enum": ["pending_approval", "consumed", "aborted"] },
+    "targets": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "output_root": { "type": "string" },
+    "workspace_brief": { "type": "object" },
+    "preview_files": { "type": "object", "additionalProperties": { "type": "string" } },
+    "plain_language_report": { "type": "string" },
+    "created_at": { "type": "string" }
+  }
+}
