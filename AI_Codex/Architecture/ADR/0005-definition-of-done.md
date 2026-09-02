@@ -70,3 +70,36 @@ This is recorded as open, not silently skipped. Before this package is
 treated as fully validated against live models, someone with access to run
 the actual host skill needs to execute both eval sets and confirm the
 with-skill pass rate, then update this ADR's status accordingly.
+
+### Live-model run — 2026-09-02 (Cursor host)
+
+Both ADR workspaces were executed at 3 with-skill + 1 without-skill per
+eval, graded with `integrity.json` evidence. Artifacts:
+
+- `orchestration-quality-control-workspace/core/iteration-1/benchmark.json`
+- `orchestration-quality-control-workspace/example-pipeline/iteration-1/benchmark.json`
+
+**example-pipeline with-skill:** 100% on all four evals, all three runs
+(inline env, missing gates, graph, rules-with-rationale).
+
+**core with-skill:** not 100%. `eval-workflows-generic-clean` with-skill
+run 1 failed two assertions:
+
+1. Reports that no problems were found, with no fabricated findings —
+   invented a W13 “resize worker with no stated reason” finding on the
+   designed-clean fixture.
+2. Does not propose any edit, since there is nothing to fix — proposed
+   adding a reason clause. The fixture itself stayed unedited
+   (`integrity.json` `unedited: true`).
+
+Runs 2 and 3 of that eval passed. The other three core evals passed 5/5
+on every with-skill run.
+
+Per the runbook gate (both workspaces at mean 1.0 with-skill), item 3
+stays **open**. No assertion was reworded or regraded to force a match.
+
+Author evals (`evals/author/evals.json`) were run the same day as an extra
+set, not as item 3. Artifacts:
+`orchestration-quality-control-workspace/author/iteration-1/benchmark.json`.
+With-skill was 100% on both evals and all three runs. That result does not
+close item 3.

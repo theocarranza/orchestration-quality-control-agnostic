@@ -16,9 +16,9 @@ Next Session:
 
 | Field | Value |
 | --- | --- |
-| **Branch** | `main` (ahead of `origin/main` by 5 commits as of 2026-09-02T11:30-03:00; not pushed) |
-| **Latest commit** | `92fd5c1` — `feat: ship 3.1.0 greenfield authoring on the upgrade topology` |
-| **Uncommitted** | this session note only (working tree was otherwise clean) |
+| **Branch** | `main` (pushed to `origin` as of 2026-09-02T11:50-03:00; HEAD `ef10204`) |
+| **Latest commit** | `ef10204` — `docs(ledger): checkpoint 3.1.0 shipped and evals still live-model gated` |
+| **Uncommitted** | this session note + ADR 0005 live-model notes (eval workspace is gitignored) |
 | **Commit policy** | User must explicitly ask before any commit or push |
 
 ### What landed in `83f2981`
@@ -47,8 +47,10 @@ User asked to clean up bottom-of-diagram appearance. Reordered participants (Rem
 ### Pending / next steps
 
 - [x] README polish committed with later 3.1.0 docs work
-- [ ] Push to `origin` when user asks
-- [ ] Live-model eval grading (ADR 0005 item 3: core + example-pipeline; plus new author evals). Offline tests are not a substitute.
+- [x] Push to `origin` (`theocarranza/orchestration-quality-control-agnostic`, `ef10204`)
+- [x] Live-model ADR 0005 sets graded: example-pipeline 100% with-skill; core 95.8% (clean run 1 fabricated W13). Item 3 stays open.
+- [x] Author evals (8 runs) aggregated 2026-09-02T12:32-03:00: 100% with-skill / 71% without-skill. Extra set — ADR 0005 item 3 still open.
+- [x] Human-approval showstopper: canvas kept only `author-outcome`. 3.2.0 auto-continues the rest. Committing and reinstalling the Cursor plugin.
 
 ### Key paths
 
@@ -140,3 +142,175 @@ Parallel investigation: keep history, rename original remote to `upstream` (push
 User asked to commit and explain evals. No product code was uncommitted. This ledger handoff was stale (still described README polish as uncommitted and `main` as 1 commit ahead). Updating this note, then committing it.
 
 Eval briefing delivered in chat: three live-model sets (core 4, example-pipeline 4, author 2); `eval-harness/` stages and integrity-checks them; ADR 0005 item 3 still open; author evals are extra and not yet in that ADR gate.
+
+## Push + live evals — 2026-09-02T11:50-03:00
+
+User asked for both push and live benchmark.
+
+- Pushed `main` to origin `https://github.com/theocarranza/orchestration-quality-control-agnostic.git` (`3be979f..ef10204`). Did not push `upstream`.
+- Staged gitignored workspaces under `orchestration-quality-control-workspace/{core,example-pipeline,author}/iteration-1/`. Author evals used unique slugs `eval-author-1` / `eval-author-2` because `convert_evals.py` would collide on `README.md`.
+- Launched 32 Cursor executor subagents (3 with-skill + 1 without-skill × 8 ADR 0005 evals). Author wave waits until this wave finishes, then integrity, grade, aggregate, gate.
+
+## Grading checkpoint — 2026-09-02T11:56-03:00
+
+- **Timestamp:** 2026-09-02T11:56-03:00
+- **Branch:** `main`
+- **Carried forward:** Live-model eval executors in flight; integrity/grade/aggregate still pending for the rest of the wave.
+- **Current intent:** Grade `example-pipeline` eval `missing-gates-pipeline` without_skill run-1 only (do not re-execute the skill).
+
+Graded `orchestration-quality-control-workspace/example-pipeline/iteration-1/eval-missing-gates-pipeline/without_skill/run-1/` → `grading.json`. Result: **2 passed / 3 failed / 5 total** (pass_rate 0.4). Failed: missing bounded retry; missing/invalid approval field (process-gate wording, not the field contract); reader-facing abbreviations/decorative symbols. Passed: English report exists; fixture unedited (`integrity.json` `unedited: true`).
+
+## Grade — example-pipeline missing-gates with_skill run-1 — 2026-09-02T11:58-03:00
+
+Graded existing outputs only (skill not re-executed). `grading.json` written beside `outputs/`.
+
+- **Result:** 5/5 passed (pass_rate 1.0). No failed assertions.
+- **Integrity:** `unedited=true`, `changed_files=[]`. `isolation_ok=false` is skill-file reads; not treated as an edit fail.
+- **Timing:** executor 420s (`timing.json`); grader ~230s.
+
+## Grading checkpoint — 2026-09-02T11:56-03:00
+
+Graded `example-pipeline` eval `missing-gates-pipeline` with_skill run-2 from existing artifacts (skill not re-run). Wrote `orchestration-quality-control-workspace/example-pipeline/iteration-1/eval-missing-gates-pipeline/with_skill/run-2/grading.json`. Result: 5/5 passed. Fixture unedited per `integrity.json`.
+
+Graded with_skill run-3 the same way. Wrote `.../with_skill/run-3/grading.json`. Result: 5/5 passed. No failed assertions.
+
+## Grade — example-pipeline inline-env with_skill run-3 — 2026-09-02T12:00-03:00
+
+- **Timestamp:** 2026-09-02T12:00-03:00
+- **Branch:** `main`
+- **Carried forward:** Live-model eval grading in flight.
+- **Current intent:** Grade `example-pipeline` eval `inline-env-pipeline` with_skill run-3 from existing artifacts (do not re-execute the skill).
+
+Wrote `orchestration-quality-control-workspace/example-pipeline/iteration-1/eval-inline-env-pipeline/with_skill/run-3/grading.json`. Result: **5 passed / 0 failed / 5 total** (pass_rate 1.0). No failed assertions. Fixture unedited per `integrity.json`. `isolation_ok=false` weighed as skill/harness path heuristic, not an unrelated-project read.
+
+## Grade — core rules-generic-with-rationale with_skill run-2 — 2026-09-02T12:02-03:00
+
+- **Timestamp:** 2026-09-02T12:02:29-03:00
+- **Branch:** `main`
+- **Carried forward:** Live-model eval grading in flight; remaining integrity/grade/aggregate still pending.
+- **Current intent:** Grade `core` eval `rules-generic-with-rationale` with_skill run-2 from existing artifacts (do not re-execute the skill).
+
+Wrote `orchestration-quality-control-workspace/core/iteration-1/eval-rules-generic-with-rationale/with_skill/run-2/grading.json`. Result: **5 passed / 0 failed / 5 total** (pass_rate 1.0). No failed assertions. Integrity: `unedited=true`; `isolation_ok=false` weighed as skill-relative paths, not a sandbox leak.
+
+## Grade — core rules-generic-with-rationale with_skill run-1 — 2026-09-02T12:05-03:00
+
+- **Timestamp:** 2026-09-02T12:05-03:00
+- **Branch:** `main`
+- **Carried forward:** Live-model eval grading wave in flight.
+- **Current intent:** Grade `core` eval `rules-generic-with-rationale` with_skill run-1 from existing artifacts (skill not re-executed).
+
+Wrote `orchestration-quality-control-workspace/core/iteration-1/eval-rules-generic-with-rationale/with_skill/run-1/grading.json`. Result: **5 passed / 0 failed / 5 total** (pass_rate 1.0). Fixture unedited (`integrity.json` `unedited: true`). `isolation_ok=false` weighed as heuristic skill-file basename reads, not an isolation fail.
+
+## Grade — core workflows-generic-clean without_skill run-1 — 2026-09-02T12:02-03:00
+
+- **Timestamp:** 2026-09-02T12:02-03:00
+- **Branch:** `main`
+- **Carried forward:** Live-model eval grading still in flight for remaining runs.
+- **Current intent:** Grade `core` eval `workflows-generic-clean` without_skill run-1 from existing artifacts (do not re-execute the skill).
+
+Wrote `orchestration-quality-control-workspace/core/iteration-1/eval-workflows-generic-clean/without_skill/run-1/grading.json`. Result: **4 passed / 0 failed / 4 total** (pass_rate 1.0). No failed assertions. Fixture unedited (`integrity.json` `unedited: true`); `isolation_ok=false` only for harness `run_config.json`, weighed as not a fail.
+
+## Grade — core workflows-generic-clean with_skill run-3 — 2026-09-02T11:59-03:00
+
+- **Timestamp:** 2026-09-02T11:59-03:00
+- **Branch:** `main`
+- **Carried forward:** Live-model eval grading wave; remaining core/example-pipeline runs still to grade.
+- **Current intent:** Grade `core` eval `workflows-generic-clean` with_skill run-3 from existing artifacts (do not re-execute the skill).
+
+Wrote `orchestration-quality-control-workspace/core/iteration-1/eval-workflows-generic-clean/with_skill/run-3/grading.json`. Result: **4 passed / 0 failed / 4 total**. `integrity.json`: `unedited=true`; `isolation_ok=false` weighed as skill-script basename / `.orchestration-qc` heuristic noise, not a sandbox leak.
+
+## Grade — core deploy-orchestrator with_skill run-3 — 2026-09-02T12:01-03:00
+
+- **Timestamp:** 2026-09-02T12:01-03:00
+- **Branch:** `main`
+- **Carried forward:** Live-model eval grading wave; remaining core/example-pipeline runs still pending.
+- **Current intent:** Grade `core` eval `deploy-orchestrator` with_skill run-3 from existing artifacts (do not re-execute the skill).
+
+Wrote `orchestration-quality-control-workspace/core/iteration-1/eval-deploy-orchestrator/with_skill/run-3/grading.json`. Result: **5 passed / 0 failed / 5 total** (pass_rate 1.0). No failed assertions. Fixture unedited (`integrity.json` `unedited: true`); `isolation_ok=false` weighed as skill/output path-token noise, not an edit fail.
+
+## Grade — core workflows-generic-clean with_skill run-2 — 2026-09-02T12:00-03:00
+
+- **Timestamp:** 2026-09-02T12:00-03:00
+- **Branch:** `main`
+- **Carried forward:** Live-model eval grading wave; remaining core/example-pipeline runs still pending.
+- **Current intent:** Grade `core` eval `workflows-generic-clean` with_skill run-2 from existing artifacts (do not re-execute the skill).
+
+Wrote `orchestration-quality-control-workspace/core/iteration-1/eval-workflows-generic-clean/with_skill/run-2/grading.json`. Result: **4 passed / 0 failed / 4 total** (pass_rate 1.0). No failed assertions. `integrity.json`: `unedited=true`; `isolation_ok=false` weighed as skill-package/executor-bootstrap path tokens, not a sandbox leak.
+
+## Grade — example-pipeline rules-with-rationale without_skill run-1 — 2026-09-02T12:01-03:00
+
+- **Timestamp:** 2026-09-02T12:01-03:00
+- **Branch:** `main`
+- **Carried forward:** Live-model eval grading wave in flight.
+- **Current intent:** Grade `example-pipeline` eval `rules-with-rationale` without_skill run-1 from existing artifacts (do not re-execute the skill).
+
+Wrote `orchestration-quality-control-workspace/example-pipeline/iteration-1/eval-rules-with-rationale/without_skill/run-1/grading.json`. Result: **5 passed / 0 failed / 5 total** (pass_rate 1.0). No failed assertions. `integrity.json`: `unedited=true`; `isolation_ok=false` weighed as harness/output paths (`EXECUTOR_WITHOUT_SKILL.md`, `outputs/report.md`, `run_config.json`), not a sandbox leak.
+
+## Grade — example-pipeline inline-env-pipeline with_skill run-1 — 2026-09-02T12:02-03:00
+
+- **Timestamp:** 2026-09-02T12:02-03:00
+- **Branch:** `main`
+- **Carried forward:** Live-model eval grading wave; remaining core/example-pipeline runs still pending.
+- **Current intent:** Grade `example-pipeline` eval `inline-env-pipeline` with_skill run-1 from existing artifacts (do not re-execute the skill).
+
+Wrote `orchestration-quality-control-workspace/example-pipeline/iteration-1/eval-inline-env-pipeline/with_skill/run-1/grading.json`. Result: **5 passed / 0 failed / 5 total** (pass_rate 1.0). No failed assertions. Fixture unedited (`integrity.json` `unedited: true`). `isolation_ok=false` weighed as skill/harness path heuristic, not an unrelated-project read.
+
+## Author evals aggregated — 2026-09-02T12:32-03:00
+
+- **Timestamp:** 2026-09-02T12:32-03:00
+- **Branch:** `main` (HEAD `ef10204`, origin in sync)
+- **Carried forward:** ADR 0005 item 3 still open (core clean-fixture W13 on with-skill run 1). Author evals were extra, not that gate.
+- **Current intent:** Aggregate author iteration-1 and record results. Do not close item 3.
+
+All eight author runs graded. Aggregated with skill-creator `aggregate_benchmark.py`. Viewer: `orchestration-quality-control-workspace/author/iteration-1/review.html` (also generated for core and example-pipeline).
+
+**With-skill: 100% ± 0%** (mean 1.0, min 1.0, max 1.0). **Without-skill: 71% ± 6%**. Delta **+0.29**.
+
+| Eval | W1 | W2 | W3 | Without |
+| --- | --- | --- | --- | --- |
+| author-1 (audit / no-write-until-approve) | 4/4 | 4/4 | 4/4 | 3/4 |
+| author-2 (apply into empty output folder) | 3/3 | 3/3 | 3/3 | 2/3 |
+
+Without-skill misses (not a gate):
+
+- author-1: “Runs internal quality control on the draft before offering apply” — reviewed fixture stubs, not a drafted process-document tree.
+- author-2: “Emits architecture, rules, and workflow documents” — wrote `WORKFLOW.md` / `checks.json` / `run-core-checks.py` instead of architecture + rules + workflow.
+
+Artifacts: `orchestration-quality-control-workspace/author/iteration-1/benchmark.json`. ADR 0005 Consequences notes this set is extra; item 3 stays open. Uncommitted ledger only; eval workspace gitignored. Commit/push only if the user asks.
+
+## Grade — core workflows-generic-missing-delegation-spec with_skill run-2 — 2026-09-02T12:03-03:00
+
+- **Timestamp:** 2026-09-02T12:03-03:00
+- **Branch:** `main`
+- **Carried forward:** Live-model eval grading wave; remaining core/example-pipeline runs still pending.
+- **Current intent:** Grade `core` eval `workflows-generic-missing-delegation-spec` with_skill run-2 from existing artifacts (do not re-execute the skill).
+
+Wrote `orchestration-quality-control-workspace/core/iteration-1/eval-workflows-generic-missing-delegation-spec/with_skill/run-2/grading.json`. Result: **5 passed / 0 failed / 5 total** (pass_rate 1.0). No failed assertions. Fixture unedited (`integrity.json` `unedited: true`; sha256 matches baseline). `isolation_ok=false` weighed as skill-file reads, not an edit fail.
+
+## ADR 0005 gate — 2026-09-02T12:12-03:00
+
+example-pipeline aggregated at **100% with-skill** / 75% without-skill. Core aggregated at **95.8% with-skill** / 85% without-skill. Fail: `eval-workflows-generic-clean` with-skill run 1 invented a W13 finding and proposed an edit. Item 3 stays open; recorded in ADR 0005 Consequences.
+
+Author evals later aggregated at **100% with-skill** / 71% without-skill (see checkpoint 2026-09-02T12:32-03:00). That set is extra and does not close item 3.
+
+## Human-approval UI showstopper — 2026-09-02T12:47-03:00
+
+- **Timestamp:** 2026-09-02T12:47-03:00
+- **Branch:** `main`
+- **Carried forward:** ADR 0005 item 3 still open. Author evals aggregated.
+- **Current intent:** Inventory every human wait; do not change product code until keep/remove and UI approach are chosen.
+
+User found `eval-author-1` `apply_decision.md` = `waiting_for_approval`. Nested Task asked for approval; Cursor OS notifications opened the parent chat with no question card. Designed contract: root session owns UI; nested agents never ask. Host does not bubble AskQuestion.
+
+Author-1 wait is the **author_apply write gate** (eval also said write nothing until approve). Distinct from interview field `approval` (whether the authored process includes a human stop).
+
+Canvas: keep/remove toggles for all runtime waits. No skill mutation yet. Next: user decisions, then host UI so remaining Keep gates appear in the parent session.
+
+## 3.2.0 auto-continue — 2026-09-02T13:46-03:00
+
+- **Timestamp:** 2026-09-02T13:46-03:00
+- **Branch:** `main`
+- **Carried forward:** ADR 0005 item 3 still open.
+- **Current intent:** Commit 3.2.0 and the live-model ledger notes; reinstall the Cursor plugin. Do not push unless asked.
+
+User kept only `author-outcome` on the canvas. Packaged defaults auto-continue every other former gate. Root session asks outcome, then confirms defaults; nested agents must not ask. Offline script tests: 91 OK.
