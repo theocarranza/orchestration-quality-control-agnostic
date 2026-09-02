@@ -102,9 +102,9 @@ Implementation approved. Vault renamed `AI_Codex/`. ADRs/specs/plans moved out o
 
 Passed. `docs/` is user-facing (`authoring.md` only). Ledger is `AI_Codex/` (versioned; repo `.gitignore` negates a user-global `AI_Codex/` ignore). ADRs, specs, and plans live under the ledger. Mermaid on live user and contributor notes. Offline tests 157 OK (71+8+6+36+19+17). No `docs/superpowers` tree. No live `docs/adr/` pointers. Closing this step with a commit. Next separable gate gets its own checkpoint then commit.
 
-## Gate — 3.1.0 authoring start — 2026-09-02T11:12-03:00
+## Gate 1 — discover_workspace + plan_interview — 2026-09-02T11:20-03:00
 
-User: go nonstop to completion. Implementation approved for `author_prepare` / `author_apply`. Plan: `Implementation_Plans/2026-09-02-authoring-3-1-0.md`. Checkpoint-then-commit after each gate.
+Passed. 9 new tests. Audit records stack/layout/tests/CI/orchestration/mechanism/profile hints. Interview plan never asks those facts; forks author vs upgrade when something exists.
 
 ## README polish — 2026-09-02T11:15-03:00
 
