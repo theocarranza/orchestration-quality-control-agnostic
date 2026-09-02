@@ -6,6 +6,7 @@ from pathlib import Path
 from qc_lib import Blocked
 
 import discover_workspace
+import gate_defaults
 import plan_interview
 
 
@@ -65,75 +66,91 @@ class DiscoverWorkspaceTest(unittest.TestCase):
 
 
 class PlanInterviewTest(unittest.TestCase):
-    def test_never_asks_stack_layout_or_whether_tests_exist(self):
-        plan = plan_interview.plan({
-            "languages": ["python"],
+    def _brief(self, **overrides):
+        base = {
+            "languages": [],
             "package_managers": [],
-            "layout": ["src", "tests"],
-            "test_trees": ["tests"],
+            "layout": [],
+            "test_trees": [],
             "ci": [],
             "existing_orchestration": [],
             "existing_mechanism": [],
             "doc_language_hints": ["en"],
             "profile_hints": [],
-            "readme_present": True,
-        })
+            "readme_present": False,
+        }
+        base.update(overrides)
+        return base
+
+    def test_never_asks_stack_layout_or_whether_tests_exist(self):
+        plan = plan_interview.plan(self._brief(
+            languages=["python"],
+            layout=["src", "tests"],
+            test_trees=["tests"],
+        ))
         asked = set(plan["always_ask"]) | set(plan["ask"])
         self.assertNotIn("languages", asked)
         self.assertNotIn("layout", asked)
         self.assertNotIn("tests_exist", asked)
-        self.assertIn("outcome", plan["always_ask"])
-        self.assertIn("output_root", plan["always_ask"])
+        self.assertEqual(plan["always_ask"], ["outcome"])
+        self.assertEqual(plan["ask"], [])
         skipped = {item["field"]: item["value"] for item in plan["skip"]}
         self.assertEqual(skipped["language"], "en")
         self.assertEqual(skipped["profile"], "core")
+        self.assertEqual(skipped["output_root"], "authored-orchestration")
         self.assertIsNone(plan["fork"])
 
-    def test_forks_when_orchestration_exists(self):
-        plan = plan_interview.plan({
-            "languages": [],
-            "package_managers": [],
-            "layout": [],
-            "test_trees": [],
-            "ci": [],
-            "existing_orchestration": ["workflows/workflows-ship.md"],
-            "existing_mechanism": [],
-            "doc_language_hints": [],
-            "profile_hints": [],
-            "readme_present": False,
-        })
-        self.assertEqual(plan["fork"], "author_vs_upgrade")
+    def test_does_not_fork_when_orchestration_exists(self):
+        plan = plan_interview.plan(self._brief(
+            existing_orchestration=["workflows/workflows-ship.md"],
+        ))
+        self.assertIsNone(plan["fork"])
+        skipped = {item["field"]: item["value"] for item in plan["skip"]}
+        self.assertEqual(skipped["intent"], "author")
 
-    def test_asks_profile_when_pipeline_artifacts_present(self):
-        plan = plan_interview.plan({
-            "languages": [],
-            "package_managers": [],
-            "layout": [],
-            "test_trees": [],
-            "ci": [],
-            "existing_orchestration": [],
-            "existing_mechanism": [],
-            "doc_language_hints": [],
-            "profile_hints": ["example-pipeline"],
-            "readme_present": False,
-        })
-        self.assertIn("profile", plan["ask"])
-        self.assertNotIn("profile", {item["field"] for item in plan["skip"]})
+    def test_packaged_profile_when_pipeline_artifacts_present(self):
+        plan = plan_interview.plan(self._brief(profile_hints=["example-pipeline"]))
+        skipped = {item["field"]: item["value"] for item in plan["skip"]}
+        self.assertEqual(skipped["profile"], "example-pipeline")
 
-    def test_asks_whether_outcome_involves_e2e_tree(self):
-        plan = plan_interview.plan({
-            "languages": [],
-            "package_managers": [],
-            "layout": ["e2e"],
-            "test_trees": ["e2e"],
-            "ci": [],
-            "existing_orchestration": [],
-            "existing_mechanism": [],
-            "doc_language_hints": [],
-            "profile_hints": [],
-            "readme_present": False,
-        })
-        self.assertIn("outcome_involves_test_tree", plan["ask"])
+    def test_defaults_confirmation_lists_packaged_fields(self):
+        plan = plan_interview.plan(self._brief())
+        confirmation = plan["defaults_confirmation"]
+        self.assertEqual(confirmation["scope"], "author")
+        self.assertIn("output_root", confirmation["fields"])
+        self.assertNotIn("outcome", confirmation["fields"])
+
+
+class GateDefaultsTest(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.workspace = Path(self._tmp.name)
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def test_infer_validate_targets_from_orchestration(self):
+        brief = {"existing_orchestration": ["workflows/a.md"], "existing_mechanism": []}
+        targets = gate_defaults.infer_validate_targets(brief, workspace=self.workspace)
+        self.assertEqual(targets, ["workflows/a.md"])
+
+    def test_infer_validate_targets_from_workspace_defaults(self):
+        config_dir = self.workspace / ".orchestration-qc"
+        config_dir.mkdir(parents=True)
+        (config_dir / "defaults.json").write_text(
+            json.dumps({"validate": {"targets": ["rules/x.md"]}}),
+            encoding="utf-8",
+        )
+        brief = {"existing_orchestration": [], "existing_mechanism": []}
+        targets = gate_defaults.infer_validate_targets(brief, workspace=self.workspace)
+        self.assertEqual(targets, ["rules/x.md"])
+
+    def test_upgrade_fields_side_by_side_default(self):
+        brief = {"existing_mechanism": [".claude/agents"], "profile_hints": [], "doc_language_hints": []}
+        fields = gate_defaults.upgrade_fields(brief)
+        self.assertEqual(fields["apply_mode"], "side-by-side")
+        self.assertEqual(fields["decision"], "approve")
+        self.assertEqual(fields["output_root"], "agents-oqc-next")
 
 
 if __name__ == "__main__":

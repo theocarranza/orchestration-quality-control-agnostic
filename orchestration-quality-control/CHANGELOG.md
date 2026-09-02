@@ -1,3 +1,16 @@
+## 3.2.0 — 2026-09-02
+
+- **Behavior:** removed eighteen human approval gates in favor of packaged
+  defaults and auto-continue. Only **author outcome** remains a root-session
+  question without a default. See `references/defaults/gate-defaults.json`
+  and `references/workflows/workflows-root-session-interview.md`.
+- Added `scripts/gate_defaults.py` for deterministic default resolution and
+  validate-target inference (`.orchestration-qc/defaults.json` optional).
+- Reshaped `plan_interview.py`: `always_ask: ["outcome"]` only; defaults
+  confirmation step before nested work.
+- Bumped `plugin.template.json` / `build_plugin.py` `VERSION` to `3.2.0`
+  across the Claude, Codex, and Cursor adapters.
+
 ## 3.1.0 — 2026-09-02
 
 - Added greenfield authoring (`author_prepare` / `author_apply`): workspace

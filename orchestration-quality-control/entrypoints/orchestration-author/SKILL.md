@@ -1,26 +1,24 @@
 ---
 name: orchestration-author
 description: >
-  Greenfield, approval-gated authoring of process documents (workflow,
-  rules, optional orchestrator, ARCHITECTURE.md). Audits the workspace,
-  interviews only gaps, internally quality-controls the draft, and writes
-  nothing until an atomic approve. Use when the user asks to author, write,
-  or generate a new agentic process rather than check or upgrade an
-  existing one.
+  Greenfield authoring of process documents (workflow, rules, optional
+  orchestrator, ARCHITECTURE.md). Audits the workspace, asks only for outcome
+  in the root session, confirms packaged defaults, internally quality-controls
+  the draft, and auto-applies into an empty folder. Use when the user asks to
+  author, write, or generate a new agentic process rather than check or
+  upgrade an existing one.
 license: MIT
 ---
 
 # Orchestration Author
 
-This is the explicit host entry point for the authoring operations in the
-sibling `orchestration-quality-control` skill.
+Explicit host entry for authoring operations in the sibling
+`orchestration-quality-control` skill.
 
-1. Locate the installed `orchestration-quality-control` skill root. Stop
-   with `adapter_not_installed` if it is unavailable.
-2. Run `discover_workspace.py` then `plan_interview.py`. Ask only the
-   planned questions. If the fork is upgrade, stop and run upgrade.
-3. Follow `workflows-author-prepare.md` then `workflows-author-apply.md`.
-4. The root session owns every UI question and the atomic decision.
-5. Never write `output_root` from the root session. Use the installed
-   host's guided-upgrade Orchestrator with `author_prepare` /
-   `author_apply`.
+1. Locate the installed skill root. Stop with `adapter_not_installed` if
+   unavailable.
+2. Follow `references/workflows/workflows-root-session-interview.md`.
+3. Run `discover_workspace.py` then `plan_interview.py`.
+4. Ask **outcome** only in the root session. Confirm packaged defaults (accept
+   or update), then delegate prepare/apply with packaged `decision: approve`.
+5. Never write `output_root` from the root session.

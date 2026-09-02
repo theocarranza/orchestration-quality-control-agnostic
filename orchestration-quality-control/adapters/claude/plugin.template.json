@@ -1,6 +1,6 @@
 {
   "name": "orchestration-quality-control",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "description": "Orchestration quality control with nested review agents, deterministic gates, and explicit approval.",
   "author": {
     "name": "Théo Carranza"
