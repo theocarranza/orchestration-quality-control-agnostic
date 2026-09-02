@@ -1,6 +1,6 @@
 {
   "name": "orchestration-quality-control",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Orchestration quality control with nested review agents, deterministic gates, and explicit approval.",
   "author": {
     "name": "Théo Carranza"
@@ -25,7 +25,7 @@
     "defaultPrompt": [
       "Validate this orchestration workflow.",
       "Review these agent rules with the core profile.",
-      "Run the Aplicatudo E2E quality-control profile."
+      "Run the example-pipeline quality-control profile."
     ],
     "brandColor": "#3B82F6"
   }

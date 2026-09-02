@@ -20,7 +20,7 @@
     "profile": {
       "type": "string",
       "default": "core",
-      "description": "'core' or a profile id such as 'aplicatudo-e2e'."
+      "description": "'core' or a profile id such as 'example-pipeline'."
     },
     "language": {
       "type": "string",

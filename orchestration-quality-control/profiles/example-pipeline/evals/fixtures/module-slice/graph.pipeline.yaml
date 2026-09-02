@@ -1,0 +1,17 @@
+name: deploy
+approval: required
+state:
+  store: .pipeline/state/deploy.json
+jobs:
+  - id: build
+    retry: 3
+    on_failure: stop
+  - id: publish
+    needs: [build]
+    retry: 1
+    on_failure: stop
+    secrets:
+      - ref: deploy-token
+  - id: scratch
+    retry: 0
+    on_failure: stop

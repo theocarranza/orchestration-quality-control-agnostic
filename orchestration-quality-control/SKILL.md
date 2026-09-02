@@ -18,8 +18,8 @@ description: >
   generator source for orchestration-quality problems — delegation gaps,
   missing approval gates, non-durable state, unbounded loops, or
   unjustified agent proliferation — even if they do not name this skill
-  or use the word "orchestration". For Aplicatudo E2E/Maestro artifact
-  checks specifically, select `profile: aplicatudo-e2e`.
+  or use the word "orchestration". For the fictional pipeline-artifact
+  example, select `profile: example-pipeline`.
 license: MIT
 ---
 

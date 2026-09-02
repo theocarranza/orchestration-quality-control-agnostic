@@ -1,9 +1,9 @@
 # Orchestration Quality Control
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](orchestration-quality-control/SKILL.md)
-[![Version](https://img.shields.io/badge/version-2.0.0-green)](orchestration-quality-control/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-3.0.0-green)](orchestration-quality-control/CHANGELOG.md)
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](orchestration-quality-control/scripts/)
-[![Offline tests](https://img.shields.io/badge/offline%20tests-155-brightgreen)](orchestration-quality-control/scripts/tests/)
+[![Offline tests](https://img.shields.io/badge/offline%20tests-157-brightgreen)](orchestration-quality-control/scripts/tests/)
 [![Agent Skills](https://img.shields.io/badge/spec-Agent%20Skills-8A2BE2)](https://github.com/agentskills/agentskills)
 
 **Quality control for the documents that run your agents** — workflow files, orchestrator documents, and rules files — not the application code agents write. The package classifies targets, checks them against packaged policy, returns structured findings with literal before/after diffs, and applies nothing until a human explicitly approves.
@@ -35,12 +35,12 @@
 
 Teams building **agentic workflows** (multi-step processes where one agent delegates work, validates results, asks for approval, and keeps state) encode that behavior in markdown: workflow files describe steps, rules files state constraints, and orchestrator documents coordinate workers. When those documents are incomplete or inconsistent, the failure mode is subtle: agents skip approval gates, retry forever, lose progress when a session ends, or edit files before anyone agrees.
 
-A prior implementation, bundled inside an end-to-end testing project, mixed two concerns that do not belong together:
+A prior implementation, bundled inside a product test suite, mixed two concerns that do not belong together:
 
 1. **Generic orchestration checks** — delegation completeness, bounded retries, durable state, approval ownership — useful for any agent workflow.
-2. **Domain-specific checks** — Maestro flow shape, screen-identifier collisions, credentials in the wrong file — useful only for that one product's test suite.
+2. **Domain-specific checks** — artifact shape for that one product's suite — useful only there.
 
-Coupling them made the tool look like a niche E2E linter while actually trying to be a portable orchestration gate. Worse, early versions relied heavily on model consistency for mechanical steps (classification, finding identity, checkpoint transitions), which produced **different findings for identical input** and sometimes reported edits as applied when they were not safe.
+Coupling them made the tool look like a niche linter while actually trying to be a portable orchestration gate. Worse, early versions relied heavily on model consistency for mechanical steps (classification, finding identity, checkpoint transitions), which produced **different findings for identical input** and sometimes reported edits as applied when they were not safe.
 
 ---
 
@@ -55,7 +55,7 @@ flowchart TD
     CORE --> SCRIPTS["Deterministic Python gates\nclassify · identity · checkpoint · diff"]
     CORE --> REPORT["Structured findings +\nplain-language report"]
     CORE --> PROFILE["Optional profile"]
-    PROFILE --> E2E["aplicatudo-e2e\nMaestro / domain artifact rules"]
+    PROFILE --> E2E["example-pipeline\nfictional pipeline artifact rules"]
     CORE --> ADAPTERS["Host adapters"]
     ADAPTERS --> CLAUDE["Claude — 3-role isolation + hook"]
     ADAPTERS --> CURSOR["Cursor — nested subagents + hook"]
@@ -64,7 +64,7 @@ flowchart TD
 
 The core separates **policy** (what good orchestration looks like) from **enforcement** (how a host prevents bypass). Mechanical decisions run in dependency-free Python under `orchestration-quality-control/scripts/`; a language model is used only to judge whether a passage violates a rule and to write the human-facing report. Every proposed fix must quote verbatim text from the target file — if the anchor is missing, the finding is rejected before review.
 
-Domain checks live in optional **profiles** (for example [`profiles/aplicatudo-e2e/`](orchestration-quality-control/profiles/aplicatudo-e2e/)). With no profile, the core runs generic checks only and has no dependency on Maestro, Flutter, or any single product.
+Domain checks live in optional **profiles** (for example [`profiles/example-pipeline/`](orchestration-quality-control/profiles/example-pipeline/)). With no profile, the core runs generic checks only.
 
 ---
 
@@ -105,34 +105,22 @@ Every host adapter (Claude, Cursor, Codex) mechanizes the same **isolated three-
 
 ## Evidence it helps
 
-### Legacy benchmark (predecessor skill)
-
-The retired `e2e-quality-control` skill was graded with the same rubric this package must match. In `legacy/e2e-quality-control-workspace/iteration-1/benchmark.json` (three evals, three with-skill runs each):
-
-| Configuration | Mean assertion pass rate |
-| --- | ---: |
-| **With skill** | **100%** (15/15 assertions) |
-| Without skill | 66.7% (10/15 assertions) |
-| **Delta** | **+33 percentage points** |
-
-Without the skill, models often produced long, jargon-heavy reports, opened no packaged rules, or failed plain-language shape requirements — even when they spotted some defects.
-
 ### Eval coverage in this repository
 
 | Eval set | Profile | Cases | Purpose |
 | --- | --- | ---: | --- |
-| [`evals/core/evals.json`](orchestration-quality-control/evals/core/evals.json) | `core` | 4 | Generic orchestration only — no Maestro or product content |
-| [`profiles/aplicatudo-e2e/evals/evals.json`](orchestration-quality-control/profiles/aplicatudo-e2e/evals/evals.json) | `aplicatudo-e2e` | 4 | Regression scenarios carried from the retired 3.0.0 skill |
+| [`evals/core/evals.json`](orchestration-quality-control/evals/core/evals.json) | `core` | 4 | Generic orchestration only |
+| [`profiles/example-pipeline/evals/evals.json`](orchestration-quality-control/profiles/example-pipeline/evals/evals.json) | `example-pipeline` | 4 | Fictional pipeline-artifact profile |
 
-The definition of done ([ADR 0005](docs/adr/0005-definition-of-done.md)) requires both sets to reach **100% with-skill pass rate** at benchmark parity. The repo includes [`eval-harness/`](eval-harness/) tooling (converter, run-integrity checker, runbook) to repeat that grading; see [`eval-harness/RUNBOOK.md`](eval-harness/RUNBOOK.md) for the 3 with-skill + 1 without-skill run protocol per eval (32 model runs total across both sets).
+The definition of done ([ADR 0005](docs/adr/0005-definition-of-done.md), amended by [ADR 0011](docs/adr/0011-agnostic-example-pipeline-profile.md)) requires both sets to reach **100% with-skill pass rate**. The repo includes [`eval-harness/`](eval-harness/) tooling (converter, run-integrity checker, runbook) to repeat that grading; see [`eval-harness/RUNBOOK.md`](eval-harness/RUNBOOK.md) for the 3 with-skill + 1 without-skill run protocol per eval.
 
 ### Offline deterministic tests
 
-**155** automated tests run with no model call (counts as of v2.0.0):
+**157** automated tests run with no model call (counts as of v3.0.0):
 
 | Suite | Tests |
 | --- | ---: |
-| Core scripts (`scripts/tests/`) | 69 |
+| Core scripts (`scripts/tests/`) | 71 |
 | Claude hook | 8 |
 | Claude adapter build | 6 |
 | Codex adapter | 36 |
@@ -162,8 +150,6 @@ Host entry points:
 | Cursor | skill + bundled subagents | `/oqc-upgrade` |
 | Codex | packaged plugin + custom agents | `orchestration-upgrade` skill |
 
-Compatibility aliases `e2e-quality-control-validate` / `-execute` remain on the Claude adapter for migrations from 3.0.0.
-
 ---
 
 ## Suggested use cases
@@ -171,9 +157,9 @@ Compatibility aliases `e2e-quality-control-validate` / `-execute` remain on the 
 1. **Before merging agent workflow changes** — Run `validate` on new or edited workflow and rules files; require explicit approval before `execute` applies fixes.
 2. **Auditing an orchestrator document** — Flag unbounded retry loops, state kept only in chat context, or missing delegation specs (see core eval fixture `deploy-orchestrator.md`).
 3. **Rules authoring hygiene** — Detect rationale clauses (`because`, `so that`) and step sequencing that belongs in workflow files, not rule bullets.
-4. **Generator-source review** — Check whether prompts or generators that produce orchestration artifacts would violate packaged rules (core) or profile artifact rules (e.g. Maestro flows).
+4. **Generator-source review** — Check whether prompts or generators that produce orchestration artifacts would violate packaged rules (core) or profile artifact rules (for example the fictional pipeline format).
 5. **Replacing a legacy orchestration** — Use guided upgrade to compare an existing mechanism against the isolated-three-agent reference architecture, draft a complete replacement, and apply it atomically.
-6. **Product-specific E2E artifact QC** — Select `profile: aplicatudo-e2e` for Maestro/domain/data-file checks without loading that vocabulary into generic runs.
+6. **Optional profile for a fictional pipeline artifact format** — Select `profile: example-pipeline` for `*.pipeline.yaml` checks without loading that vocabulary into generic runs.
 
 ---
 
@@ -224,7 +210,6 @@ Expected outcome: a full proposal tree under `output_root`, an `ARCHITECTURE.md`
 | [`eval-harness/`](eval-harness/) | Benchmark conversion and run-integrity tooling (repo-local, not shipped in the skill) |
 | [`docs/adr/`](docs/adr/) | Architecture decision records |
 | [`dist/`](dist/) | Generated Claude, Cursor, and Codex marketplace bundles |
-| [`legacy/`](legacy/) | Archived predecessor material and baseline benchmark |
 | [`AI_Codex_OrchestratorQcPlugin/`](AI_Codex_OrchestratorQcPlugin/) | Project knowledge vault (sessions, reports, plans) |
 
 Runtime checkpoints and workspace state stay **outside** the package and **outside** git — under each target workspace's `.orchestration-qc/`.
@@ -262,7 +247,7 @@ Public behavior changes belong in [`orchestration-quality-control/CHANGELOG.md`]
 
 | ADR | Topic |
 | --- | --- |
-| [0001](docs/adr/0001-freeze-baseline-and-legacy-archival.md) | Freeze baseline and archive legacy |
+| [0001](docs/adr/0001-freeze-baseline-and-legacy-archival.md) | Freeze baseline (predecessor tree later removed) |
 | [0002](docs/adr/0002-agent-skills-spec-anchor.md) | Anchor on Agent Skills spec, not OpenSkills alone |
 | [0003](docs/adr/0003-single-agent-core-default.md) | Single-agent pipeline as core default (superseded by 0010) |
 | [0005](docs/adr/0005-definition-of-done.md) | Extraction definition of done (incl. benchmark parity) |
@@ -271,6 +256,7 @@ Public behavior changes belong in [`orchestration-quality-control/CHANGELOG.md`]
 | [0008](docs/adr/0008-guided-orchestration-upgrade.md) | Guided orchestration upgrade (amended by 0010) |
 | [0009](docs/adr/0009-claude-native-plugin-marketplace.md) | Claude native plugin marketplace |
 | [0010](docs/adr/0010-isolated-three-agent-only.md) | Ship the isolated three-agent topology only |
+| [0011](docs/adr/0011-agnostic-example-pipeline-profile.md) | Replace the product profile with `example-pipeline` |
 
 Deeper design narrative: [`AI_Codex_OrchestratorQcPlugin/Agent_Reports/2026-07-15-orchestration-qc-openskills-architecture.md`](AI_Codex_OrchestratorQcPlugin/Agent_Reports/2026-07-15-orchestration-qc-openskills-architecture.md) (vault report; same facts as the ADRs above).
 

@@ -1,0 +1,126 @@
+{
+  "skill_name": "orchestration-quality-control",
+  "profile": "example-pipeline",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Please check this pipeline file for quality problems. Use the orchestration-quality-control skill with profile: example-pipeline. Ask me any missing choices with the usual question screen. Only use the skill rules and this file. Write a short plain report. Ask me before changing any file.",
+      "expected_output": "Asks which language to use for the report if needed. Reads only the skill rules and the given file. Finds that environment values and a literal secret sit inside the pipeline instead of a data file and a named reference. Suggests moving them. Asks before editing.",
+      "files": [
+        "fixtures/inline-env.pipeline.yaml"
+      ],
+      "assertions": [
+        {
+          "id": "a1",
+          "text": "Produces a short plain-language report with what is wrong, which rule, where, and what to change"
+        },
+        {
+          "id": "a2",
+          "text": "Flags environment values or literal secrets living inside the pipeline file"
+        },
+        {
+          "id": "a3",
+          "text": "Does not edit the target file before an explicit apply confirmation"
+        },
+        {
+          "id": "a4",
+          "text": "Does not open unrelated project files for the quality check"
+        },
+        {
+          "id": "a5",
+          "text": "Reader-facing text avoids abbreviations, acronyms, and decorative symbols"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Please check this pipeline file for quality problems. Use the orchestration-quality-control skill with profile: example-pipeline. Write the report in English. Do not change the file until I say yes.",
+      "expected_output": "Uses English. Finds that the pipeline omits an explicit approval choice and that the job has no bounded retry. Suggests adding both. Does not edit until the user agrees.",
+      "files": [
+        "fixtures/missing-gates.pipeline.yaml"
+      ],
+      "assertions": [
+        {
+          "id": "a1",
+          "text": "Produces a short plain-language English report"
+        },
+        {
+          "id": "a2",
+          "text": "Flags a missing bounded retry on the job"
+        },
+        {
+          "id": "a3",
+          "text": "Flags a missing or invalid approval field"
+        },
+        {
+          "id": "a4",
+          "text": "Does not edit the file before user approval"
+        },
+        {
+          "id": "a5",
+          "text": "Reader-facing text avoids abbreviations, acronyms, and decorative symbols"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Please check this whole folder of pipeline files for quality problems. Use the orchestration-quality-control skill with profile: example-pipeline. Look for jobs that are disconnected from the graph. Stay inside this folder.",
+      "expected_output": "Flags the scratch job as disconnected: it has no needs list and no other job lists it. Leaves the build root and the publish leaf unflagged for that rule. Does not edit until the user agrees. Stays inside the folder.",
+      "files": [
+        "fixtures/module-slice/graph.pipeline.yaml"
+      ],
+      "assertions": [
+        {
+          "id": "a1",
+          "text": "Produces a short plain-language report"
+        },
+        {
+          "id": "a2",
+          "text": "Flags the disconnected scratch job"
+        },
+        {
+          "id": "a3",
+          "text": "Does not treat the build root or the publish leaf as disconnected"
+        },
+        {
+          "id": "a4",
+          "text": "Does not edit files before an explicit apply confirmation"
+        },
+        {
+          "id": "a5",
+          "text": "Stays isolated to the selected folder"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Please check this rules file for quality problems. Use the orchestration-quality-control skill with profile: example-pipeline. Write the report in English. Only use the skill rules and this file. Ask me before changing any file.",
+      "expected_output": "Treats the file as a rules generator source. Flags rationale clauses (because / so that / which allows) and first/then sequencing as rule-authoring problems. May also note generator gaps or contradictions against the profile's packaged artifact rules. Does not edit until the user agrees. Stays isolated.",
+      "files": [
+        "fixtures/rules-with-rationale.md"
+      ],
+      "assertions": [
+        {
+          "id": "a1",
+          "text": "Treats the target as a rules file / generator source"
+        },
+        {
+          "id": "a2",
+          "text": "Flags rationale clauses or first/then sequencing as rule-authoring form problems"
+        },
+        {
+          "id": "a3",
+          "text": "Produces a short plain-language English report"
+        },
+        {
+          "id": "a4",
+          "text": "Does not edit the file before user approval"
+        },
+        {
+          "id": "a5",
+          "text": "Stays isolated to packaged rules plus the selected file"
+        }
+      ]
+    }
+  ]
+}

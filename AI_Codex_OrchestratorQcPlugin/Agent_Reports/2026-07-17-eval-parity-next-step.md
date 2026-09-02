@@ -33,7 +33,7 @@ automatically.
 The tool ships with two files of test prompts: one for its general-purpose
 checks (`orchestration-quality-control/evals/core/evals.json`) and one for
 the specific checks used on end-to-end test flows
-(`orchestration-quality-control/profiles/aplicatudo-e2e/evals/evals.json`).
+(`orchestration-quality-control/profiles/former-product-profile/evals/evals.json`).
 Each entry in these files pairs a prompt, a sample file to check, and a list
 of pass/fail conditions the response must meet — for example, "flags login
 details left inside the flow file" or "does not edit anything before asking
@@ -41,7 +41,7 @@ first."
 
 The older tool this was extracted from was tested the same way, and its
 results were saved in
-`legacy/e2e-quality-control-workspace/iteration-1/benchmark.json`. That file
+`legacy/predecessor-skill-workspace/iteration-1/benchmark.json`. That file
 shows the older tool passing all of its checks every time it was given the
 tool to use, versus a lower pass rate when a model was asked to do the same
 review without it. The open condition is to repeat that same exercise for
@@ -58,7 +58,7 @@ conditions, the same way a person would grade an open-ended answer.
 
 Start a Claude Code session in a context where the
 `orchestration-quality-control` skill can be invoked, with the profile named
-in each prompt (`core` or `aplicatudo-e2e`).
+in each prompt (`core` or `former-product-profile`).
 
 ### 2. Run each prompt against its listed sample file
 
@@ -113,5 +113,5 @@ comparing files before and after, rather than by reading the transcript.
 
 - `docs/adr/0005-definition-of-done.md`
 - `orchestration-quality-control/evals/core/evals.json`
-- `orchestration-quality-control/profiles/aplicatudo-e2e/evals/evals.json`
-- `legacy/e2e-quality-control-workspace/iteration-1/benchmark.json`
+- `orchestration-quality-control/profiles/former-product-profile/evals/evals.json`
+- `legacy/predecessor-skill-workspace/iteration-1/benchmark.json`

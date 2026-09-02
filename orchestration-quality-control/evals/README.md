@@ -4,22 +4,19 @@ Two eval sets, in the same shape (`skill_name`, `profile`, an `evals` array
 of `{id, prompt, expected_output, files, assertions}`):
 
 - `core/evals.json` — generic orchestration checks only, against fixtures
-  in `core/fixtures/` that contain no Aplicatudo, Maestro, or Flutter
-  content. This is the fixture set `docs/adr/0005-definition-of-done.md`
-  requires to exist for item 2 of the extraction's definition of done.
-- `../profiles/aplicatudo-e2e/evals/evals.json` — the four regression
-  scenarios carried over from the retired `e2e-quality-control` 3.0.0
-  skill, with byte-identical assertions.
+  in `core/fixtures/`. This is the fixture set
+  `docs/adr/0005-definition-of-done.md` requires to exist for item 2 of the
+  extraction's definition of done.
+- `../profiles/example-pipeline/evals/evals.json` — four scenarios for the
+  fictional pipeline-artifact profile (inline env or secrets, missing gates,
+  a disconnected job, and a generator source with rationale clauses).
 
 ## How these are run
 
 Neither eval set includes its own grading harness. Running one means
-opening a real Claude Code (or other host) session, invoking the skill with
-each eval's `prompt` against its `files`, and checking the resulting
-report and behavior against that eval's `assertions` — the same process
-that produced `legacy/e2e-quality-control-workspace/iteration-1/` for the
-retired skill (see `benchmark.json` there for the with-skill/without-skill
-comparison this package needs to match).
+opening a real host session, invoking the skill with each eval's `prompt`
+against its `files`, and checking the resulting report and behavior against
+that eval's `assertions`.
 
 This step requires a live model and was not run as part of building this
 package — see `docs/adr/0005-definition-of-done.md` for what is verified

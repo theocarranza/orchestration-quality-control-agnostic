@@ -44,7 +44,8 @@ class BuildPluginTest(unittest.TestCase):
         self.assertEqual(marketplace["plugins"][0]["source"], "./plugins/orchestration-quality-control")
         self.assertTrue((plugin / "hooks" / "hooks.json").is_file())
         self.assertEqual(len(list((plugin / "agents").glob("*.md"))), 6)
-        self.assertEqual(len(list((plugin / "commands").glob("*.md"))), 5)
+        command_stems = sorted(path.stem for path in (plugin / "commands").glob("*.md"))
+        self.assertEqual(command_stems, ["oqc-execute", "oqc-upgrade", "oqc-validate"])
         self.assertTrue((plugin / "skills" / "orchestration-upgrade" / "SKILL.md").is_file())
         self.assertTrue((self.output / "README.md").is_file())
 

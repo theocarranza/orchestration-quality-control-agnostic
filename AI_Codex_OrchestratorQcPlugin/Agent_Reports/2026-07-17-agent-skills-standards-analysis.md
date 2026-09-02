@@ -69,7 +69,7 @@ These installers are **not** the OQC distribution path. They do not register hoo
 | Reproducible marketplace builds with `BUILD-MANIFEST.json` | Aligned |
 | Full-plugin install front doors (`install_cursor.py`, `install_codex.py`) | Aligned |
 | Nested topology enforced; no silent single-agent fallback | Aligned |
-| `aplicatudo-e2e` profile for former E2E artifact rules | Aligned |
+| `former-product-profile` profile for former E2E artifact rules | Aligned |
 | `skills-ref validate` in CI | Gap |
 | `compatibility` and `metadata.version` in canonical frontmatter | Gap |
 | Explicit `skills` array in Cursor `plugin.template.json` | Gap (Codex template already declares skills) |

@@ -7,11 +7,8 @@ Usage:
 Prints a JSON object {"classifications": [{"path": ..., "classes": [...]}]} on
 stdout and exits 0, or a blocked payload and exits 2.
 
-Built-in core classes mirror the taxonomy documented in
-legacy/e2e-quality-control/README.md's "what-checks-what" table, generalized
-away from Aplicatudo vocabulary: a target may match more than one class (for
-example a document can be both 'workflow' and 'orchestrator'), matching the
-original "a target may fall in multiple classes" behavior.
+Built-in core classes: a target may match more than one class (for
+example a document can be both 'workflow' and 'orchestrator').
 """
 import argparse
 import fnmatch

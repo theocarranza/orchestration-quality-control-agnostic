@@ -32,7 +32,7 @@
     },
     "profile": {
       "type": "string",
-      "description": "Selected rule profile id, e.g. 'core' or 'aplicatudo-e2e'."
+      "description": "Selected rule profile id, e.g. 'core' or 'example-pipeline'."
     },
     "language": {
       "type": "string",

@@ -1,0 +1,16 @@
+{
+  "id": "example-pipeline",
+  "classification": [
+    { "glob": "**/*.pipeline.yaml", "class": "artifact" },
+    { "glob": "**/*.pipeline.yml", "class": "artifact" },
+    { "glob": "**/*.pipeline.data.yaml", "class": "artifact" },
+    { "glob": "**/*.pipeline.data.yml", "class": "artifact" }
+  ],
+  "artifact_rules": [
+    "rules/rules-pipeline-artifact-quality-control.md"
+  ],
+  "kinds": [
+    "example-pipeline/artifact"
+  ],
+  "evals_path": "evals/evals.json"
+}

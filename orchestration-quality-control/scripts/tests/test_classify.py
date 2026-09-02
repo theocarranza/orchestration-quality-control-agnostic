@@ -56,15 +56,31 @@ class ClassifyTargetsUnitTest(unittest.TestCase):
         profile_path.write_text(
             json.dumps(
                 {
-                    "id": "aplicatudo-e2e",
-                    "classification": [{"glob": "**/*.flow.yaml", "class": "artifact"}],
+                    "id": "example-pipeline",
+                    "classification": [{"glob": "**/*.pipeline.yaml", "class": "artifact"}],
                 }
             ),
             encoding="utf-8",
         )
         rules = classify_targets.load_profile_classification(str(profile_path))
         merged = classify_targets.CORE_CLASSIFICATION + rules
-        result = classify_targets.classify_one("flows/login.flow.yaml", merged)
+        result = classify_targets.classify_one("pipelines/deploy.pipeline.yaml", merged)
+        self.assertEqual(result, ["artifact"])
+
+    def test_pipeline_yaml_unknown_without_profile(self):
+        result = classify_targets.classify_one(
+            "pipelines/deploy.pipeline.yaml",
+            classify_targets.CORE_CLASSIFICATION,
+        )
+        self.assertEqual(result, ["unknown"])
+
+    def test_shipped_example_pipeline_profile_classifies_pipeline_yaml(self):
+        profile_path = (
+            Path(__file__).resolve().parents[2] / "profiles" / "example-pipeline" / "profile.json"
+        )
+        rules = classify_targets.load_profile_classification(str(profile_path))
+        merged = classify_targets.CORE_CLASSIFICATION + rules
+        result = classify_targets.classify_one("jobs/deploy.pipeline.yaml", merged)
         self.assertEqual(result, ["artifact"])
 
     def test_directory_target_recurses(self):

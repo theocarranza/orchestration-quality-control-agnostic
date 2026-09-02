@@ -13,14 +13,14 @@ Approved by user 2026-07-16 with four confirmed decisions: 3-agent Claude adapte
 
 ## Context
 
-This repository holds a partial copy of a quality-control system called `e2e-quality-control`, originally built inside the Aplicatudo monorepo. The system checks agent-orchestration documents (rules files, workflow files, orchestrator documents, and end-to-end test artifacts) against packaged rule sets, reports problems in plain language, and applies only the fixes a human approves.
+This repository holds a partial copy of a quality-control system called `predecessor-skill`, originally built inside the the former product monorepo. The system checks agent-orchestration documents (rules files, workflow files, orchestrator documents, and end-to-end test artifacts) against packaged rule sets, reports problems in plain language, and applies only the fixes a human approves.
 
 Ground truth verified before planning:
 
 - This directory was **not a git repository** at plan time. Nothing was tracked anywhere.
-- Present: the shared library `e2e-quality-control/` (8 rules files, 4 workflow files, 3 templates, 4 plain-language guides, evaluations with fixtures), the two entry skills `e2e-quality-control-validate/` and `e2e-quality-control-execute/` (version 3.0.0, declared "Claude Code only"), and a benchmark workspace (`e2e-quality-control-workspace/iteration-1/`) proving the skill scores 100% on its evaluations versus 67% without it.
+- Present: the shared library `predecessor-skill/` (8 rules files, 4 workflow files, 3 templates, 4 plain-language guides, evaluations with fixtures), the two entry skills `predecessor-validate-command/` and `predecessor-execute-command/` (version 3.0.0, declared "Claude Code only"), and a benchmark workspace (`predecessor-skill-workspace/iteration-1/`) proving the skill scores 100% on its evaluations versus 67% without it.
 - Missing: the three Claude subagent definitions (`e2e-qc-orchestrator`, `e2e-qc-validator`, `e2e-qc-formatter`) and the pre-tool hook script that blocks main-session edits during a run. They are referenced everywhere but were never copied. They must be written fresh.
-- Contamination: `e2e-quality-control/state/` contained a leftover runtime checkpoint and an active-run marker whose paths pointed into the old monorepo by absolute path.
+- Contamination: `predecessor-skill/state/` contained a leftover runtime checkpoint and an active-run marker whose paths pointed into the old monorepo by absolute path.
 
 ## Target end-state tree
 
@@ -38,13 +38,13 @@ orchestrator_qc_plugin/                       (git repository after Phase 0)
 │   │   ├── schemas/                          # finding, checkpoint, input, blocked, profile manifest
 │   │   ├── rules/  workflows/  templates/  plain-language/
 │   ├── profiles/
-│   │   └── aplicatudo-e2e/                   # profile.json, artifact rules, evals + fixtures
+│   │   └── former-product-profile/                   # profile.json, artifact rules, evals + fixtures
 │   ├── adapters/
 │   │   └── claude/                           # commands/, agents/ (3), hooks/, README
 │   └── evals/
-│       └── core/                             # new evaluations with zero Aplicatudo content
+│       └── core/                             # new evaluations with zero the former product content
 ├── docs/adr/                                 # architecture decision records 0001–0005
-├── e2e-quality-control-workspace/            # benchmark evidence, kept read-only
+├── predecessor-skill-workspace/            # benchmark evidence, kept read-only
 └── AI_Codex_OrchestratorQcPlugin/            # vault, untouched by this plan
 ```
 
@@ -67,9 +67,9 @@ Scripts (Python 3 stdlib only, JSON out, exit 2 + `blocked` payload on failure):
 
 `SKILL.md` with spec-minimal frontmatter (name + description only); single-agent-with-code-gates as the default execution shape; report generated from structured findings only. `git mv` + rename the generic references (drop the `e2e-` brand, rename Formatter → Remediator), rewrite state-lifecycle wording to the new state machine. Decouple `rules-generator-quality-control.md` from the hardcoded E2E artifact reference via the profile manifest's `artifact_rules` key. Verification: zero E2E vocabulary hits in `references/` and `SKILL.md`.
 
-## Phase 3 — The `aplicatudo-e2e` profile
+## Phase 3 — The `former-product-profile` profile
 
-Move the artifact rules file and the evaluations/fixtures into `profiles/aplicatudo-e2e/`; write `profile.json`; keep assertions byte-identical (regression contract); delete the emptied `e2e-quality-control/` directory.
+Move the artifact rules file and the evaluations/fixtures into `profiles/former-product-profile/`; write `profile.json`; keep assertions byte-identical (regression contract); delete the emptied `predecessor-skill/` directory.
 
 ## Phase 4 — The Claude adapter (authored fresh)
 
@@ -77,11 +77,11 @@ Commands `oqc-validate.md` / `oqc-execute.md` + two compatibility aliases. Three
 
 ## Phase 5 — Evaluations and definition of done
 
-New `evals/core/` fixtures with zero Aplicatudo vocabulary. Regression run of the profile evals against the `iteration-1` benchmark, parity required. Definition of done: offline unit tests pass; core alone completes a full cycle in a fixture repo with zero Aplicatudo files; profile evals at benchmark parity; partial-apply fixture proves id stability.
+New `evals/core/` fixtures with zero the former product vocabulary. Regression run of the profile evals against the `iteration-1` benchmark, parity required. Definition of done: offline unit tests pass; core alone completes a full cycle in a fixture repo with zero the former product files; profile evals at benchmark parity; partial-apply fixture proves id stability.
 
 ## Phase 6 — Compatibility, versioning, retirement
 
-Core starts fresh at **1.0.0** (new schema, new id algorithm, new kind namespace — 3.x continuation would misrepresent compatibility). `e2e-quality-control` name survives only as adapter command aliases. Delete the old sibling skills after Phase 5's parity gate passes. `CHANGELOG.md`, tag `v1.0.0`.
+Core starts fresh at **1.0.0** (new schema, new id algorithm, new kind namespace — 3.x continuation would misrepresent compatibility). `predecessor-skill` name survives only as adapter command aliases. Delete the old sibling skills after Phase 5's parity gate passes. `CHANGELOG.md`, tag `v1.0.0`.
 
 ## Documentation rule for execution
 
@@ -89,8 +89,8 @@ Every human-facing document produced during implementation (READMEs, decision re
 
 ## Critical source files
 
-- `e2e-quality-control/README.md` — taxonomy, topology, tool-grant specifications source.
-- `e2e-quality-control/references/rules/rules-e2e-generator-quality-control.md` — the mixed file whose decoupling defines the profile interface.
-- `e2e-quality-control/evals/evals.json` — the regression contract.
-- `e2e-quality-control-validate/SKILL.md`, `e2e-quality-control-execute/SKILL.md` — v3 entry behavior ported forward.
-- `e2e-quality-control-workspace/iteration-1/benchmark.json` — the parity target.
+- `predecessor-skill/README.md` — taxonomy, topology, tool-grant specifications source.
+- `predecessor-skill/references/rules/rules-e2e-generator-quality-control.md` — the mixed file whose decoupling defines the profile interface.
+- `predecessor-skill/evals/evals.json` — the regression contract.
+- `predecessor-validate-command/SKILL.md`, `predecessor-execute-command/SKILL.md` — v3 entry behavior ported forward.
+- `predecessor-skill-workspace/iteration-1/benchmark.json` — the parity target.

@@ -1,0 +1,6 @@
+name: ship
+state:
+  store: .pipeline/state/ship.json
+jobs:
+  - id: ship
+    on_failure: stop

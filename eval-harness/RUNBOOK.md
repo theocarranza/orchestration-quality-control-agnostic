@@ -1,17 +1,16 @@
 # Eval-benchmark runbook
 
 Closes ADR 0005 item 3 (`docs/adr/0005-definition-of-done.md`): profile
-evaluations at benchmark parity. This harness is intentionally external to
-`orchestration-quality-control/` — the portable package stays free of
-test-running machinery; this folder is repo tooling.
+evaluations at 100% with-skill pass rate. This harness is intentionally
+external to `orchestration-quality-control/` — the portable package stays
+free of test-running machinery; this folder is repo tooling.
 
 It reuses the skill-creator plugin's benchmark harness (grading rubric,
 `aggregate_benchmark.py`, `eval-viewer/generate_review.py`) rather than
-reimplementing one, because the legacy
-`legacy/e2e-quality-control-workspace/iteration-1/benchmark.json` this work
-must match was itself produced by that harness — same workspace layout
-(`eval-<name>/{with_skill,without_skill}/run-N/{grading.json,timing.json,outputs/}`),
-same `benchmark.json` schema. `SC` below is that plugin's skill directory:
+reimplementing one. Workspace layout is
+`eval-<name>/{with_skill,without_skill}/run-N/{grading.json,timing.json,outputs/}`
+with the same `benchmark.json` schema. `SC` below is that plugin's skill
+directory:
 
 ```
 SC=/home/corporaterick/.claude/plugins/cache/claude-plugins-official/skill-creator/unknown/skills/skill-creator
@@ -21,7 +20,7 @@ Two benchmark runs are done — one per `evals.json` — kept in separate
 workspaces since ADR 0005 gates on each independently:
 
 - `orchestration-quality-control-workspace/core/iteration-1/`
-- `orchestration-quality-control-workspace/aplicatudo-e2e/iteration-1/`
+- `orchestration-quality-control-workspace/example-pipeline/iteration-1/`
 
 Run counts per eval, per this project's decision: **3 `with_skill` runs +
 1 `without_skill` run**. `with_skill` is the gating configuration (must
@@ -37,8 +36,8 @@ python3 eval-harness/convert_evals.py \
   orchestration-quality-control-workspace/core/iteration-1
 
 python3 eval-harness/convert_evals.py \
-  orchestration-quality-control/profiles/aplicatudo-e2e/evals/evals.json \
-  orchestration-quality-control-workspace/aplicatudo-e2e/iteration-1
+  orchestration-quality-control/profiles/example-pipeline/evals/evals.json \
+  orchestration-quality-control-workspace/example-pipeline/iteration-1
 ```
 
 This creates `eval-<slug>/{eval_metadata.json, sandbox/}` per eval, where
@@ -65,7 +64,7 @@ first and come back for baselines later.
 
 ```
 Execute this task:
-- Skill path: orchestration-quality-control/ (profile: core | aplicatudo-e2e, matching this eval set)
+- Skill path: orchestration-quality-control/ (profile: core | example-pipeline, matching this eval set)
 - Task: <eval prompt, verbatim from evals.json>
 - Input files: everything under <workspace>/eval-<slug>/sandbox/, and nothing else
 - Save outputs to: <workspace>/eval-<slug>/with_skill/run-<N>/outputs/
@@ -97,7 +96,7 @@ to `<workspace>/eval-<slug>/<config>/run-<N>/timing.json`.
 python3 eval-harness/check_run_integrity.py verify \
   <run_sandbox_dir> <workspace>/eval-<slug>/baseline-hashes.json \
   --transcript <workspace>/eval-<slug>/<config>/run-<N>/outputs/transcript.md \
-  --allow "orchestration-quality-control/" --allow "legacy/" \
+  --allow "orchestration-quality-control/" \
   --ignore ".orchestration-qc/" \
   -o <workspace>/eval-<slug>/<config>/run-<N>/integrity.json
 ```
@@ -133,13 +132,12 @@ python3 -m scripts.aggregate_benchmark \
   --skill-path orchestration-quality-control/
 
 python3 -m scripts.aggregate_benchmark \
-  <repo>/orchestration-quality-control-workspace/aplicatudo-e2e/iteration-1 \
+  <repo>/orchestration-quality-control-workspace/example-pipeline/iteration-1 \
   --skill-name orchestration-quality-control \
-  --skill-path orchestration-quality-control/profiles/aplicatudo-e2e/
+  --skill-path orchestration-quality-control/profiles/example-pipeline/
 ```
 
-Produces `benchmark.json` + `benchmark.md` per workspace, matching the
-shape of `legacy/e2e-quality-control-workspace/iteration-1/benchmark.json`.
+Produces `benchmark.json` + `benchmark.md` per workspace.
 
 ## Step 8 — Review viewer (optional but recommended)
 
@@ -152,7 +150,7 @@ python3 "$SC/eval-viewer/generate_review.py" \
 
 `--static` since this runs headless.
 
-## Step 9 — Apply the parity gate, honestly
+## Step 9 — Apply the pass-rate gate, honestly
 
 ADR 0005 item 3 is satisfied only if **both** workspaces' `with_skill`
 `run_summary.pass_rate` is `{"mean": 1.0, "stddev": 0.0, "min": 1.0, "max": 1.0}`

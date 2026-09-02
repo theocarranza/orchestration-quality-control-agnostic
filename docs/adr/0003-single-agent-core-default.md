@@ -38,12 +38,11 @@ strengthening enforcement of the same rules and contracts; it is never
 required for the core's guarantees to hold.
 
 The Claude adapter keeps three agents (Orchestrator, Validator, Remediator)
-rather than collapsing to two, matching the benchmarked v3 baseline
-(`legacy/e2e-quality-control-workspace/iteration-1/benchmark.json`: 100%
-pass with the skill). This was a deliberate choice to preserve a result
-already known to work well, not a rejection of the critique's reasoning —
-it is cheap to collapse to two agents later if evidence favors it, and
-expensive to re-split after the fact.
+rather than collapsing to two, matching the then-current with-skill eval
+result. This was a deliberate choice to preserve a result already known to
+work well, not a rejection of the critique's reasoning — it is cheap to
+collapse to two agents later if evidence favors it, and expensive to
+re-split after the fact.
 
 ## Consequences
 

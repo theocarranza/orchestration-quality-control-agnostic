@@ -1,3 +1,17 @@
+## 3.0.0 — 2026-09-02
+
+- **Breaking:** removed the former product-specific profile and the
+  predecessor Claude command aliases. The only shipped profile is the
+  fictional `example-pipeline` add-on (`*.pipeline.yaml` artifacts, kinds
+  `example-pipeline/artifact`). Unknown profile ids still return `blocked`
+  with `unknown_profile`.
+- **Breaking:** removed the archived predecessor tree from the repository.
+  Historical context now lives in ADR 0001 (amended) and ADR 0011.
+- Claude adapter slash commands are `/oqc-validate`, `/oqc-execute`, and
+  `/oqc-upgrade` only.
+- Bumped `plugin.template.json` / `build_plugin.py` `VERSION` to `3.0.0`
+  across the Claude, Codex, and Cursor adapters.
+
 ## 2.0.0 — 2026-07-17
 
 - **Breaking:** removed the `portable-single-agent` execution shape and
@@ -66,20 +80,17 @@
 
 ## 1.0.0 — 2026-07-16
 
-First release of the portable core, extracted from the Aplicatudo-specific
-`e2e-quality-control` skill (version 3.0.0). Starts at 1.0.0 rather than
-continuing the 3.x line, because continuing it would misrepresent this as a
-drop-in replacement: the checkpoint schema, finding-id algorithm, and finding
-`kind` namespace all changed.
+First release of the portable core, extracted from a product-specific
+predecessor skill. Starts at 1.0.0 rather than continuing that line, because
+continuing it would misrepresent this as a drop-in replacement: the
+checkpoint schema, finding-id algorithm, and finding `kind` namespace all
+changed.
 
-- New public identity: `orchestration-quality-control`. `e2e-quality-control`
-  is no longer a skill name — see `profiles/aplicatudo-e2e/README.md` for
-  its migration table, and `adapters/claude/commands/` for the compatibility
-  command aliases.
-- Generic orchestration checks (workflow authoring, rules authoring,
-  orchestrator authoring, generator-source coverage, validator/remediator/
-  orchestrator subagent behavior) are now the reusable core; Aplicatudo/
-  Maestro/Flutter checks moved to the optional `aplicatudo-e2e` profile.
+- New public identity: `orchestration-quality-control`. Generic
+  orchestration checks (workflow authoring, rules authoring, orchestrator
+  authoring, generator-source coverage, validator/remediator/orchestrator
+  subagent behavior) are the reusable core; domain artifact checks belong in
+  optional profiles.
 - Checkpoint `schema_version` is now `2`. Findings carry content-anchored
   ids (stable across a partial-apply edit that shifts line numbers) instead
   of whatever identity scheme, if any, a given run happened to produce.
@@ -92,7 +103,7 @@ drop-in replacement: the checkpoint schema, finding-id algorithm, and finding
   rendering) is now enforced by dependency-free Python under `scripts/`,
   with its own offline test suite, rather than described in prose alone.
 - The Claude adapter's three-subagent topology (Orchestrator, Validator,
-  Remediator) is preserved from the 3.0.0 design, but is now explicitly one
-  adapter's enforcement choice, not the core's required shape — the core's
-  documented default is a single agent running the same rules with the same
-  script-enforced gates.
+  Remediator) is preserved from the predecessor design, but is now explicitly
+  one adapter's enforcement choice, not the core's required shape — the
+  core's documented default is a single agent running the same rules with
+  the same script-enforced gates.

@@ -1,0 +1,13 @@
+name: login
+approval: required
+state:
+  store: .pipeline/state/login.json
+env:
+  region: example-region
+  password: hunter2
+jobs:
+  - id: login
+    retry: 1
+    on_failure: stop
+    secrets:
+      - value: hunter2

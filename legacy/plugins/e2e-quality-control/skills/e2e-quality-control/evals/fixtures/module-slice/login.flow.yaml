@@ -1,5 +1,0 @@
-appId: br.com.aplicatudo
----
-- runFlow: orphan_helper.yaml
-- tapOn:
-    id: student_list_tile_primary_extra

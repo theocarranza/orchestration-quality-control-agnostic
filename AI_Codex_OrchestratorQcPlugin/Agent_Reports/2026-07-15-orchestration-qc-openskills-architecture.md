@@ -24,9 +24,9 @@ tags: [report, architecture, orchestration-quality-control, e2e, openskills, por
 
 ## What this document is
 
-This report reviews the current `e2e-quality-control` system and defines how to extract it into a portable **orchestration quality-control** skill. Orchestration quality control means checking how an agent workflow delegates work, validates worker results, manages approval, preserves state, and stops safely.
+This report reviews the current `predecessor-skill` system and defines how to extract it into a portable **orchestration quality-control** skill. Orchestration quality control means checking how an agent workflow delegates work, validates worker results, manages approval, preserves state, and stops safely.
 
-The current system is a useful implementation prototype, but its identity is too narrow. It combines generic orchestration controls with Aplicatudo and Maestro rules. The proposed design makes the orchestration controls the reusable core and keeps E2E checks as an optional profile.
+The current system is a useful implementation prototype, but its identity is too narrow. It combines generic orchestration controls with the former product and the mobile test runner rules. The proposed design makes the orchestration controls the reusable core and keeps E2E checks as an optional profile.
 
 The intended readers are technical leads, skill maintainers, and engineers who will package or integrate the skill.
 
@@ -42,7 +42,7 @@ flowchart TD
     CORE --> GENERIC["Generic orchestration rules\nworkflow, delegation, state, gates"]
     CORE --> REPORT["Structured findings\nand plain-language report"]
     CORE --> PROFILE["Optional profile"]
-    PROFILE --> E2E["Aplicatudo E2E/Maestro\nartifact and generator rules"]
+    PROFILE --> E2E["the former product E2E/the mobile test runner\nartifact and generator rules"]
     CORE --> CLAUDE["Claude adapter\nagents, commands, hook"]
     CORE --> OTHER["Other host adapters\nreduced enforcement disclosed"]
 ```
@@ -53,12 +53,12 @@ The core must not claim host-level isolation that OpenSkills alone cannot enforc
 
 ### Discovery and entry points
 
-The repository root links `.claude/skills/e2e-quality-control`, `.cursor/skills/e2e-quality-control`, and `.agents/skills/e2e-quality-control` to `projects/aplicatudo/.agents/skills/e2e-quality-control`. That destination contains `README.md`, rule references, workflow references, templates, fixtures, evaluations, and state handling, but no `SKILL.md`.
+The repository root links `.claude/skills/predecessor-skill`, `.cursor/skills/predecessor-skill`, and `.agents/skills/predecessor-skill` to `projects/former-product/.agents/skills/predecessor-skill`. That destination contains `README.md`, rule references, workflow references, templates, fixtures, evaluations, and state handling, but no `SKILL.md`.
 
 The executable v3 behavior is split into two sibling skills:
 
-- `projects/aplicatudo/.agents/skills/e2e-quality-control-validate/SKILL.md` collects targets and language, delegates validation, and presents the approval gate.
-- `projects/aplicatudo/.agents/skills/e2e-quality-control-execute/SKILL.md` consumes a checkpoint and delegates approved changes.
+- `projects/former-product/.agents/skills/predecessor-validate-command/SKILL.md` collects targets and language, delegates validation, and presents the approval gate.
+- `projects/former-product/.agents/skills/predecessor-execute-command/SKILL.md` consumes a checkpoint and delegates approved changes.
 
 Three Claude agent definitions provide the worker boundary: `e2e-qc-orchestrator`, `e2e-qc-validator`, and `e2e-qc-formatter`. The root Claude settings register a pre-tool hook that blocks direct main-session edits while a run is active.
 
@@ -90,7 +90,7 @@ sequenceDiagram
 
 ### Document taxonomy
 
-The shared library now distinguishes rules, workflows, and orchestrator behavior. The E2E profile still supplies rules for domain files, flows, data, selectors, generator sources, and Maestro-specific artifacts. The generic candidates are the workflow-authoring, orchestrator-authoring, worker, formatter, report, and state contracts.
+The shared library now distinguishes rules, workflows, and orchestrator behavior. The E2E profile still supplies rules for domain files, flows, data, selectors, generator sources, and the mobile test runner-specific artifacts. The generic candidates are the workflow-authoring, orchestrator-authoring, worker, formatter, report, and state contracts.
 
 ## Problems and evidence
 
@@ -104,7 +104,7 @@ The documented canonical directory has no `SKILL.md`, so a host resolving the ro
 
 ### 2. The distributable archive does not match the live architecture
 
-`projects/aplicatudo/.agents/plugins/e2e-quality-control/dist/e2e-quality-control.skill` contains a v1 single-skill `SKILL.md` and the older combined `rules-e2e-quality-control.md` and `generator-source-validation.md` shape. The live source uses v3 split validate/execute skills, a third orchestrator subagent, and rule/workflow pairs.
+`projects/former-product/.agents/plugins/predecessor-skill/dist/predecessor-skill.skill` contains a v1 single-skill `SKILL.md` and the older combined `rules-predecessor-skill.md` and `generator-source-validation.md` shape. The live source uses v3 split validate/execute skills, a third orchestrator subagent, and rule/workflow pairs.
 
 **Impact:** a user installing the archive receives materially different behavior from a user using the local links.
 
@@ -136,7 +136,7 @@ The live session recorded different Validator finding sets for byte-identical fi
 
 ### 6. Generic orchestration and E2E policy are coupled
 
-Rules such as delegation completeness, bounded loops, approval ownership, state durability, and least-privilege tools apply to any agent workflow. Rules about screen identifiers, login environment values, Maestro flows, and domain-file purity apply only to the Aplicatudo E2E profile.
+Rules such as delegation completeness, bounded loops, approval ownership, state durability, and least-privilege tools apply to any agent workflow. Rules about screen identifiers, login environment values, the mobile test runner flows, and domain-file purity apply only to the the former product E2E profile.
 
 **Impact:** the current name and folder imply a reusable orchestration skill but force consumers to load an E2E vocabulary and artifact model.
 
@@ -156,11 +156,11 @@ The portable core named `orchestration-quality-control` will:
 6. validate that every approved finding is either applied or explicitly skipped;
 7. persist and consume a documented checkpoint when the host supports durable state.
 
-The core will not assume Maestro, Flutter, Claude, a specific user-interface question tool, or a specific filesystem hook.
+The core will not assume the mobile test runner, the UI toolkit, Claude, a specific user-interface question tool, or a specific filesystem hook.
 
 ### E2E profile responsibilities
 
-`profiles/aplicatudo-e2e/` will contain the current domain, flow, data, selector, generator-source, and Maestro artifact rules. It will also contain E2E fixtures and examples. The profile may be selected explicitly, for example `profile: aplicatudo-e2e`, or through a thin compatibility adapter for the existing command.
+`profiles/former-product-profile/` will contain the current domain, flow, data, selector, generator-source, and the mobile test runner artifact rules. It will also contain E2E fixtures and examples. The profile may be selected explicitly, for example `profile: former-product-profile`, or through a thin compatibility adapter for the existing command.
 
 ### Host adapter responsibilities
 
@@ -180,7 +180,7 @@ An adapter for a host without subagents or pre-tool hooks must still use the cor
 ```yaml
 operation: validate | execute
 targets: [relative/path/to/file]
-profile: orchestration-core | aplicatudo-e2e
+profile: orchestration-core | former-product-profile
 language: en | pt-br
 checkpoint_path: optional path for execute
 decision: all | none | [finding-id]
@@ -261,7 +261,7 @@ The package must contain a concise README, a core `SKILL.md`, profile documentat
 
 ### Environment control
 
-Keep package source, host adapters, and runtime state separate. Validate installation in a disposable project directory, run the portable core without project-specific files, and use an Aplicatudo fixture workspace only for the E2E profile. Never require absolute paths.
+Keep package source, host adapters, and runtime state separate. Validate installation in a disposable project directory, run the portable core without project-specific files, and use an the former product fixture workspace only for the E2E profile. Never require absolute paths.
 
 ### Coding and naming standards
 
@@ -280,7 +280,7 @@ orchestration-quality-control/
 │   ├── schemas/               # finding and checkpoint contracts
 │   └── plain-language/        # report-writing guidance
 ├── profiles/
-│   └── aplicatudo-e2e/
+│   └── former-product-profile/
 │       ├── rules/
 │       ├── workflows/
 │       ├── evals/
@@ -304,10 +304,10 @@ Runtime checkpoints must not be stored inside the distributable package. The pac
 1. Freeze the current E2E implementation as a compatibility baseline and retain its fixtures for regression comparison.
 2. Extract generic workflow, orchestrator, validator, formatter, report, and state rules into the portable core.
 3. Rename generic agents and contracts conceptually to Validator, Remediator, and Orchestrator; keep temporary Claude adapter aliases for the existing E2E command.
-4. Move domain, Maestro, selector, environment, and E2E generator checks into the Aplicatudo profile.
+4. Move domain, the mobile test runner, selector, environment, and E2E generator checks into the the former product profile.
 5. Add the canonical OpenSkills `SKILL.md`, package metadata, README, schemas, and install instructions.
 6. Build the Claude adapter from the same source and retire the stale v1 archive only after compatibility tests pass.
-7. Publish the core and profile versions independently, with a migration note for users of `e2e-quality-control`.
+7. Publish the core and profile versions independently, with a migration note for users of `predecessor-skill`.
 
 ## Validation and test plan
 
@@ -323,9 +323,9 @@ Runtime checkpoints must not be stored inside the distributable package. The pac
 
 ### Profile tests
 
-- Load the Aplicatudo E2E profile only when selected.
+- Load the the former product E2E profile only when selected.
 - Preserve existing fixture expectations for inline environment values, mixed domain concerns, orphan flows, selector collisions, and rules with rationale.
-- Confirm the generic core remains usable without Maestro files or project paths.
+- Confirm the generic core remains usable without the mobile test runner files or project paths.
 
 ### Adapter tests
 
@@ -337,10 +337,10 @@ Runtime checkpoints must not be stored inside the distributable package. The pac
 
 ## Decisions, assumptions, and out of scope
 
-- The public identity is `orchestration-quality-control`; `e2e-quality-control` becomes a compatibility adapter/profile name.
+- The public identity is `orchestration-quality-control`; `predecessor-skill` becomes a compatibility adapter/profile name.
 - The portable core is English-first, with Brazilian Portuguese report support delegated to the existing glossary-backed report guidance.
 - The report documents and designs the extraction; it does not create the standalone package or alter current E2E behavior.
-- Production Flutter code, Maestro flows, current checkpoints, and unrelated hook defects are out of scope.
+- Production the UI toolkit code, the mobile test runner flows, current checkpoints, and unrelated hook defects are out of scope.
 
 ## Appendix A — Specialist agent per workflow/rule pair
 
@@ -423,7 +423,7 @@ Different objectives can use different models and reasoning effort. Mechanical c
 
 #### Reuse
 
-A generic workflow specialist can inspect workflows from different profiles without absorbing E2E or Maestro knowledge. Domain-specific checks remain optional rule profiles.
+A generic workflow specialist can inspect workflows from different profiles without absorbing E2E or the mobile test runner knowledge. Domain-specific checks remain optional rule profiles.
 
 ### Costs and risks
 
@@ -494,10 +494,10 @@ Keep the orchestrator as a separate root agent definition. Add another specialis
 
 - [OpenSkills SKILL.md format](https://github.com/numman-ali/openskills/blob/main/_autodocs/skill-md-format.md)
 - [OpenSkills installation and synchronization](https://github.com/numman-ali/openskills/blob/main/_autodocs/README.md)
-- `projects/aplicatudo/.agents/skills/e2e-quality-control/README.md`
-- `projects/aplicatudo/.agents/skills/e2e-quality-control/references/rules/`
-- `projects/aplicatudo/.agents/skills/e2e-quality-control/references/workflows/`
-- `projects/aplicatudo/.agents/skills/e2e-quality-control-validate/SKILL.md`
-- `projects/aplicatudo/.agents/skills/e2e-quality-control-execute/SKILL.md`
+- `projects/former-product/.agents/skills/predecessor-skill/README.md`
+- `projects/former-product/.agents/skills/predecessor-skill/references/rules/`
+- `projects/former-product/.agents/skills/predecessor-skill/references/workflows/`
+- `projects/former-product/.agents/skills/predecessor-validate-command/SKILL.md`
+- `projects/former-product/.agents/skills/predecessor-execute-command/SKILL.md`
 - `.claude/settings.json`
 - `.claude/hooks/e2e-qc-block-main-edits.py`

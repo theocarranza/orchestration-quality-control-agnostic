@@ -11,8 +11,8 @@ description: >
   passed" and stops when there are none. Use whenever the user runs
   `/oqc-validate`, asks for orchestration quality control, or wants to check
   a workflow, orchestrator, rules, or generator-source document — even if
-  they do not say "skill" or name an operation. For Aplicatudo E2E/Maestro
-  artifact checks, pass `profile: aplicatudo-e2e`. Do not use this skill to
+  they do not say "skill" or name an operation. For the fictional pipeline
+  example, pass `profile: example-pipeline`. Do not use this skill to
   apply fixes to an existing checkpoint — that is `oqc-execute`.
 license: MIT
 model: sonnet
@@ -39,8 +39,8 @@ result and asking the apply-choice question.
 1. Collect inputs via UI (one question at a time):
    - `targets`: a single file path, a folder path, or a multi-select set.
      Do not proceed until at least one readable target path is confirmed.
-   - `profile`: rule profile, default `core`. Offer `aplicatudo-e2e` when
-     the user's phrasing suggests Aplicatudo/Maestro E2E work.
+   - `profile`: rule profile, default `core`. Offer `example-pipeline` when
+     the user's phrasing suggests pipeline YAML artifacts.
    - `language`: report language, default suggestion English.
 
 2. Delegate to the `oqc-orchestrator` subagent (Agent tool,

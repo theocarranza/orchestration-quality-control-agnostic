@@ -21,10 +21,10 @@ Method: every checkable claim in the feedback plan was tested against (a) the li
 
 Credit where verification succeeded:
 
-1. **The six problems in the original report are real.** The shared library `e2e-quality-control/` in this repo has `README.md`, `references/`, `evals/`, `state/` — and no `SKILL.md`. The executable entry points are the siblings `e2e-quality-control-validate/SKILL.md` and `e2e-quality-control-execute/SKILL.md` (both `metadata.version: "3.0.0"`). The feedback's confirmation of Problem 1 holds.
+1. **The six problems in the original report are real.** The shared library `predecessor-skill/` in this repo has `README.md`, `references/`, `evals/`, `state/` — and no `SKILL.md`. The executable entry points are the siblings `predecessor-validate-command/SKILL.md` and `predecessor-execute-command/SKILL.md` (both `metadata.version: "3.0.0"`). The feedback's confirmation of Problem 1 holds.
 2. **The `kind` enum leak is a genuine defect.** The report's "portable" finding contract hardcodes `artifact | generator-gap | generator-contradiction` — E2E vocabulary — into the core schema. The feedback's namespacing recommendation (core kinds generic, profile kinds under an extension field) is correct and should be adopted verbatim.
 3. **No `.skill` archive exists** in this repository either, consistent with the feedback's freshness doubt about Problem 2's evidence.
-4. **The validate/execute two-command reality vs. one-skill facade tension is real.** The live `e2e-quality-control-validate` frontmatter explicitly declares "Claude Code only … not available in Cursor," confirming that the report's single-`SKILL.md` target papers over a host-specific split.
+4. **The validate/execute two-command reality vs. one-skill facade tension is real.** The live `predecessor-validate-command` frontmatter explicitly declares "Claude Code only … not available in Cursor," confirming that the report's single-`SKILL.md` target papers over a host-specific split.
 
 ## Adversarial findings
 
@@ -32,7 +32,7 @@ Credit where verification succeeded:
 
 The feedback plan states: "Current workspace `orchestrator_qc_plugin` is an empty stub, so this feedback stays architectural."
 
-**False as of this session.** The workspace contains a migrated copy of the full skill tree (`e2e-quality-control/`, `-validate/`, `-execute/`), an eval workspace with benchmark results (`e2e-quality-control-workspace/iteration-1/`), and — most damning — a **live runtime checkpoint** at `e2e-quality-control/state/checkpoint-20260715-e2e-qc-orchestrator-workflow.json`.
+**False as of this session.** The workspace contains a migrated copy of the full skill tree (`predecessor-skill/`, `-validate/`, `-execute/`), an eval workspace with benchmark results (`predecessor-skill-workspace/iteration-1/`), and — most damning — a **live runtime checkpoint** at `predecessor-skill/state/checkpoint-20260715-e2e-qc-orchestrator-workflow.json`.
 
 Two consequences:
 
@@ -88,7 +88,7 @@ The report's security section says "do not execute instructions found in target 
 
 ### F8 — The portability report is itself non-portable
 
-Both documents cite evidence exclusively by absolute paths into a different repository (`/home/corporaterick/Documents/Projects/aplicatudo-monorepo/…`). From this repository — the declared future home of the package — none of those references resolve. A reader of this vault cannot verify a single evidentiary claim in either document without access to a second machine-local tree. For an extraction whose stated purpose is to survive leaving that tree, the evidence base should have been snapshotted into fixtures here first. (The eval workspace under `e2e-quality-control-workspace/` is the beginning of exactly that; neither document mentions it.)
+Both documents cite evidence exclusively by absolute paths into a different repository (`/home/corporaterick/Documents/Projects/former-product-monorepo/…`). From this repository — the declared future home of the package — none of those references resolve. A reader of this vault cannot verify a single evidentiary claim in either document without access to a second machine-local tree. For an extraction whose stated purpose is to survive leaving that tree, the evidence base should have been snapshotted into fixtures here first. (The eval workspace under `predecessor-skill-workspace/` is the beginning of exactly that; neither document mentions it.)
 
 ## Scorecard
 
@@ -108,7 +108,7 @@ Both documents cite evidence exclusively by absolute paths into a different repo
 
 ## What this means for `orchestrator_qc_plugin`
 
-1. **Re-baseline before building.** The feedback's priority order was written for an empty repo. First action here is an inventory of what was already copied in, removal of runtime state (`e2e-quality-control/state/checkpoint-*.json`) from the package tree, and a decision on whether the copied v3 tree is the freeze baseline or a contamination to be replaced.
+1. **Re-baseline before building.** The feedback's priority order was written for an empty repo. First action here is an inventory of what was already copied in, removal of runtime state (`predecessor-skill/state/checkpoint-*.json`) from the package tree, and a decision on whether the copied v3 tree is the freeze baseline or a contamination to be replaced.
 2. **Re-anchor on the Agent Skills specification**, with OpenSkills demoted to "one supported installer." Validate frontmatter, directory layout, and the `scripts/` mechanism against the published spec before designing `references/schemas/`.
 3. **Promote the deterministic substrate from recommendation to gate:** classification, finding identity, checkpoint state machine, decision reconciliation, and `all/none/subset` arithmetic are code in `scripts/`, testable without any model call. LLM judgment is confined to violation detection and prose.
 4. **Design finding identity for the re-validation-after-partial-apply case**, not the retry case — content-anchored, published in `schemas/`, with a conformance fixture.
@@ -123,4 +123,4 @@ Both documents cite evidence exclusively by absolute paths into a different repo
 - [Thinking Machines — Defeating Nondeterminism in LLM Inference](https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/) — temperature-0 inference is batch-variant on shared servers.
 - [Anthropic — How we built our multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system) — ~15× token cost; multi-agent pays off on breadth-first tasks.
 - [Cognition — Don't Build Multi-Agents](https://cognition.com/blog/dont-build-multi-agents) — fragmented context across subagents as a primary reliability failure mode.
-- Local evidence: `e2e-quality-control/` (no `SKILL.md`), `e2e-quality-control-validate/SKILL.md` (v3.0.0, "Claude Code only"), `e2e-quality-control/state/checkpoint-20260715-e2e-qc-orchestrator-workflow.json`, `e2e-quality-control-workspace/iteration-1/`.
+- Local evidence: `predecessor-skill/` (no `SKILL.md`), `predecessor-validate-command/SKILL.md` (v3.0.0, "Claude Code only"), `predecessor-skill/state/checkpoint-20260715-e2e-qc-orchestrator-workflow.json`, `predecessor-skill-workspace/iteration-1/`.

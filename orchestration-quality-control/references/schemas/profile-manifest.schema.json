@@ -35,7 +35,7 @@
         "type": "string",
         "pattern": "^[a-z0-9-]+/[a-z0-9-]+$"
       },
-      "description": "Namespaced kinds this profile may emit, e.g. 'aplicatudo-e2e/artifact'. Must use the profile's own id as namespace."
+      "description": "Namespaced kinds this profile may emit, e.g. 'example-pipeline/artifact'. Must use the profile's own id as namespace."
     },
     "evals_path": {
       "type": "string",

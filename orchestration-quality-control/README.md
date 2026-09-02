@@ -14,20 +14,18 @@ explicitly approves which findings to apply.
 
 ## Why this exists
 
-This package started as part of a larger, Aplicatudo-specific system called
-`e2e-quality-control`, which checked both generic orchestration problems
-(missing approval gates, non-durable state, unbounded retry loops) and
-Aplicatudo-specific problems (malformed Maestro test flows, misplaced
-Firestore field names, and similar). Those two kinds of checks do not belong
-in the same package: the generic orchestration checks are useful to anyone
-building an agent workflow, while the Aplicatudo checks are useful only to
-that one project.
+This package started as part of a larger, product-specific quality-control
+system that mixed two concerns that do not belong together:
 
-This package keeps the generic checks as the reusable core, and moves the
-Aplicatudo-specific checks into an optional add-on called a profile (see
-`profiles/aplicatudo-e2e/`). Running the core with no profile selected
-performs only the generic checks and has no dependency on Aplicatudo,
-Maestro, or Flutter.
+1. **Generic orchestration checks** — delegation completeness, bounded retries, durable state, approval ownership — useful for any agent workflow.
+2. **Domain-specific checks** — artifact shape for one product's test suite — useful only to that project.
+
+Coupling them made the tool look like a niche linter while actually trying to be a portable orchestration gate. Worse, early versions relied heavily on model consistency for mechanical steps (classification, finding identity, checkpoint transitions), which produced **different findings for identical input** and sometimes reported edits as applied when they were not safe.
+
+This package keeps the generic checks as the reusable core. Domain checks
+live in optional profiles (see `profiles/example-pipeline/` for a fictional
+worked example). Running the core with no profile selected performs only
+the generic checks.
 
 ## How it is used
 
@@ -89,8 +87,8 @@ that:
 - `references/templates/` and `references/plain-language/` — shared
   document skeletons and report-writing guidance, including support for
   Brazilian Portuguese reports.
-- `profiles/` — optional add-ons, such as the Aplicatudo E2E profile, that
-  extend the core with domain-specific checks.
+- `profiles/` — optional add-ons, such as the fictional `example-pipeline`
+  profile, that extend the core with domain-specific checks.
 - `adapters/claude/` — how this skill runs inside Claude Code specifically:
   the checking, editing, and coordinating roles are isolated into three
   separate, narrowly-permissioned agents (Orchestrator, Validator,
