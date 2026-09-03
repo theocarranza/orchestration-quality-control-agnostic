@@ -4,6 +4,8 @@
 
 Accepted, 2026-07-16. Item 3 below is open — see Consequences.
 Amended by [ADR 0011](0011-agnostic-example-pipeline-profile.md), 2026-09-02.
+Amended by [ADR 0013](0013-three-agent-parameterized-code-gated.md),
+2026-09-02: item 3 gains a cost budget.
 
 ```mermaid
 flowchart TD
@@ -50,6 +52,18 @@ The extraction is done when all four of the following hold:
    `example-pipeline` profile's `evals/evals.json` (four cases) must reach
    a 100% with-skill pass rate. Live-model grading is optional for merging
    a release when offline tests pass (see ADR 0011).
+
+   Amended by ADR 0013 for 4.0.0: the core set must also reach a 100%
+   with-skill pass rate over three runs of each of its four evals, and the
+   run must stay inside the budget — every run's mailbox verifies with a
+   distinct `agent_id` per role, each worker reads exactly its envelope and
+   its compiled prompt before its targets with a run total of six or fewer,
+   every compiled prompt is at most 32 KB, no request reaches a fourth
+   attempt, median wall time is at most 240 s and at most twice the
+   without-skill median, and the only things written under
+   `.orchestration-qc/` are the checkpoint and `mail/<run_id>/`. The budget
+   table in [[2026-09-02-return-to-intention-4-0-0]] holds the numbers and
+   `eval-harness/` produces them.
 
 4. **The partial-apply conformance fixture proves finding-id stability.**
    `scripts/tests/fixtures/partial-apply/` plus

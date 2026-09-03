@@ -9,8 +9,11 @@ safely.
 Given one or more target files, it classifies each one, checks it against a
 packaged set of rules, and produces two things: a list of specific findings
 (what is wrong, where, and a proposed fix) and a short plain-language report
-a non-technical reader can follow. Nothing is changed until a person
-explicitly approves which findings to apply.
+a non-technical reader can follow. The root session interviews once — collecting
+outcome, targets, profile, language, and the apply decision — then hands the run
+to the engine; nested agents never ask the user anything. The only mid-run human
+contacts are a `blocked` envelope and the circuit breaker's `awaiting_authorization`,
+both engine states the root session surfaces.
 
 ## Why this exists
 

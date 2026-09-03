@@ -13,7 +13,7 @@ from pathlib import Path
 
 PLUGIN_NAME = "orchestration-quality-control"
 MARKETPLACE_NAME = "orchestration-qc-local"
-VERSION = "3.2.0"
+VERSION = "4.0.0-dev"
 FIXED_ZIP_TIME = (2026, 7, 17, 0, 0, 0)
 
 

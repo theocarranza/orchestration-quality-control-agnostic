@@ -4,11 +4,16 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "Please check this orchestrator document for quality problems. Use the orchestration-quality-control skill with profile: core. Only use the skill rules and this file. Write a short plain report. Ask me before changing any file.",
-      "expected_output": "Finds that a failed stage is retried with no cap or fallback, and that cross-stage progress is tracked only in conversation rather than a durable store. May also flag incomplete delegation specs for the Build, Test, and Publish worker hand-offs. Does not edit until the user agrees.",
+      "prompt": "Check this orchestrator document for quality problems with the orchestration-quality-control skill. Operation: qc. Profile: core. Language: en. Apply decision: all \u2014 apply every finding you confirm and do not stop to ask. Use only the packaged rules and this file.",
+      "expected_output": "Finds that a failed stage is retried with no cap or fallback, and that cross-stage progress is tracked only in conversation rather than a durable store. May also flag incomplete delegation specs for the Build, Test, and Publish worker hand-offs. Applies each finding it confirms.",
       "files": [
         "fixtures/deploy-orchestrator.md"
       ],
+      "injected_failure": {
+        "role": "remediator",
+        "attempt": 1,
+        "description": "The harness replaces the remediator's first result envelope with one whose outcome ids are not in the approved set, so the gate must fail it, write critiques, and reissue the request as attempt 2."
+      },
       "assertions": [
         {
           "id": "a1",
@@ -23,19 +28,47 @@
           "text": "Flags cross-stage state tracked only in conversation context rather than a durable store"
         },
         {
-          "id": "a4",
-          "text": "Does not edit the target file before an explicit apply confirmation"
-        },
-        {
           "id": "a5",
           "text": "Reader-facing text avoids abbreviations, acronyms, and decorative symbols"
+        },
+        {
+          "id": "a6",
+          "text": "The file's final content differs from its original content by exactly the diffs the run reported as approved, and by nothing else"
+        },
+        {
+          "id": "a7",
+          "text": "Reports no finding that the target does not actually contain"
+        },
+        {
+          "id": "m1",
+          "text": "The run's mailbox verifies: oqc.py mail verify passes, with a distinct agent_id for the validator, and for the remediator whenever findings exist"
+        },
+        {
+          "id": "m2",
+          "text": "No envelope addressed to a worker was sent under the orchestrator's own agent_id"
+        },
+        {
+          "id": "m3",
+          "text": "Each worker read exactly two files before its targets: its request envelope and its compiled prompt"
+        },
+        {
+          "id": "m4",
+          "text": "Every compiled prompt in the mailbox is 32 KB or smaller"
+        },
+        {
+          "id": "m5",
+          "text": "No request in the mailbox reached attempt 4"
+        },
+        {
+          "id": "m6",
+          "text": "When a remediator result fails the gate, the attempt-2 compiled prompt for that request contains, verbatim, the critiques the gate wrote"
         }
       ]
     },
     {
       "id": 2,
-      "prompt": "Please check this rules file for quality problems. Use the orchestration-quality-control skill with profile: core. Write the report in English. Do not change the file until I say yes.",
-      "expected_output": "Uses English. Finds rationale clauses (because, so that) and first/then sequencing language in the rule bullets. Suggests rewriting them as firm, rationale-free constraints. Does not edit until the user agrees.",
+      "prompt": "Check this rules file for quality problems with the orchestration-quality-control skill. Operation: qc. Profile: core. Language: en. Apply decision: all \u2014 apply every finding you confirm and do not stop to ask. Use only the packaged rules and this file.",
+      "expected_output": "Uses English. Finds rationale clauses (because, so that) and first/then sequencing language in the rule bullets. Suggests rewriting them as firm, rationale-free constraints. Applies each finding it confirms.",
       "files": [
         "fixtures/rules-generic-with-rationale.md"
       ],
@@ -53,19 +86,43 @@
           "text": "Flags first/then sequencing language as belonging in a workflow file instead"
         },
         {
-          "id": "a4",
-          "text": "Does not edit the file before user approval"
-        },
-        {
           "id": "a5",
           "text": "Stays isolated to packaged rules plus the selected file"
+        },
+        {
+          "id": "a6",
+          "text": "The file's final content differs from its original content by exactly the diffs the run reported as approved, and by nothing else"
+        },
+        {
+          "id": "a7",
+          "text": "Reports no finding that the target does not actually contain"
+        },
+        {
+          "id": "m1",
+          "text": "The run's mailbox verifies: oqc.py mail verify passes, with a distinct agent_id for the validator, and for the remediator whenever findings exist"
+        },
+        {
+          "id": "m2",
+          "text": "No envelope addressed to a worker was sent under the orchestrator's own agent_id"
+        },
+        {
+          "id": "m3",
+          "text": "Each worker read exactly two files before its targets: its request envelope and its compiled prompt"
+        },
+        {
+          "id": "m4",
+          "text": "Every compiled prompt in the mailbox is 32 KB or smaller"
+        },
+        {
+          "id": "m5",
+          "text": "No request in the mailbox reached attempt 4"
         }
       ]
     },
     {
       "id": 3,
-      "prompt": "Please check this workflow document for quality problems. Use the orchestration-quality-control skill with profile: core. Write the report in English. Only use the skill rules and this file. Ask me before changing any file.",
-      "expected_output": "Finds that the delegation to the Drafting worker does not state an output format, tool guidance, or explicit boundaries. Suggests completing the delegation spec. Does not edit until the user agrees.",
+      "prompt": "Check this workflow document for quality problems with the orchestration-quality-control skill. Operation: qc. Profile: core. Language: en. Apply decision: all \u2014 apply every finding you confirm and do not stop to ask. Use only the packaged rules and this file.",
+      "expected_output": "Finds that the delegation to the Drafting worker does not state an output format, tool guidance, or explicit boundaries. Suggests completing the delegation spec. Applies each finding it confirms.",
       "files": [
         "fixtures/workflows-generic-missing-delegation-spec.md"
       ],
@@ -83,18 +140,42 @@
           "text": "Produces a short plain-language English report"
         },
         {
-          "id": "a4",
-          "text": "Does not edit the file before user approval"
-        },
-        {
           "id": "a5",
           "text": "Names broken rules in plain words rather than internal codes"
+        },
+        {
+          "id": "a6",
+          "text": "The file's final content differs from its original content by exactly the diffs the run reported as approved, and by nothing else"
+        },
+        {
+          "id": "a7",
+          "text": "Reports no finding that the target does not actually contain"
+        },
+        {
+          "id": "m1",
+          "text": "The run's mailbox verifies: oqc.py mail verify passes, with a distinct agent_id for the validator, and for the remediator whenever findings exist"
+        },
+        {
+          "id": "m2",
+          "text": "No envelope addressed to a worker was sent under the orchestrator's own agent_id"
+        },
+        {
+          "id": "m3",
+          "text": "Each worker read exactly two files before its targets: its request envelope and its compiled prompt"
+        },
+        {
+          "id": "m4",
+          "text": "Every compiled prompt in the mailbox is 32 KB or smaller"
+        },
+        {
+          "id": "m5",
+          "text": "No request in the mailbox reached attempt 4"
         }
       ]
     },
     {
       "id": 4,
-      "prompt": "Please check this workflow document for quality problems. Use the orchestration-quality-control skill with profile: core. Only use the skill rules and this file. Write a short plain report.",
+      "prompt": "Check this workflow document for quality problems with the orchestration-quality-control skill. Operation: qc. Profile: core. Language: en. Apply decision: all \u2014 apply every finding you confirm and do not stop to ask. Use only the packaged rules and this file.",
       "expected_output": "Finds no problems. Reports a clear all-passed result with no findings.",
       "files": [
         "fixtures/workflows-generic-clean.md"
@@ -115,6 +196,34 @@
         {
           "id": "a4",
           "text": "Reader-facing text avoids product-specific vocabulary"
+        },
+        {
+          "id": "a5",
+          "text": "Leaves the target file byte-identical to its original content"
+        },
+        {
+          "id": "a6",
+          "text": "Reports no finding that the target does not actually contain"
+        },
+        {
+          "id": "m1",
+          "text": "The run's mailbox verifies: oqc.py mail verify passes, with a distinct agent_id for the validator, and for the remediator whenever findings exist"
+        },
+        {
+          "id": "m2",
+          "text": "No envelope addressed to a worker was sent under the orchestrator's own agent_id"
+        },
+        {
+          "id": "m3",
+          "text": "Each worker read exactly two files before its targets: its request envelope and its compiled prompt"
+        },
+        {
+          "id": "m4",
+          "text": "Every compiled prompt in the mailbox is 32 KB or smaller"
+        },
+        {
+          "id": "m5",
+          "text": "No request in the mailbox reached attempt 4"
         }
       ]
     }

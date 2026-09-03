@@ -2,11 +2,11 @@
 
 ## Status
 
-Proposed, 2026-09-02. Owner decisions 1–6 recorded in
+Accepted, 2026-09-02. Owner decisions 1–6 recorded in
 [[2026-09-02-intention-vs-outcome-reconciliation]] §5; model per role and
 host in [[2026-09-02-worker-model-decision-brief]].
 
-On acceptance: supersedes [ADR 0008](0008-guided-orchestration-upgrade.md)
+Supersedes [ADR 0008](0008-guided-orchestration-upgrade.md)
 and [ADR 0012](0012-greenfield-orchestration-authoring.md) (their operations
 become inputs to the one topology); amends
 [ADR 0010](0010-isolated-three-agent-only.md) (exactly three templates, one

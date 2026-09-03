@@ -1,4 +1,4 @@
-"""Packaged defaults for removed human approval gates.
+"""Packaged defaults for the interview decisions that used to be asked mid-run.
 
 See references/defaults/gate-defaults.json for the human-readable catalog.
 Only author ``outcome`` remains without a default — the root session must ask it.

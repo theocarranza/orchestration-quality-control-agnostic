@@ -11,7 +11,7 @@ description: >
   after validate unless the invocation overrides the decision. Confirms every
   approved finding ends applied or explicitly skipped. It also provides a guided upgrade that discovers an orchestration,
   checks it against a selected OQC reference architecture, drafts an atomic
-  replacement plus diagrams, and applies it only after approval. It can also
+  replacement plus diagrams, with the decision coming from the interview. It can also
   author a new process-document tree after a workspace audit and a short
   interview. Use whenever
   the user asks to check, validate, review, redesign, upgrade, version, or
@@ -51,6 +51,13 @@ it judges the documents that define and coordinate an agentic process.
   QC, and return a pending checkpoint.
 - **`author_apply`** — packaged default `approve` into an empty `output_root`
   unless `blocked`.
+
+The interview is the only decision point. The root session collects the
+outcome (author only), targets, profile, `language` and the apply decision,
+then hands the run to the engine; nested agents never ask the user
+anything. The only mid-run human contacts are a `blocked` envelope and the
+circuit breaker's `awaiting_authorization`, both engine states the root
+session surfaces.
 
 ```mermaid
 flowchart LR
