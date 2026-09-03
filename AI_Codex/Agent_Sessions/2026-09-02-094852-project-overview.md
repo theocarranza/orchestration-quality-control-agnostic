@@ -1,14 +1,14 @@
 ---
 date: 2026-09-02
 type: session
-status: open
+status: closed
 handoff: cursor-agent
 ---
 
 # Session — Project overview (read-only)
 
 Previous Session: [[2026-07-17-111000-oqc-2-0-0-release]]
-Next Session:
+Next Session: [[2026-09-02-212024-implement-4-0-0-orchestration]]
 
 ## Handoff — for the next Cursor agent (ongoing, do not open a new session)
 
@@ -16,9 +16,9 @@ Next Session:
 
 | Field | Value |
 | --- | --- |
-| **Branch** | `main` (pushed to `origin` as of 2026-09-02T11:50-03:00; HEAD `ef10204`) |
-| **Latest commit** | `ef10204` — `docs(ledger): checkpoint 3.1.0 shipped and evals still live-model gated` |
-| **Uncommitted** | this session note + ADR 0005 live-model notes (eval workspace is gitignored) |
+| **Branch** | `main` (ahead 2 of `origin`; last push was `ef10204`) |
+| **Latest commit** | `f34404d` — `docs(ledger): record live-model evals and the 3.2.0 gate decision` |
+| **Uncommitted** | this session note + [[2026-09-02-intention-outcome-drift]] (eval workspace is gitignored) |
 | **Commit policy** | User must explicitly ask before any commit or push |
 
 ### What landed in `83f2981`
@@ -51,6 +51,8 @@ User asked to clean up bottom-of-diagram appearance. Reordered participants (Rem
 - [x] Live-model ADR 0005 sets graded: example-pipeline 100% with-skill; core 95.8% (clean run 1 fabricated W13). Item 3 stays open.
 - [x] Author evals (8 runs) aggregated 2026-09-02T12:32-03:00: 100% with-skill / 71% without-skill. Extra set — ADR 0005 item 3 still open.
 - [x] Human-approval showstopper: canvas kept only `author-outcome`. 3.2.0 auto-continues the rest. Committing and reinstalling the Cursor plugin.
+- [x] Interface smoke aborted: deploy-orchestrator validate ran; execute remediator blocked on nested Cursor Shell permission. Checkpoint aborted, authorization cleared.
+- [x] Intention vs outcome drift report: [[2026-09-02-intention-outcome-drift]] (ingest of public GitHub + local 3.2.0). No topology rewrite until the user approves implementation.
 
 ### Key paths
 
@@ -314,3 +316,76 @@ Canvas: keep/remove toggles for all runtime waits. No skill mutation yet. Next: 
 - **Current intent:** Commit 3.2.0 and the live-model ledger notes; reinstall the Cursor plugin. Do not push unless asked.
 
 User kept only `author-outcome` on the canvas. Packaged defaults auto-continue every other former gate. Root session asks outcome, then confirms defaults; nested agents must not ask. Offline script tests: 91 OK.
+
+## Intention vs outcome drift — 2026-09-02T17:36-03:00
+
+- **Timestamp:** 2026-09-02T17:36-03:00
+- **Branch:** `main` (HEAD `f34404d`, ahead 2 of `origin`)
+- **Carried forward:** ADR 0005 item 3 still open. 3.2.0 auto-continue shipped locally. Interface smoke aborted on nested Shell permission.
+- **Current intent:** Document intention vs outcome after ingesting https://github.com/theocarranza/orchestration-quality-control. Do not rewrite topology until the user says implementation is approved.
+
+Ingested `upstream` (public `theocarranza/orchestration-quality-control`, last GitHub update 2026-08-27: still `aplicatudo-e2e`, four operations, six Claude agents already present, README still sells isolated three-agent + human apply) and local/`origin` (`orchestration-quality-control-agnostic` at 3.2.0).
+
+Report: `AI_Codex/Agent_Reports/2026-09-02-intention-outcome-drift.md`. Named mistakes: six agents vs three templates; second orchestrator; prompt-enforced isolation on Cursor; interview never parameterized live templates; two GitHubs; README still claims human apply after auto-continue; ADR 0005 not closed.
+
+Uncommitted ledger only. Commit/push only if the user asks.
+
+## Bootstrap (continued) — intention vs outcome reconciliation — 2026-09-02T18:09-03:00
+
+- **Timestamp:** 2026-09-02T18:09-03:00
+- **Branch:** `main` (HEAD `f34404d`, ahead 2 of `origin`)
+- **Carried forward:** Drift report [[2026-09-02-intention-outcome-drift]] written (uncommitted). ADR 0005 item 3 open. 3.2.0 auto-continue shipped locally. Interface smoke aborted on nested Shell permission. No topology rewrite approved yet.
+- **Current intent:** Analyse public upstream README, this working tree (code, docs, adapters, evals, run artifacts), and the drift report. Produce a reconciliation document that names the problems, describes the solution, and gives a rigid implementation plan. User-stated constraint: the tool must be cheap to run, pragmatic, precise; docs must describe what the code actually does. Documentation output only; no product code mutation this checkpoint.
+
+## Reconciliation delivered — 2026-09-02T18:40-03:00
+
+Three ledger documents written (uncommitted; commit only if the user asks):
+
+- [[2026-09-02-intention-vs-outcome-reconciliation]] — problems with measurements (cost, noise, doc/code mismatch, defects, the ADR 0010 reversal), solution, user decisions needed.
+- [[2026-09-02-return-to-intention-4-0-0]] — 8-phase plan (P0–P7), budget table, keep/rewrite/move/delete inventory, exit gates per phase.
+- [[0013-three-agent-parameterized-code-gated]] — ADR, status Proposed; supersedes 0008/0012, amends 0010 and 0005.
+
+Measurements taken: 40 `timing.json` (with-skill core median 570 s vs 120 s without); 17 parseable with-skill transcripts (mean 12.9 packaged files read, max 20); 6 of 30 with-skill transcripts show a nested worker; package 156 files / 131 non-test / 3,694 md lines; offline suites 91+8+6+36+19+17 = 177 OK (README says 174 / 3.1.0; adapters at 3.2.0). Defect found: Cursor/Codex hook allowlists omit the 3.1/3.2 author scripts while author checkpoints share `pending_approval`.
+
+## Owner decisions — 2026-09-02T18:34-03:00
+
+1. Sub-agent isolation is non-negotiable (primary asset). First-draft single-agent recommendation withdrawn; ADR draft renamed and rewritten.
+2. Mid-run human approval stays removed; the interview covers all decisions; humans only for unforeseen serious events (`blocked`).
+3. Upstream `theocarranza/orchestration-quality-control` stays read-only; release target is `origin`. C6 recorded as accepted debt.
+4. Report language is an interview decision, default `en`.
+
+Owner also named the missing envelope/mailbox: `isolated-three-agent.md` declares hand-offs of paths+hashes, no schema or script exists (`rg envelope|mailbox` empty across package, history, workspace). Added as problem F and solution §3.6; `schemas/envelope.schema.json`, `scripts/mailbox.py`, `oqc.py mail` in plan P2; mailbox becomes the eval transcript and isolation evidence.
+
+Still pending: decision 5 (delete vs stage under `deprecated/`), decision 6 (worker model on Cursor/Codex). No product code touched.
+
+## Ancestor ingested — 2026-09-02T18:55-03:00
+
+Intake 4: `theocarranza/agentic-e2e-test-workflow` master (spec v3, `docs/specs.md`, `maestro-e2e-plugin/orchestrator_core/*.py`, `hooks/*`, `skills/e2e/SKILL.md`, `reference/manifest.json`, README, CHANGELOG 0.1.0–0.1.1) fetched to `/tmp/ae2e` and read from source.
+
+Finding: the ancestor was **engine-first** — `router.py` routes from artifact state, `adapters.py` compiles one mailbox prompt per worker, `evaluator.py` gates and owns `error.log`, `reducers.py` injects critiques and trips a breaker at 3 attempts reset only by `IMPLEMENTATION APPROVED`, frozen state + hooks for side effects; the agent only spawns and evaluates. OQC kept the agent topology and dropped the engine. Recorded as reconciliation §1.1 (genealogy + authority table) and problem G (lost-mechanism table); solution §3.6 rewritten as engine authority (`oqc.py next | compile | gate | mail`, `mail/<run_id>/events.jsonl` + one compiled prompt per request, `attempt`/`critiques` in the envelope, `awaiting_authorization`); budgets now 2 reads per worker, ≤ 32 KB prompt, ≤ 3 attempts. Plan P2 expanded (`compile_prompt.py`, `gate.py`, `reduce`/`next`/`--replay` in `mailbox.py`, ancestor defects F2/F6/F7/F10 as constraints, `rg "input\("` gate); scripts budget ≤ 12. ADR 0013 retitled engine-first, decision 0 added, ancestor restored/not-restored lists in consequences.
+
+Decisions 5–6 still pending. No product code touched.
+
+## Decision 5 taken, decision 6 briefed — 2026-09-02T19:20-03:00
+
+- Decision 5 delegated by the owner; taken: delete at P3, no `deprecated/` in the package, recovery via `v3.2.0-final` tag. Rationale in reconciliation §5. Plan constraints, inventory key, P3 step and ADR 0013 consequences updated.
+- Decision 6: owner requires the host documentation before deciding. Fetched `cursor.com/docs/context/subagents`, `cursor.com/docs/models`, `developers.openai.com/codex/subagents`, `developers.openai.com/codex/models`, Codex issues #26363 and #40131. Wrote [[2026-09-02-worker-model-decision-brief]]: role needs, Cursor frontmatter (`model`, bracket params, silent fallback), Cursor per-token pricing and pools, Codex TOML fields and precedence, `--yolo` sandbox override, `gpt-5.4`/`-mini` retirement 2026-08-31, `gpt-5.6-{sol,terra,luna}` positioning, four options with A (terra/composer-2.5 on Cursor; terra-high/luna-medium on Codex) recommended; P7 escalation rule.
+- Findings for P4 from the docs: `agents.max_depth` is no longer in Codex's documented `[agents]` table (our installer requires it); Codex reapplies parent `--yolo`/`/permissions` to children, so the validator's read-only sandbox is conditional; Cursor prints IDs only for `composer-2`, `composer-2.5`, `gpt-5.6-sol`, `claude-opus-5`. Codex installer copies bytes, so the 0.149.0 symlink rejection does not apply.
+- Owner pushed back on the brief's framing (codes, phase labels, "orchestrator stays inherit") and asked for a plain answer: which hosts can run the isolated topology, which cannot, and the options. Answered in chat with a per-host table (Claude Code, Cursor, Codex, Gemini CLI, Copilot CLI; plain chat surfaces cannot).
+
+## Decision 6 taken — 2026-09-02T19:25-03:00
+
+Owner: `inherit` is a no-go for any role on any host. Recorded: Orchestrator / Validator / Remediator = Claude `sonnet` / `sonnet` / `haiku`; Cursor `composer-2.5[fast=false]` / `gpt-5.6-terra` / `composer-2.5[fast=false]`; Codex `gpt-5.6-terra` medium / `gpt-5.6-terra` high / `gpt-5.6-luna` medium. Escalation ladder per host, one step per failing role, never to `inherit`. Brief §3 rewritten as the decision in plain language; reconciliation §3.7 and §5, plan status, adapter inventory rows, P0 (assert no `inherit` in any agent file) and P7 escalation, ADR 0013 status and consequences updated. All six decisions closed; the plan has no open owner input. No product code touched.
+
+## Decision 6 — owner's own assignment — 2026-09-02T19:32-03:00
+
+Owner replaced the agent's proposal with his own, orchestrator / validator / remediator: Claude `opus` / `sonnet` / `haiku` (or `sonnet` low); Cursor `grok-4.6[effort=high]` / `composer-2.5[effort=high]` / `composer-2.5[fast=false]` (any low-reasoning model acceptable); Codex `gpt-5.6-terra` medium / `gpt-5.5` high / "gpt low or 5.4" → written as `gpt-5.6-luna` low because GPT-5.4 retired from Codex with ChatGPT sign-in on 2026-08-31 and Luna is OpenAI's named replacement. Cursor ID strings for Grok and Composer effort are not printed in the docs; P4 confirms them against the picker. Brief §3, reconciliation §3.7/§5, plan adapter rows and P7 ladders, ADR 0013 consequences updated. Owner's process note recorded: reading the documentation was right; returning with questions and an `inherit` option instead of answers was not — `inherit` was never the plan. No product code touched.
+
+## Handoff written — 2026-09-02T20:40-03:00
+
+Owner asked for a handoff so a cheaper implementation agent can execute the plan as an orchestration: root holds the plan, delegates discrete steps, one execution + one validation per step, root approves or reworks, one ledger row per step.
+
+- [[2026-09-02-handoff-implementation-orchestration]] — roles and models (root / `impl-executor` on Composer 2.5 / `impl-validator` read-only on GPT-5.5), the step loop with three-attempt stop, brief/report/validation templates, phase-gate procedure (validator runs the exit gate; commit only on owner's word; never push), the full step table for phases 0–6 with executor boundaries and mechanical "done when" checks, phases 7–8 as root+owner work, subagent definition files to create under `.cursor/agents/`.
+- [[2026-09-02-return-to-intention-ledger]] — pre-populated with every step and gate row, all `pending`.
+
+Handoff preconditions stated for the owner: commit the ledger documents before tagging; dirty-tree rule applies. Six ledger documents from today remain uncommitted. No product code touched.
