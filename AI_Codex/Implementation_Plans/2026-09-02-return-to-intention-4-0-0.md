@@ -73,22 +73,35 @@ flowchart LR
 | Metric | 3.2.0 | 4.0.0 gate | Measured by |
 | --- | --- | --- | --- |
 | Package files (excl. `__pycache__`, tests) | 131 | ≤ 75 | `eval-harness/measure_package.py` |
-| Package markdown lines (excl. CHANGELOG, tests) | 3,694 | ≤ 1,600 | same |
+| Package markdown lines (excl. CHANGELOG, tests) | 3694 | ≤ 1,600 | same |
 | `SKILL.md` lines | 181 | ≤ 150 | same |
 | Agent definition files | 18 | 9 (3 × 3 hosts) | same |
 | Scripts (non-test `.py`) | 15 | ≤ 12 | same |
 | Operations | 6 | 3 | `input.schema.json` enum |
-| Orchestrator spawns per outcome | 2 | 1 | mailbox |
-| Files read per agent before its work (excluding targets) | 13–20 packaged per run | 2 per agent (envelope + compiled prompt) · run ≤ 6 | `eval-harness/measure_run.py` on mailbox + transcript |
+| Orchestrator spawns per outcome | 2 (counted by hand from the shipped workflows: prepare and apply are separate spawns; no mailbox exists to measure it) | 1 | mailbox |
+| Files read per agent before its work (excluding targets) | 15–20 packaged per run, median 17, over the 7 of 30 with-skill runs whose transcript lists files | 2 per agent (envelope + compiled prompt) · run ≤ 6 | `eval-harness/measure_run.py` on mailbox + transcript |
 | Compiled prompt size | n/a | ≤ 32 KB each | `oqc.py compile` records `prompt.sha256` + bytes; `verify` checks |
 | Attempts per worker request | uncounted | ≤ 3 then `awaiting_authorization` | `oqc.py mail verify` |
 | With-skill `qc` wall time, ≤ 100-line target | median 570 s | ≤ 240 s median and ≤ 2x without-skill | `timing.json` |
-| Files written to `.orchestration-qc/` per run | 3 | `state/checkpoint-*.json` + `mail/<run_id>/` (`events.jsonl` + one prompt per request) | `measure_run.py` |
+| Files written to `.orchestration-qc/` per run | 0–13, median 3, over 30 with-skill runs | `state/checkpoint-*.json` + `mail/<run_id>/` (`events.jsonl` + one prompt per request) | `measure_run.py` |
 | Envelope size | unbounded prose | ≤ 4 KB, no content field | `oqc.py mail verify` |
 | Checkpoint replayable from mailbox | no | `oqc.py next --replay` reproduces checkpoint status byte-for-byte | `test_mailbox.py` |
 | Runs whose mailbox verifies with distinct `agent_id` per role | not measured | 100% | `oqc.py mail verify` |
 | Core with-skill assertion pass rate | 95.8% | 100%, 3 runs × 4 evals | `benchmark.json` |
 | Offline tests | 177 | ≥ 150, all green | unittest |
+
+The "3.2.0" column is script output as of 2026-09-02, reproducible with:
+
+```bash
+python3 eval-harness/measure_package.py
+for d in orchestration-quality-control-workspace/*/iteration-1/eval-*/*/run-*; do
+  python3 eval-harness/measure_run.py "$d" --json
+done
+```
+
+Rows whose "Measured by" names `timing.json`, `benchmark.json`, unittest or
+a 4.0.0-only mechanism are not produced by those two scripts and carry their
+own provenance.
 
 ## Inventory
 

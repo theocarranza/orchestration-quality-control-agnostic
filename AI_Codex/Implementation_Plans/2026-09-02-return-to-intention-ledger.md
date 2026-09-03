@@ -34,10 +34,10 @@ Model substitutions (if a configured ID was not accepted by the host):
 
 | Step | Deliverable | Executor model | Attempts | Validator verdict | Root decision | Status | Commit |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 0.1 | Tag `v3.2.0-final` (root + owner) | — | — | — | | pending | |
-| 0.2 | `measure_package.py` + test | | | | | pending | |
-| 0.3 | `measure_run.py` + test | | | | | pending | |
-| 0.4 | Plan "3.2.0" column filled from scripts | | | | | pending | |
+| 0.1 | Tag `v3.2.0-final` (root + owner) | — | — | tag present | approved — root action | done 2026-09-02 21:24 | 525e398 |
+| 0.2 | `measure_package.py` + test | haiku | 3 | PASS (attempt 3) | approved — attempts 1-2 failed on shared-state mutation and a non-discriminating fixture | done 2026-09-02 21:40 | — (phase 0 commit pending) |
+| 0.3 | `measure_run.py` + test | haiku | 2 | PASS (attempt 2) | approved — attempt 1 passed validation but crashed on two author runs with a prose line under '## Files read'; attempt 2 made the existence test total and dropped the literal exclusions (F6) | done 2026-09-02 22:02 | — (phase 0 commit pending) |
+| 0.4 | Plan "3.2.0" column filled from scripts | haiku | 1 | PASS (attempt 1) | approved — executor returned blocked on a defective acceptance command in the brief (unscoped `git diff --stat`); root rescoped the check, edits were already correct | done 2026-09-02 22:12 | — (phase 0 commit pending) |
 | gate | Phase 0 exit gate | — | | | | pending | |
 
 ## Phase 1 — contract truth
