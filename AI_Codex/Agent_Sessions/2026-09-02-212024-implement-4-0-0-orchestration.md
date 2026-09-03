@@ -1,8 +1,9 @@
 ---
 date: 2026-09-02
 timestamp: 2026-09-02T21:20:24-03:00
+closed: 2026-09-02T23:42:25-03:00
 type: session
-status: open
+status: closed
 branch: feature/4-0-0-return-to-intention
 next: null
 ---
@@ -10,7 +11,7 @@ next: null
 # Session — Implement 4.0.0 as an orchestration
 
 Previous Session: [[2026-09-02-094852-project-overview]]
-Next Session:
+Next Session: (none yet — open a new session on resume)
 
 ## Bootstrap
 
@@ -70,3 +71,33 @@ attributed to `timing.json`, `benchmark.json`, unittest, a hand count, or
 95.8% pass rate independently from the raw artifacts. Nothing under
 `orchestration-quality-control/` changed. Six suites green: 91+8+6+36+19+32
 = 192 (177 at the tag, plus the 15 new measurement tests).
+
+## Checkpoint — closed for a development break — 2026-09-02T23:42:25-03:00
+
+**Reason:** development break; resume on the next session.
+
+**Checkpoint commit:** `87ba5dc` (`87ba5dcff3f7fad4ae7d9b58755c9aded751c7f6`)
+— `feat(4.0.0): pin the interview contract (phase 1)` on
+`feature/4-0-0-return-to-intention`. Working tree was clean after that
+commit, before this session-close note.
+
+**What that commit holds:** ADR 0013 Accepted plus amendments on 0005 / 0008
+/ 0010 / 0012; `input.schema.json` `operation ∈ {qc, upgrade, author}` with
+`language` and `decision`; interview wording in SKILL.md and READMEs; core
+and author evals rewritten; adapter `VERSION = "4.0.0-dev"`. Ledger rows
+1.1–1.4 point at `87ba5dc`.
+
+**Resume here:**
+
+1. Confirm step 1.5 (`VERSION = "4.0.0-dev"`). The adapter strings already
+   landed in `87ba5dc`; the ledger row and Phase 1 exit gate are still
+   `pending`.
+2. Then Phase 2 — `oqc.py` engine (`lint` · `mail` · `next` · `compile` ·
+   `gate`), per [[2026-09-02-return-to-intention-ledger]].
+
+**Cursor orchestrator contract (checked this session, not yet coded):**
+`readonly: true` is wrong for the Orchestrator. Under ADR 0013 the role
+only mutates via `oqc.py` (`mail send`, `compile`, `next`/checkpoint,
+`gate`). Put `readonly: true` on the Validator only. `model` must not be
+`inherit`; Cursor orchestrator is `grok-4.6[effort=high]`.
+`oqc_cursor_upgrade_orchestrator.md` is deleted in 4.0.0.
