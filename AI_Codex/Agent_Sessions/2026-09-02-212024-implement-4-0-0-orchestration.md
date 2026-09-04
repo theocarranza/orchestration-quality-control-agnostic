@@ -5,13 +5,13 @@ closed: 2026-09-02T23:42:25-03:00
 type: session
 status: closed
 branch: feature/4-0-0-return-to-intention
-next: null
+next: "[[2026-09-04-032820-architecture-realignment]]"
 ---
 
 # Session — Implement 4.0.0 as an orchestration
 
 Previous Session: [[2026-09-02-094852-project-overview]]
-Next Session: (none yet — open a new session on resume)
+Next Session: [[2026-09-04-032820-architecture-realignment]]
 
 ## Bootstrap
 
