@@ -37,6 +37,23 @@ Counts: **0 Critical · 3 Important · 2 Minor**.
   sources are official or commit-pinned as required; no broad web refresh was
   necessary for this review.
 
+- **Source note on the architecture ruling (recorded 2026-09-04).** This review
+  cites `architecture-ruling.md` at three points. That file is not in the
+  repository and never was: root synthesized it into the ignored subagent
+  workspace
+  `.superpowers/sdd/refactor-align-the-architecture-with-original-design/`,
+  whose `.superpowers/sdd/.gitignore` is `*`, placing it outside versioned state
+  by design. That workspace was removed once its rulings were captured, and its
+  transient raw reports are not recoverable except by rerunning
+  discovery/review; the reviewed conclusions remain versioned in the master
+  plan, the ticket, and the
+  [architecture realignment ledger](../AI_Codex/Agent_Sessions/2026-09-04-032820-architecture-realignment.md)
+  at Checkpoint 4. The three citations are therefore preserved as plain,
+  non-clickable source labels rather than retargeted to an inferred file, which
+  would create false provenance. The twelve other local links were corrected
+  from `../../../AI_Codex/` to `../AI_Codex/`, the depth that resolves from
+  `docs/`.
+
 ## Critical
 
 None.
@@ -49,16 +66,16 @@ Evidence:
 
 - The kernel outcome ends with only a CLI/library boundary and does not include
   the ruling's narrow adapter port
-  ([master plan:49-53](../../../AI_Codex/Implementation_Plans/2026-09-04-original-design-realignment-master-plan.md)).
+  ([master plan:49-53](../AI_Codex/Implementation_Plans/2026-09-04-original-design-realignment-master-plan.md)).
 - Outcome 3 nevertheless requires root to spawn one Orchestrator and complete a
   real workflow
-  ([master plan:55-59](../../../AI_Codex/Implementation_Plans/2026-09-04-original-design-realignment-master-plan.md)).
+  ([master plan:55-59](../AI_Codex/Implementation_Plans/2026-09-04-original-design-realignment-master-plan.md)).
 - The plan does not define an adapter port or complete a first host until
   outcome 4
-  ([master plan:61-65](../../../AI_Codex/Implementation_Plans/2026-09-04-original-design-realignment-master-plan.md)).
+  ([master plan:61-65](../AI_Codex/Implementation_Plans/2026-09-04-original-design-realignment-master-plan.md)).
 - The ruling includes spawn, status, question relay, and hooks in the minimum
   kernel-facing port
-  ([architecture ruling:47-64](architecture-ruling.md)).
+  (architecture ruling:47-64).
 
 As written, outcome 3 can pass only by calling a host directly, which violates
 the adapter boundary, or by using a fake, which is not the required real slice.
@@ -74,15 +91,15 @@ Evidence:
 
 - The defining distinction says discovery generates the task DAG, roles,
   capabilities, tiers, tools, and schemas
-  ([master plan:27](../../../AI_Codex/Implementation_Plans/2026-09-04-original-design-realignment-master-plan.md));
+  ([master plan:27](../AI_Codex/Implementation_Plans/2026-09-04-original-design-realignment-master-plan.md));
   the ticket makes this the product purpose and principle
-  ([ticket:13-23](../../../AI_Codex/Tickets/Active/refactor-align-the-architecture-with-original-design.md)).
+  ([ticket:13-23](../AI_Codex/Tickets/Active/refactor-align-the-architecture-with-original-design.md)).
 - The kernel exit gate proves only a two-task DAG supplied as accepted input
-  ([master plan:49-53](../../../AI_Codex/Implementation_Plans/2026-09-04-original-design-realignment-master-plan.md)).
+  ([master plan:49-53](../AI_Codex/Implementation_Plans/2026-09-04-original-design-realignment-master-plan.md)).
 - Outcome 3 names dynamic `AgentSpec` generation, but neither names generated
   DAG construction nor gates provenance from discovery/interview input; its
   evidence checks only identities, mailbox sequence, hashes, and handoff
-  ([master plan:55-59](../../../AI_Codex/Implementation_Plans/2026-09-04-original-design-realignment-master-plan.md)).
+  ([master plan:55-59](../AI_Codex/Implementation_Plans/2026-09-04-original-design-realignment-master-plan.md)).
 
 The plan could therefore pass with a fixed two-task DAG and hard-coded roles,
 recreating the fixed-output failure under different names.
@@ -100,16 +117,16 @@ Evidence:
 - Outcome 2 proves one injected failure followed by completion, but not
   classification, critique carry-forward, maximum-attempt blocking, or replay
   of that exhausted path
-  ([master plan:49-53](../../../AI_Codex/Implementation_Plans/2026-09-04-original-design-realignment-master-plan.md)).
+  ([master plan:49-53](../AI_Codex/Implementation_Plans/2026-09-04-original-design-realignment-master-plan.md)).
 - Outcome 3 requires a blocked/user-input handoff only "when required" and says
   root receives state/result envelopes; it does not require the corresponding
   engine-declared question, root reply relay, legal reply transition, or resume
-  ([master plan:55-59](../../../AI_Codex/Implementation_Plans/2026-09-04-original-design-realignment-master-plan.md)).
+  ([master plan:55-59](../AI_Codex/Implementation_Plans/2026-09-04-original-design-realignment-master-plan.md)).
 - The ruling requires failure classification, retry transition, critique
   carry-forward, escalation, maximum attempts, blocked handoff, and an adapter
   question-relay boundary
-  ([architecture ruling:33-45](architecture-ruling.md),
-  [architecture ruling:47-69](architecture-ruling.md)).
+  (architecture ruling:33-45,
+  architecture ruling:47-69).
 
 This leaves the central self-healing and passive-root promise unproven. A run
 could ask root directly, lose critiques, or become irrecoverably blocked while
@@ -127,10 +144,10 @@ sender/recipient transitions in table tests.
 
 ### 1. The target architecture is phrased as current installed behavior
 
-[Master plan:14-16](../../../AI_Codex/Implementation_Plans/2026-09-04-original-design-realignment-master-plan.md)
+[Master plan:14-16](../AI_Codex/Implementation_Plans/2026-09-04-original-design-realignment-master-plan.md)
 says the product "installs as" the new authoring/execution system, while the
 same plan correctly records that the engine is absent
-([master plan:29-39](../../../AI_Codex/Implementation_Plans/2026-09-04-original-design-realignment-master-plan.md)).
+([master plan:29-39](../AI_Codex/Implementation_Plans/2026-09-04-original-design-realignment-master-plan.md)).
 The proposed-plan context makes the intent inferable, but this is still a
 present-tense claim about unavailable behavior.
 
@@ -139,7 +156,7 @@ language such as "The product will install as" or "The product must expose."
 
 ### 2. The ticket duplicates its primary acceptance criterion
 
-[Ticket:29-34](../../../AI_Codex/Tickets/Active/refactor-align-the-architecture-with-original-design.md)
+[Ticket:29-34](../AI_Codex/Tickets/Active/refactor-align-the-architecture-with-original-design.md)
 states the five outcomes/fixed-vs-generated/source requirement twice in
 successive bullets. This slightly weakens an otherwise concise ticket and can
 create ambiguity about whether "required sources" and "required durable and
