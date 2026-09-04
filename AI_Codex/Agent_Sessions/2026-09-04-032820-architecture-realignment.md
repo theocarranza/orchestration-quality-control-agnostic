@@ -59,3 +59,22 @@ required `PYTHONPATH`; 98 scripts + 8 Claude hooks + 6 Claude adapter + 36
 Codex adapter + 19 Cursor adapter + 32 eval-harness = **199 tests, 0
 failures**. Cursor's installer refusal messages are expected assertions in
 passing tests. Product code was unchanged.
+
+## Checkpoint 3 — delegated discovery evidence — 2026-09-04T03:36:47-03:00
+
+PASS. Three isolated read-only discovery briefs returned raw evidence; root
+has not delegated the architectural decision.
+
+| Brief | Model | Evidence captured |
+| --- | --- | --- |
+| `.superpowers/sdd/refactor-align-the-architecture-with-original-design/discovery-local.md` | `gpt-5.6-luna`, medium | Current package, executable scripts, adapters, hooks, tests, and plan-only gaps |
+| `.superpowers/sdd/refactor-align-the-architecture-with-original-design/discovery-ancestors.md` | `gpt-5.6-terra`, medium | Both referenced repositories pinned to commits; documented claims separated from code-confirmed behavior and stubs |
+| `.superpowers/sdd/refactor-align-the-architecture-with-original-design/discovery-host-surfaces.md` | `gpt-5.6-luna`, low | Local Claude/Cursor/Codex surfaces plus Context7 retrieval for current Claude and Cursor agent configuration |
+
+The shared raw fact is that the local product claims the planned `oqc.py`
+engine, envelope mailbox, reducer/compiler/gate, circuit breaker, and
+three-template topology, but those components are not executable in the
+current tree. The ancestors provide useful mechanisms, not a complete source
+to copy: the E2E runtime leaves worker outcomes disconnected and ships stub
+hooks, while the hierarchical runtime has a working reducer/stream but no
+persisted mailbox and retains concrete workflow/provider coupling.
