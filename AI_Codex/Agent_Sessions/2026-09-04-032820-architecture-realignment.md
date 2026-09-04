@@ -1,9 +1,9 @@
 ---
 date: 2026-09-04
 timestamp: 2026-09-04T03:28:20-03:00
-closed: null
+closed: 2026-09-04T04:04:07-03:00
 type: session
-status: active
+status: closed
 branch: feature/4-0-0-return-to-intention
 previous: "[[2026-09-02-212024-implement-4-0-0-orchestration]]"
 next: null
@@ -13,7 +13,7 @@ ticket: "[[refactor-align-the-architecture-with-original-design]]"
 # Session — Architecture realignment with the original design
 
 Previous Session: [[2026-09-02-212024-implement-4-0-0-orchestration]]
-Next Session: (none yet — this session is active)
+Next Session: (none yet — open a new session to execute Outcome 1)
 
 ## Mandate
 
@@ -170,3 +170,26 @@ blocked/awaiting-user-input fixture. Root corrected Checkpoint 8 to describe
 future proof requirements rather than claim absent implementation. `git diff
 --check` passes and the plan remains 87 lines. Candidate ready for narrow
 textual re-review.
+
+## Checkpoint 11 — final gate and close — 2026-09-04T04:04:07-03:00
+
+PASS. Narrow verification resolved both residual findings (2 addressed, 0
+open, 0 new breakage). Fresh verification at `4e0a04e`:
+
+- six offline suites: 98 scripts + 8 Claude hooks + 6 Claude adapter + 36
+  Codex adapter + 19 Cursor adapter + 32 eval-harness = **199 tests, 0
+  failures**;
+- `git diff --check e211e45..HEAD`: PASS;
+- master plan 87 lines, ticket 41 lines;
+- local link verifier: 18 checked, 0 missing;
+- persistent links to `.superpowers/`: 0;
+- final reviewed deliverables:
+  [[../Implementation_Plans/2026-09-04-original-design-realignment-master-plan]]
+  and [[../Tickets/Active/refactor-align-the-architecture-with-original-design]].
+
+No product code changed. The ticket remains active by design as the planning
+source; future implementation starts with Outcome 1 in a new session. Unrelated
+untracked paths were preserved: `.claude/agents/`,
+`AI_Codex_OrchestratorQcPlugin/`, and
+`docs/2026-09-04-master-plan-review.md`. No 5-hour/7-day quota signal became
+available to this session, and no host warning reported either threshold.
