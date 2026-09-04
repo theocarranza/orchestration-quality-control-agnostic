@@ -1,7 +1,7 @@
 ---
 date: 2026-09-04
 timestamp: 2026-09-04T03:28:20-03:00
-closed: 2026-09-04T04:07:40-03:00
+closed: 2026-09-04T04:13:36-03:00
 type: session
 status: closed
 branch: feature/4-0-0-return-to-intention
@@ -204,3 +204,11 @@ removed after its rulings were captured; its transient raw reports are not
 recoverable except by rerunning discovery/review, while their reviewed
 conclusions remain versioned in the master plan, ticket, and this ledger.
 No integration action was taken pending the owner's merge/push/keep choice.
+
+## Checkpoint 13 — local integration authorized — 2026-09-04T04:13:36-03:00
+
+The owner selected local merge into verified base `main`. Preflight confirmed
+the feature HEAD at `472e8e5`, merge base `f34404d`, and no tracked `main`
+paths colliding with the five unrelated untracked files. Authorized sequence:
+update `main`, merge without rewriting history, rerun all six suites on the
+merged tree, then remove the fully merged feature branch.
