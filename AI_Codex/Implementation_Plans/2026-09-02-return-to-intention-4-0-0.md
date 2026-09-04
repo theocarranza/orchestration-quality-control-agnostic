@@ -1,5 +1,12 @@
 # 4.0.0 Return-to-Intention Implementation Plan
 
+> **Superseded, 2026-09-04.** Do not execute this plan. Its nine phases
+> (`P0` through `P8`) assume the fixed three-template topology replaced by
+> [ADR 0014](../Architecture/ADR/0014-generated-workflow-deterministic-kernel.md).
+> The governing build order is
+> [the original-design realignment master plan](2026-09-04-original-design-realignment-master-plan.md).
+> This document is retained as evidence of the engine-first analysis.
+
 **Goal:** Ship `orchestration-quality-control` 4.0.0 as intended: exactly
 three isolated agent templates per host, parameterized by an up-front
 interview, communicating through schema-defined envelopes in a per-run

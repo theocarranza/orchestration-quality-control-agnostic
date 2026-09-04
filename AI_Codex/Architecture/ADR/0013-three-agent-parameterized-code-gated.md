@@ -6,6 +6,12 @@ Accepted, 2026-09-02. Owner decisions 1–6 recorded in
 [[2026-09-02-intention-vs-outcome-reconciliation]] §5; model per role and
 host in [[2026-09-02-worker-model-decision-brief]].
 
+Superseded by [ADR 0014](0014-generated-workflow-deterministic-kernel.md),
+2026-09-04: engine authority, the envelope mailbox, event-derived state,
+isolation and bounded retry are carried forward, but the exactly-three-template
+Validator/Remediator topology and the closed `operation` enum are replaced by
+one fixed control plane with generated roles.
+
 Supersedes [ADR 0008](0008-guided-orchestration-upgrade.md)
 and [ADR 0012](0012-greenfield-orchestration-authoring.md) (their operations
 become inputs to the one topology); amends
