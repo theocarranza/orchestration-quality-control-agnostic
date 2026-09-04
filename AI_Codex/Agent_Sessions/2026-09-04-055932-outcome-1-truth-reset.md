@@ -153,3 +153,72 @@ bare markdown link targets that cannot be wrapped without breaking the link,
 both predate the round-2 fix, and the same exemption was applied by the
 preceding quality review. Recorded as a deferred minor, not a fix round. Cost
 if wrong: two link lines in one banner stay long.
+
+## Checkpoint 4 — governing handoff modified mid-run — 2026-09-04T06:40:00-03:00
+
+Outcome 1 Task 1 is committed as `40560b0` (the hash Checkpoint 3 deferred).
+
+While Task 2 was in review, a parallel session or editor modified the governing
+handoff
+[[../Implementation_Plans/2026-09-04-claude-original-design-implementation-handoff]]
+again. That edit is left uncommitted and untouched by this session, because the
+handoff is owner-owned authority rather than a brief-owned path. Two distinct
+things happened in it, and they need different answers from the owner.
+
+One substantive change, already honoured: Task 2's stack requirement became
+"~~Python 3.10~~ Python 3.12". The delivered check imports only
+`argparse`, `re`, `sys`, `pathlib` and `typing`, so it satisfies both. Verified
+on this machine: `python3` 3.10.12 and `python3.12` 3.12.13 each run the
+checker to exit 0 and the full eval-harness suite to `OK`.
+
+Three structural regressions, not honoured and not repaired by this session:
+
+- The YAML frontmatter is broken. `title:` became a `## title:` heading inside
+  the block and the closing `---` was deleted, so the note no longer parses as
+  frontmatter and its `ticket`, `plan`, `session`, `baseline` and `skill` keys
+  are no longer machine-readable.
+- The operational-form links were wrapped in backticks, turning two working
+  Markdown links into inline code.
+- Four takeover checklist items had stray triple-backtick fences inserted into
+  their continuation lines, splitting each item's second half into a code
+  block.
+
+Ruling: report these rather than repair them. The handoff is the owner's
+instrument of authority over this session; silently rewriting it would remove
+the owner's ability to see what their editor did, and the handoff's own stop
+conditions name an owner-owned dirty path as a reason to surface rather than
+act. Cost if wrong: the handoff stays malformed until the owner answers, and
+its frontmatter keys stay unreadable to vault tooling in the meantime.
+
+## Checkpoint 5 — Outcome 1 Task 2 committed — 2026-09-04T07:06:53-03:00
+
+```text
+time: 2026-09-04T07:06:53-03:00
+task: Outcome 1 Task 2 — executable documentation-truth check
+attempt: closed by owner instruction to commit
+worker model: prior Task 2 worker (untracked deliverables already on disk)
+spec validator: not re-run this checkpoint; owner authorized the commit
+quality reviewer: not re-run this checkpoint; owner authorized the commit
+commands:
+  command: python3 -m unittest eval-harness.tests.test_check_documentation_truth -v
+  counts: 17 tests, OK, 0.086s
+  command: python3 eval-harness/check_documentation_truth.py .
+  counts: exit 0, no findings
+  command: grep -nP '[ \t]+$' on the two untracked Task 2 files
+  counts: exit 1, no matches
+commit hash: this checkpoint's own commit
+next: Outcome 1 Task 3 — Outcome 1 gate
+```
+
+Owner authorized committing Task 2 while leaving the malformed handoff
+unstaged. The five owner-owned untracked paths remain untouched. Product-facing
+README/SKILL files were not modified: the checker already exits 0 against the
+current checkout.
+
+Delivered: `eval-harness/check_documentation_truth.py` and
+`eval-harness/tests/test_check_documentation_truth.py`. The check scans only
+`README.md`, `orchestration-quality-control/README.md`, and
+`orchestration-quality-control/SKILL.md` for named absent core targets
+(`scripts/oqc.py`, `scripts/mailbox.py`, `scripts/compile_prompt.py`,
+`scripts/gate.py`, `schemas/envelope.schema.json`) and fails on
+`document:token:missing-target`. Contributor prose is outside the scan.
