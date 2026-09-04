@@ -67,3 +67,64 @@ no policy was skipped or disabled to do it.
   demoted to plain prose rather than retargeted to an inferred file.
 - Testing cost is reduced by cutting repetition, never by skipping tests or
   validations.
+
+## Checkpoint — validation-scope rule — 2026-09-04T17:10:57-03:00
+
+Owner instruction: only run checks for what changed or is indirectly affected;
+keep on-the-fly validation targeted, and reserve the expensive full pass for
+before an outcome is declared complete.
+
+Written into both host copies of `root-architect-execution` as a new
+**Validation scope** section, with supporting changes: two red flags (closing an
+outcome gate on targeted evidence; reusing evidence without labelling it), a
+brief instruction to scope `acceptance commands` to reachable code and put the
+reachability argument in `constraints`, a checkpoint instruction to mark
+carried-over counts as `reused`, and three new rows in the Common Mistakes
+table. The rule is deliberately phrased so targeted scope is a claim root must
+defend — if you cannot argue what is unaffected, you run the full set.
+
+Root made this edit directly rather than briefing an implementer. It is
+governance text the owner dictated, not product code, and delegating a
+two-paragraph insertion would have cost more quota than it saved — which is the
+same principle the rule encodes.
+
+```text
+time: 2026-09-04T17:10:57-03:00
+task: add the validation-scope rule to root-architect-execution
+attempt: 1 of 3
+worker model: none; governance text, edited at root
+spec validator: not dispatched; the owner dictated the rule verbatim
+quality reviewer: not dispatched; no product-code diff
+commands:
+  command: diff -r .claude/skills/... .cursor/skills/...
+  counts: identical, byte for byte
+  command: npx --no-install markdownlint-cli2
+  counts: 155 files, 0 issues
+  command: six baseline suites
+  counts: not run — reused from Checkpoint 7; no non-Markdown file changed since
+commit hash: pending
+next: Outcome 2 — executable kernel slice
+```
+
+### Applying the rule to itself
+
+This change touches Markdown only, confirmed with `git diff --name-only`, so the
+six Python suites were not re-run; their Checkpoint 7 evidence stands at an
+unchanged code HEAD and is labelled reused above. The check the change *does*
+reach is markdownlint, which was run.
+
+Worth recording for future targeting: **markdownlint-cli2 cannot be narrowed by
+passing file paths.** It appends its configured globs to any arguments, so a
+"targeted" invocation still linted all 155 files. That full sweep takes seconds,
+so nothing is lost here, but the tool is not a place where targeting is
+available.
+
+### Two lint errors, found and fixed
+
+- `MD012` in [[2026-09-04-055932-outcome-1-truth-reset]] — a double blank line
+  introduced by this session's own Checkpoint 7 append. Root's error, corrected.
+- `MD038` in ADR 0013 at line 112 — pre-existing and **failing the branch's CI
+  markdownlint job**. Backticks cannot nest, so the inner pairs around
+  `language` and `en` split one intended code span into three, leaving a span
+  with interior spaces. Removing the inner backticks restores a single span. The
+  diff is markup only; no word of the superseded decision changed.

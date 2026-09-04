@@ -63,6 +63,19 @@ flowchart LR
 5. Checkpoint model and effort; stage brief-owned paths plus the ledger;
    `git diff --cached --check`; one narrow commit.
 
+## Validation scope
+
+Run what the change can reach: the touched module's tests, plus any suite a
+named dependency makes plausible. State that reachability argument in the
+brief. If you cannot argue what is unaffected, run the full set — targeted
+scope is a claim you defend, not a default.
+
+Reuse root's evidence from an unchanged `HEAD` rather than re-running it, and
+label it `reused` in the checkpoint so the saving is auditable.
+
+The full baseline sweep belongs to the outcome gate, not to every task. No
+outcome is declared complete on targeted evidence alone.
+
 ## Gates, quota, and stops
 
 No broad migration, deletion, benchmarking, or release until the prior
@@ -82,5 +95,6 @@ historical Codex notes without explicit approval.
 
 Root writing product code; worker commit; `inherit`; combined spec+quality
 in one agent; advancing past a failed gate; editing owner-owned dirty paths;
-asking the owner to restate decided architecture. Excuse counters live in
-[references/contracts.md](references/contracts.md).
+closing an outcome gate on targeted evidence; reusing evidence without
+labelling it; asking the owner to restate decided architecture. Excuse
+counters live in [references/contracts.md](references/contracts.md).

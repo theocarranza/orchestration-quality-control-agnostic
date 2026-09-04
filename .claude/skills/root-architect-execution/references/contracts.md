@@ -23,6 +23,10 @@ The implementer prompt is this brief plus: follow TDD; return the
 implementer report; do not commit, widen scope, spawn agents, or ask the
 owner.
 
+Scope `acceptance commands` to what the change can reach, and put the
+reachability argument in `constraints`. When you cannot argue what is
+unaffected, name the full set.
+
 ## Implementer report
 
 ```text
@@ -71,6 +75,8 @@ open a new worker until that attempt is exhausted or `blocked`.
 
 Append this to the open session ledger after a `PASS` pair of verdicts,
 with `commit hash: pending` because a commit cannot contain its own hash.
+Mark any command whose counts carry over from an earlier run at the same
+`HEAD` as `reused`, so skipped repetition is visible rather than silent.
 Stage only brief-owned paths plus this ledger, run `git diff --cached --check`,
 and make one narrow commit; do not edit/amend it or create a bookkeeping-only
 second commit afterward. At the next substantive checkpoint, backfill the
@@ -123,6 +129,9 @@ governing plan or instance handoff.
 | "One reviewer for spec and quality" | Two fresh agents, spec first. |
 | "Worker can commit" | Root commits brief-owned paths only. |
 | "The prior gate is close enough" | Do not start the next outcome until the prior gate is executable and checkpointed. |
+| "Nothing else could possibly touch it" | Name the reachability argument in the brief, or run the full set. |
+| "The suites passed earlier" | Reuse is valid only from an unchanged `HEAD`, and must be labelled `reused` in the checkpoint. |
+| "Targeted evidence is enough to close the outcome" | Outcome gates run the full baseline. Targeted runs never close one. |
 | "This dirty path is in the way" | Owner-owned dirty paths are out of scope until the owner places one in the brief. |
 | "Ask the owner to confirm the architecture" | Do not ask the owner to restate decided architecture. |
 | "The worker can spawn a helper" | Workers must not spawn agents. Re-brief or split the task. |
