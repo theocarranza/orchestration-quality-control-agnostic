@@ -198,6 +198,100 @@ base. The validator must confirm the ADR/plan disposition, salvage list,
 quarantined claims, and named next slice. Record exact commands, counts, and
 commit hashes in the session ledger. Outcome 2 may start only on PASS.
 
+## Second implementation packet — Outcome 2
+
+Authored by root on 2026-09-04 after the Outcome 1 gate passed. Task order
+follows the slice ADR 0014 names: records, mailbox, reduce/next, then the fake
+adapter and the model-free DAG, with brief compilation, the gate, retry/block
+and replay after those pass.
+
+File paths are fixed by
+[`eval-harness/check_documentation_truth.py`](../../eval-harness/check_documentation_truth.py),
+which resolves the five quarantined targets to
+`orchestration-quality-control/scripts/{oqc,mailbox,compile_prompt,gate}.py`
+and `orchestration-quality-control/schemas/envelope.schema.json`. Landing them
+at those paths is what retires the quarantined claims.
+
+Per-task acceptance is targeted under the **Validation scope** rule: the focused
+test plus the `scripts` suite, since every new module lands under
+`orchestration-quality-control/scripts/`. The full six-suite sweep belongs to
+Task 7 alone.
+
+### Task 1: vendor-neutral records and the envelope contract
+
+Create `schemas/envelope.schema.json`, `scripts/kernel_specs.py` and
+`scripts/tests/test_kernel_specs.py`. Define `RunSpec`, `AgentSpec` and
+`Envelope` as immutable records with explicit validation and stable
+serialisation. No host names, model ids or vendor vocabulary in any of them.
+
+Tests must prove: a well-formed envelope validates against the schema; each
+required field's absence is rejected with a named error; records reject
+post-construction mutation; and serialisation round-trips byte-stably.
+
+### Task 2: append-only mailbox and derived run state
+
+Create `scripts/mailbox.py`, `scripts/run_state.py` and their tests. The mailbox
+appends events and never rewrites them. `RunState` is derived by a pure `reduce`
+over the event sequence — never stored, never mutated in place.
+
+Tests must prove: the observable phases (`discovery`, `interview`, `planning`,
+`orchestration`, `execution`, `verification`, `completed`, `blocked`,
+`awaiting-user-input`) are reachable as a table; `reduce` is pure, so replaying
+the same events yields an equal state; and any attempt to mutate state directly
+fails rather than silently succeeding.
+
+### Task 3: scheduling and routing checks
+
+Create `scripts/router.py` and its tests. `next` selects runnable tasks from the
+generated DAG against derived state; routing validates every sender/recipient
+pair.
+
+Tests must prove, as tables: a dependent task is not offered before its
+dependency completes; legal pairs are accepted; illegal pairs are rejected with
+a named reason; and no routing path mutates state.
+
+### Task 4: adapter port, fake adapter, and the model-free DAG replay
+
+Create `scripts/adapter_port.py`, `scripts/fake_adapter.py` and their tests. The
+port is narrow: spawn, status emission, question relay, and the hooks/policy
+boundary. Nothing host-specific enters the kernel.
+
+This task carries the outcome's load-bearing evidence. A model-free replay of a
+two-task dependent DAG in which a classified failure carries its critique into a
+passing retry, the dependent task then runs, and state reaches `completed`. A
+separate fixture must exhaust retries and reach `blocked` or
+`awaiting-user-input`. Both run entirely through the fake adapter.
+
+### Task 5: brief compilation, result gate, retry/block, replay, CLI boundary
+
+Create `scripts/compile_prompt.py`, `scripts/gate.py`, `scripts/oqc.py` and
+their tests, adding `compile_brief`, `gate_result`, `retry_or_block` and
+replay/verify. `oqc.py` is the single CLI/library boundary; the kernel stays
+importable without it.
+
+Tests must prove: a compiled brief is deterministic for identical input; the
+gate classifies pass and failure distinctly; retry carries critique forward;
+exhaustion blocks rather than looping; and verify detects a tampered event log.
+
+### Task 6: the deterministic validation and compilation boundary
+
+Turn accepted discovery/interview decisions into a `RunSpec`, a generated DAG
+and generated `AgentSpec` records, reusing the salvaged `plan_interview.py` and
+`gate_defaults.py` rather than reimplementing them.
+
+A contract fixture must show that changing one relevant input changes the
+emitted DAG or agent manifest, and the model-free run of Task 4 must consume
+that emitted spec rather than a hand-written one.
+
+### Task 7: close the Outcome 2 gate
+
+Root runs the full six-suite baseline, the documentation-truth check, and
+`git diff --check` from the Outcome 2 base. The validator confirms every exit
+condition in the master plan's Outcome 2: the table-tested phases, the two-task
+replay through a critiqued retry to `completed`, the separate exhausted-retry
+fixture, and the routing and no-direct-mutation cases. Outcome 3 may start only
+on PASS.
+
 ## Serious stop conditions
 
 Stop and ask the owner only for an architectural conflict not resolved by the
