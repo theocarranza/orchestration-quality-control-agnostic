@@ -13,4 +13,3 @@ assignees: ''
 ## Suggested approach, if you have one
 
 ## Notes
-

@@ -1,0 +1,16 @@
+{
+  // Shared by vscode-markdownlint, markdownlint-cli2, and CI.
+  // Keep this file as the rule source of truth (not markdownlint.config).
+  "default": true,
+  "MD013": false,
+  "MD025": false,
+  "MD033": false,
+  "MD036": false,
+  "MD060": false,
+  "MD024": {
+    "siblings_only": true
+  },
+  "MD041": {
+    "front_matter_title": "^\\s*(title|name)\\s*:"
+  }
+}

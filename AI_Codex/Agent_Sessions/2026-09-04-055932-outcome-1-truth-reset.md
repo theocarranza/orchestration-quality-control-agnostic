@@ -5,7 +5,7 @@ type: session
 status: open
 branch: feature/original-design-realignment
 previous: "[[2026-09-04-054923-root-architect-execution-skill]]"
-next: null
+next: "[[2026-09-04-073200-markdown-lint-tooling]]"
 ticket: "[[refactor-align-the-architecture-with-original-design]]"
 plan: "[[2026-09-04-original-design-realignment-master-plan]]"
 handoff: "[[2026-09-04-claude-original-design-implementation-handoff]]"

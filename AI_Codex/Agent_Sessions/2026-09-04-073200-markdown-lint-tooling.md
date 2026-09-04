@@ -1,8 +1,9 @@
 ---
 date: 2026-09-04
 timestamp: 2026-09-04T07:32:00-03:00
+closed: 2026-09-04T09:50:34-03:00
 type: session
-status: open
+status: closed
 branch: feature/original-design-realignment
 previous: "[[2026-09-04-055932-outcome-1-truth-reset]]"
 next: null
@@ -98,4 +99,18 @@ wait for approval before writing config or running `--fix`.
 - Review scope is limited to the three intentional overlay H1 changes, their
   three line-exact assertions, both host copies of the two skill corrections,
   and this ledger. All other Cursor Markdown cleanup remains untouched.
-- Commit: pending; report the resolved hash from Git history after commit.
+- Commit: `6e898f2`.
+
+## Checkpoint — commit preparation — 2026-09-04T09:50:34-03:00
+
+- Owner explicitly authorized committing all remaining changes judged valuable
+  and pushing the branch.
+- The shared `.markdownlint.jsonc`, CLI configuration, CI job, and authored-file
+  cleanup form one coherent tooling change. One auto-fix typo in ADR 0013 was
+  corrected before staging: `default` and `en` again have their required space.
+- Excluded from commits: `.superpowers/` contains generated SDD scratch, and
+  the two notes under the deprecated `AI_Codex_OrchestratorQcPlugin/` tree need
+  deliberate migration into the canonical ledger rather than committing a
+  second source of truth.
+- Next: verify, commit the lint tooling atomically, push
+  `feature/original-design-realignment`, then report the commit from Git history.

@@ -36,16 +36,16 @@ Follow @references/workflows/workflows-root-session-interview.md.
    - `profile`, `language`: from `scripts/gate_defaults.py validate-fields`.
    - `decision`: packaged default `all` (do not ask).
 
-2. Delegate to the `oqc-orchestrator` subagent (`operation: validate`) with the
+3. Delegate to the `oqc-orchestrator` subagent (`operation: validate`) with the
    resolved inputs. Boundaries: it must not ask the user anything.
 
-3. Handle the return:
+4. Handle the return:
    - `all_passed` → report and stop.
    - `report` + `findings` + `checkpoint_path` → present the report, then hand
      off to execute with `decision: all` in the same turn without asking.
    - `blocked` → relay verbatim.
 
-4. Invoke `oqc-execute` with the checkpoint and `decision: all`. Present its
+5. Invoke `oqc-execute` with the checkpoint and `decision: all`. Present its
    return.
 
 ## Operating rules

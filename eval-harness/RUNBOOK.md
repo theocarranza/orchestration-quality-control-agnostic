@@ -12,7 +12,7 @@ reimplementing one. Workspace layout is
 with the same `benchmark.json` schema. `SC` below is that plugin's skill
 directory:
 
-```
+```bash
 SC=/home/corporaterick/.claude/plugins/cache/claude-plugins-official/skill-creator/unknown/skills/skill-creator
 ```
 
@@ -78,7 +78,7 @@ first and come back for baselines later.
 
 **with_skill run** (×3 per eval):
 
-```
+```text
 Execute this task:
 - Skill path: orchestration-quality-control/ (profile: core | example-pipeline, matching this eval set)
 - Task: <eval prompt, verbatim from evals.json>
@@ -92,8 +92,8 @@ path, save to `<workspace>/eval-<slug>/without_skill/run-1/outputs/`.
 
 Each subagent must be pointed at a copy of the sandbox (or the sandbox
 itself if runs are sequential) so a with_skill run's edits can't leak into
-another run's baseline. If runs for the same eval run concurrently, snapshot
-+ copy the sandbox per run directory instead of sharing one.
+another run's baseline. If runs for the same eval run concurrently, snapshot or
+copy the sandbox per run directory instead of sharing one.
 
 ## Step 4 — Capture timing as runs complete
 

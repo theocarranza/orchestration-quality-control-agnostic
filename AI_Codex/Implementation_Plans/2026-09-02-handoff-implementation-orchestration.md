@@ -95,7 +95,7 @@ Rules of the loop:
 
 ### 3.1 Execution brief (root → executor)
 
-```markdown
+````markdown
 # Step <id> — <deliverable>   (attempt <n> of 3)
 
 ## Rules
@@ -126,7 +126,7 @@ Deletion is authorized only for the paths listed under "Delete".
 
 ## Return
 A result report in the format below. Nothing else.
-```
+````
 
 ### 3.2 Result report (executor → root)
 
@@ -143,7 +143,7 @@ Notes (≤ 5 lines): <what a reviewer must know>
 
 ### 3.3 Validation brief (root → validator)
 
-```markdown
+````markdown
 # Validate step <id>, attempt <n>
 
 You are read-only. Do not fix anything.
@@ -169,7 +169,7 @@ Evidence:
 Critiques (FAIL only, one per line, actionable, file:line where possible):
 - <...>
 ```
-```
+````
 
 ### 3.4 Ledger row (root writes, one per step)
 

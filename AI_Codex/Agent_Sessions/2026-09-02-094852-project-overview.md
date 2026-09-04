@@ -14,12 +14,12 @@ Next Session: [[2026-09-02-212024-implement-4-0-0-orchestration]]
 
 **Read this first.** This workstream is still open. Update **this file** only; do not create a new session entry until the user closes this one.
 
-| Field | Value |
-| --- | --- |
-| **Branch** | `main` (ahead 2 of `origin`; last push was `ef10204`) |
-| **Latest commit** | `f34404d` — `docs(ledger): record live-model evals and the 3.2.0 gate decision` |
-| **Uncommitted** | this session note + [[2026-09-02-intention-outcome-drift]] (eval workspace is gitignored) |
-| **Commit policy** | User must explicitly ask before any commit or push |
+| Field             | Value                                                                                     |
+| ----------------- | ----------------------------------------------------------------------------------------- |
+| **Branch**        | `main` (ahead 2 of `origin`; last push was `ef10204`)                                     |
+| **Latest commit** | `f34404d` — `docs(ledger): record live-model evals and the 3.2.0 gate decision`           |
+| **Uncommitted**   | this session note + [[2026-09-02-intention-outcome-drift]] (eval workspace is gitignored) |
+| **Commit policy** | User must explicitly ask before any commit or push                                        |
 
 ### What landed in `83f2981`
 
@@ -56,12 +56,12 @@ User asked to clean up bottom-of-diagram appearance. Reordered participants (Rem
 
 ### Key paths
 
-| Audience | Path |
-| --- | --- |
-| Product users | `docs/authoring.md`, `orchestration-quality-control/` |
-| Contributors | `AI_Codex/` (ADRs, specs, plans, sessions) |
-| Layout design | `AI_Codex/Architecture/Specs/2026-09-02-docs-and-ledger-layout-design.md` |
-| Implementation plan | `AI_Codex/Implementation_Plans/2026-09-02-docs-and-ledger-layout.md` |
+| Audience            | Path                                                                      |
+| ------------------- | ------------------------------------------------------------------------- |
+| Product users       | `docs/authoring.md`, `orchestration-quality-control/`                     |
+| Contributors        | `AI_Codex/` (ADRs, specs, plans, sessions)                                |
+| Layout design       | `AI_Codex/Architecture/Specs/2026-09-02-docs-and-ledger-layout-design.md` |
+| Implementation plan | `AI_Codex/Implementation_Plans/2026-09-02-docs-and-ledger-layout.md`      |
 
 ### Bootstrap reminder
 
@@ -97,9 +97,8 @@ Greenfield authoring specified: audit-then-focused-interview, `author_prepare`/`
 
 Implementation approved. Vault renamed `AI_Codex/`. ADRs/specs/plans moved out of `docs/superpowers` and `docs/adr`. Visual-docs rule in `Knowledge/Documentation.md`. Awaiting search gates.
 
-## Bootstrap (continued)
+## Bootstrap (continued) — 2026-09-02T11:13-03:00
 
-- **Timestamp:** 2026-09-02T11:13-03:00
 - **Branch:** `main`
 - **Carried forward:** Docs/ledger layout gate passed; README review in progress (diagram + link fixes).
 - **Current intent:** Finish README polish from user review; commit when requested.
@@ -132,9 +131,8 @@ User asked to strip every the former product reference so the tool is truly agno
 
 Parallel investigation: keep history, rename original remote to `upstream` (push disabled), create GitHub repo `orchestration-quality-control-agnostic` as `origin`, commit and push 3.0.0 work there only.
 
-## Bootstrap (continued)
+## Bootstrap (continued) — 2026-09-02T11:30-03:00
 
-- **Timestamp:** 2026-09-02T11:30-03:00
 - **Branch:** `main` at `92fd5c1`, ahead of `origin/main` by 5
 - **Carried forward:** 3.1.0 authoring shipped locally; live-model evals still open
 - **Current intent:** Commit remaining work if any; explain evals. Working tree was clean except this note.
@@ -170,7 +168,7 @@ Graded existing outputs only (skill not re-executed). `grading.json` written bes
 - **Integrity:** `unedited=true`, `changed_files=[]`. `isolation_ok=false` is skill-file reads; not treated as an edit fail.
 - **Timing:** executor 420s (`timing.json`); grader ~230s.
 
-## Grading checkpoint — 2026-09-02T11:56-03:00
+## Grading checkpoint — 2026-09-02T11:56-03:00 (missing-gates run-2/run-3)
 
 Graded `example-pipeline` eval `missing-gates-pipeline` with_skill run-2 from existing artifacts (skill not re-run). Wrote `orchestration-quality-control-workspace/example-pipeline/iteration-1/eval-missing-gates-pipeline/with_skill/run-2/grading.json`. Result: 5/5 passed. Fixture unedited per `integrity.json`.
 
@@ -268,10 +266,10 @@ All eight author runs graded. Aggregated with skill-creator `aggregate_benchmark
 
 **With-skill: 100% ± 0%** (mean 1.0, min 1.0, max 1.0). **Without-skill: 71% ± 6%**. Delta **+0.29**.
 
-| Eval | W1 | W2 | W3 | Without |
-| --- | --- | --- | --- | --- |
-| author-1 (audit / no-write-until-approve) | 4/4 | 4/4 | 4/4 | 3/4 |
-| author-2 (apply into empty output folder) | 3/3 | 3/3 | 3/3 | 2/3 |
+| Eval                                      | W1  | W2  | W3  | Without |
+| ----------------------------------------- | --- | --- | --- | ------- |
+| author-1 (audit / no-write-until-approve) | 4/4 | 4/4 | 4/4 | 3/4     |
+| author-2 (apply into empty output folder) | 3/3 | 3/3 | 3/3 | 2/3     |
 
 Without-skill misses (not a gate):
 
@@ -322,7 +320,7 @@ User kept only `author-outcome` on the canvas. Packaged defaults auto-continue e
 - **Timestamp:** 2026-09-02T17:36-03:00
 - **Branch:** `main` (HEAD `f34404d`, ahead 2 of `origin`)
 - **Carried forward:** ADR 0005 item 3 still open. 3.2.0 auto-continue shipped locally. Interface smoke aborted on nested Shell permission.
-- **Current intent:** Document intention vs outcome after ingesting https://github.com/theocarranza/orchestration-quality-control. Do not rewrite topology until the user says implementation is approved.
+- **Current intent:** Document intention vs outcome after ingesting <https://github.com/theocarranza/orchestration-quality-control>. Do not rewrite topology until the user says implementation is approved.
 
 Ingested `upstream` (public `theocarranza/orchestration-quality-control`, last GitHub update 2026-08-27: still `aplicatudo-e2e`, four operations, six Claude agents already present, README still sells isolated three-agent + human apply) and local/`origin` (`orchestration-quality-control-agnostic` at 3.2.0).
 

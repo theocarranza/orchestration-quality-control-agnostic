@@ -1,3 +1,5 @@
+# Changelog
+
 ## 3.2.0 — 2026-09-02
 
 - **Behavior:** removed eighteen human approval gates in favor of packaged
@@ -81,8 +83,6 @@
   tests; added focused offline tests for upgrade path containment, template
   selection, stale hashes, collisions, atomic apply/rollback, shared
   active-run exclusion, and verification persistence.
-
-# Changelog
 
 ## 1.1.0 — 2026-07-17
 

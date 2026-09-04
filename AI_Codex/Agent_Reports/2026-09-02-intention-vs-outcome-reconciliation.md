@@ -286,7 +286,7 @@ Everything here is model-free Python with offline tests.
 
 **Mailbox.** One directory per run, `.orchestration-qc/mail/<run_id>/`:
 
-```
+```text
 mail/<run_id>/
   events.jsonl            # append-only envelopes; the run's event history
   002-validator.prompt.md # compiled prompt for envelope seq 002
