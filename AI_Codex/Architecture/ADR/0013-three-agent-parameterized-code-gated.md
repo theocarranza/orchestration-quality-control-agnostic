@@ -109,7 +109,7 @@ hooks.
    lint-owned codes; each rule file lists them.
 5. **The interview is the only decision point.** The root session runs
    `discover → plan → ask outcome (author) → confirm defaults (incl.
-   `language`, default `en`) → send request envelope`. Nested agents never
+   language, default en) → send request envelope`. Nested agents never
    ask. A `blocked` envelope and the circuit breaker's
    `awaiting_authorization`, both surfaced by root, are the only mid-run
    human contacts; both are engine states. Documents and evals state this.
