@@ -8,9 +8,16 @@ plan: "[[2026-09-04-original-design-realignment-master-plan]]"
 session: "[[2026-09-04-051440-claude-implementation-handoff]]"
 supersedes: "[[2026-09-02-handoff-implementation-orchestration]]"
 baseline: 75663be
+skill: root-architect-execution
 ---
 
 # Handoff: Claude implements the original-design realignment
+
+**Operational form:** load skill `root-architect-execution`
+([`.cursor/skills/root-architect-execution/SKILL.md`](../../.cursor/skills/root-architect-execution/SKILL.md)
+and [`.claude/skills/root-architect-execution/SKILL.md`](../../.claude/skills/root-architect-execution/SKILL.md)).
+This note remains the workstream instance: checkout, owner-owned untracked
+paths, six baseline commands, Outcome 1 packets, and the 199-test gate.
 
 Claude, you are the root architect for implementation. Hold the governing
 plan, delegate bounded product-code tasks to cheaper agents, review their
@@ -41,14 +48,14 @@ Validator/Remediator workflow, or copy either ancestor wholesale.
 
 ## Repository starting state
 
-| Item | State Claude must preserve |
-| --- | --- |
-| Checkout | `/mnt/DATA/Projects/Personal/orchestration-quality-control` |
-| Branch | local `main`; architectural baseline `75663be` before this handoff commit |
-| Remote | local `main` was 20 commits ahead of `origin/main`; do not reset to the remote |
-| Integration | the realignment plan is already merged locally; its feature branch was deleted |
-| Tests | 199 offline tests: 98 scripts, 8 Claude hooks, 6 Claude adapter, 36 Codex adapter, 19 Cursor adapter, 32 eval harness |
-| Push policy | do not push, release, tag, or touch `upstream` without fresh owner authorization |
+| Item        | State Claude must preserve                                                                                            |
+| ----------- | --------------------------------------------------------------------------------------------------------------------- |
+| Checkout    | `/mnt/DATA/Projects/Personal/orchestration-quality-control`                                                           |
+| Branch      | local `main`; architectural baseline `75663be` before this handoff commit                                             |
+| Remote      | local `main` was 20 commits ahead of `origin/main`; do not reset to the remote                                        |
+| Integration | the realignment plan is already merged locally; its feature branch was deleted                                        |
+| Tests       | 199 offline tests: 98 scripts, 8 Claude hooks, 6 Claude adapter, 36 Codex adapter, 19 Cursor adapter, 32 eval harness |
+| Push policy | do not push, release, tag, or touch `upstream` without fresh owner authorization                                      |
 
 These five untracked files are owner-owned. Do not edit, stage, move, delete,
 or use them as implementation truth unless the owner explicitly places one in
@@ -63,18 +70,18 @@ scope:
 ## Takeover sequence
 
 - [ ] Confirm `pwd`, `git branch --show-current`, `git log -1 --oneline`, and
-  `git status --porcelain=v2 -uall`; report any drift before writing.
+      `git status --porcelain=v2 -uall`; report any drift before writing.
 - [ ] Read this file, the active ticket, the master plan, and
-  [[../Agent_Sessions/2026-09-04-032820-architecture-realignment]] in that
-  order. Read the paused plan or ancestor code only for the exact concept a
-  current task needs.
+      [[../Agent_Sessions/2026-09-04-032820-architecture-realignment]] in that
+      order. Read the paused plan or ancestor code only for the exact concept a
+      current task needs.
 - [ ] Create `feature/original-design-realignment` from the current local
-  `main`; do not pull, reset, rebase, or recreate the deleted prior branch.
+      `main`; do not pull, reset, rebase, or recreate the deleted prior branch.
 - [ ] Open a new timestamped `AI_Codex/Agent_Sessions/` note, link it after
-  [[../Agent_Sessions/2026-09-04-051440-claude-implementation-handoff]], and
-  record the branch, exact untracked paths, carried outcome, and baseline.
+      [[../Agent_Sessions/2026-09-04-051440-claude-implementation-handoff]], and
+      record the branch, exact untracked paths, carried outcome, and baseline.
 - [ ] Run the six baseline commands below. Record one checkpoint and commit
-  the session bootstrap before beginning Outcome 1.
+      the session bootstrap before beginning Outcome 1.
 
 ```bash
 PYTHONPATH=orchestration-quality-control/scripts:orchestration-quality-control/scripts/tests python3 -m unittest discover -s orchestration-quality-control/scripts/tests -p 'test_*.py'
@@ -117,13 +124,13 @@ record that limitation and react immediately to a host warning or owner report.
 
 ## Outcome order and gates
 
-| Outcome | Deliverable boundary | Do not advance until |
-| --- | --- | --- |
-| 1. Truth reset | Successor ADR, old-plan/ADR disposition, salvage/quarantine record, executable documentation-truth check | the truth check and all 199 baseline tests pass |
-| 2. Kernel | Vendor-neutral specs, event mailbox, pure reducer/router, brief compiler, result gate, retry/block/replay, narrow adapter port and fake | emitted two-task DAG completes through a critiqued retry; exhausted retry blocks separately; illegal routing/direct mutation fail |
-| 3. First real host | One Orchestrator contract and the smallest real adapter slice | captured real spawn has distinct identities, valid event sequence/hashes, passive root, and schema-valid answer relay |
-| 4. Remaining hosts | Generated wrappers and explicit model/effort/tool/sandbox/fallback mappings | each claimed host has contract coverage and its own available smoke evidence |
-| 5. Product consolidation | Install → discover → short interview → build/run, with QC folded into gates and proven duplication removed | complete acceptance flow, tests, budgets, and documentation match the executable tree |
+| Outcome                  | Deliverable boundary                                                                                                                    | Do not advance until                                                                                                              |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Truth reset           | Successor ADR, old-plan/ADR disposition, salvage/quarantine record, executable documentation-truth check                                | the truth check and all 199 baseline tests pass                                                                                   |
+| 2. Kernel                | Vendor-neutral specs, event mailbox, pure reducer/router, brief compiler, result gate, retry/block/replay, narrow adapter port and fake | emitted two-task DAG completes through a critiqued retry; exhausted retry blocks separately; illegal routing/direct mutation fail |
+| 3. First real host       | One Orchestrator contract and the smallest real adapter slice                                                                           | captured real spawn has distinct identities, valid event sequence/hashes, passive root, and schema-valid answer relay             |
+| 4. Remaining hosts       | Generated wrappers and explicit model/effort/tool/sandbox/fallback mappings                                                             | each claimed host has contract coverage and its own available smoke evidence                                                      |
+| 5. Product consolidation | Install → discover → short interview → build/run, with QC folded into gates and proven duplication removed                              | complete acceptance flow, tests, budgets, and documentation match the executable tree                                             |
 
 Do not begin broad migration, deletion, benchmarking, or release work before
 the preceding vertical-slice gate is executable and checkpointed.

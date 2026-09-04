@@ -1,11 +1,12 @@
 ---
 date: 2026-09-04
 timestamp: 2026-09-04T05:25:29-03:00
+closed: 2026-09-04T05:49:23-03:00
 type: session
-status: open
+status: closed
 branch: feature/original-design-realignment
 previous: "[[2026-09-04-051440-claude-implementation-handoff]]"
-next: null
+next: "[[2026-09-04-054923-root-architect-execution-skill]]"
 ticket: "[[refactor-align-the-architecture-with-original-design]]"
 plan: "[[2026-09-04-original-design-realignment-master-plan]]"
 handoff: "[[2026-09-04-claude-original-design-implementation-handoff]]"
@@ -14,7 +15,7 @@ handoff: "[[2026-09-04-claude-original-design-implementation-handoff]]"
 # Session — Original-design realignment implementation
 
 Previous Session: [[2026-09-04-051440-claude-implementation-handoff]]
-Next Session: (none yet — implementation is in progress)
+Next Session: [[2026-09-04-054923-root-architect-execution-skill]]
 
 ## Mandate
 
@@ -79,3 +80,16 @@ Confirmed absent core targets that Outcome 1 Task 2 must police:
 `orchestration-quality-control/scripts/oqc.py`, `.../scripts/mailbox.py`,
 `.../scripts/compile_prompt.py`, `.../scripts/gate.py`, and
 `.../schemas/envelope.schema.json` (no `schemas/` directory exists).
+
+## Checkpoint 3 — paused for skill extraction — 2026-09-04T05:49:23-03:00
+
+Owner redirected this session to extract a generic `root-architect-execution`
+skill from the handoff. Outcome 1 Task 1 is not finished. Dirty working-tree
+paths left untouched by the skill work:
+
+- modified: `AI_Codex/Architecture/ADR/0013-three-agent-parameterized-code-gated.md`
+- modified: `AI_Codex/Implementation_Plans/2026-09-02-return-to-intention-4-0-0.md`
+- untracked: `AI_Codex/Architecture/ADR/0014-generated-workflow-deterministic-kernel.md`
+
+Owner-owned untracked paths remain preserved. Resume Outcome 1 Task 1 from a
+new session after [[2026-09-04-054923-root-architect-execution-skill]].
