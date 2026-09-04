@@ -1,7 +1,7 @@
 ---
 date: 2026-09-04
 timestamp: 2026-09-04T03:28:20-03:00
-closed: 2026-09-04T04:04:07-03:00
+closed: 2026-09-04T04:07:40-03:00
 type: session
 status: closed
 branch: feature/4-0-0-return-to-intention
@@ -193,3 +193,14 @@ untracked paths were preserved: `.claude/agents/`,
 `AI_Codex_OrchestratorQcPlugin/`, and
 `docs/2026-09-04-master-plan-review.md`. No 5-hour/7-day quota signal became
 available to this session, and no host warning reported either threshold.
+
+## Checkpoint 12 — branch-finalization cleanup — 2026-09-04T04:07:40-03:00
+
+The branch-finishing gate confirmed a normal checkout, branch
+`feature/4-0-0-return-to-intention`, verified base `main` at `f34404d`, and
+all six suites green. The exact ignored subagent workspace
+`.superpowers/sdd/refactor-align-the-architecture-with-original-design/` was
+removed after its rulings were captured; its transient raw reports are not
+recoverable except by rerunning discovery/review, while their reviewed
+conclusions remain versioned in the master plan, ticket, and this ledger.
+No integration action was taken pending the owner's merge/push/keep choice.
