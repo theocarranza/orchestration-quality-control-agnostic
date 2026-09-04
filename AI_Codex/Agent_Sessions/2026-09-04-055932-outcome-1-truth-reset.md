@@ -1,8 +1,9 @@
 ---
 date: 2026-09-04
 timestamp: 2026-09-04T05:59:32-03:00
+closed: 2026-09-04T16:26:27-03:00
 type: session
-status: open
+status: closed
 branch: feature/original-design-realignment
 previous: "[[2026-09-04-054923-root-architect-execution-skill]]"
 next: "[[2026-09-04-073200-markdown-lint-tooling]]"
@@ -231,3 +232,105 @@ links, and the takeover-checklist continuation lines. Those restorations
 match the last committed text, so they produce no diff. The remaining
 substantive edit is Task 2's stack: Python 3.12. Commit hash is this
 checkpoint's own commit.
+
+
+## Checkpoint 7 — Outcome 1 gate PASS — 2026-09-04T16:26:27-03:00
+
+Root resumed under `root-architect-execution` on owner instruction. Takeover
+confirmed `feature/original-design-realignment` at `0eeea67`, in sync with
+`origin`, worktree clean apart from untracked `.superpowers/`. Session chain
+continues in [[2026-09-04-162018-outcome-1-gate-closure]], which also records
+the two environment blockers resolved this sitting.
+
+Task 3 carries no product-code diff, so it ran as a root verification pass plus
+one plan-compliance validator. No quality reviewer was dispatched: there was no
+diff for it to review, and root already held the command evidence at this exact
+HEAD. Re-running it would have been pure repetition.
+
+```text
+time: 2026-09-04T16:26:27-03:00
+task: Outcome 1 Task 3 — Outcome 1 gate
+attempt: 1 of 3
+worker model: none; Task 3 is root verification, not a code task
+worker effort: n/a
+spec validator: claude-sonnet-5, read-only, FINDINGS (2), both adjudicated
+quality reviewer: not dispatched; no diff, and root held the evidence
+commands:
+  command: six baseline suites (scripts, Claude hooks, Claude/Codex/Cursor adapters, eval-harness)
+  counts: 98 + 8 + 6 + 36 + 19 + 49 = 216 tests, OK, zero failures
+  command: python3 eval-harness/check_documentation_truth.py .
+  counts: exit 0, no findings
+  command: python3 -m unittest eval-harness.tests.test_check_documentation_truth
+  counts: 17 tests, OK
+  command: git diff --check 75663be..HEAD; git diff --check
+  counts: exit 0 both
+  command: local-link resolution over the 36 Markdown files changed in 75663be..HEAD
+  counts: 40 targets checked; 15 broken, all in one file; now 0 after repair
+commit hash: pending
+next: Outcome 2 — executable kernel slice
+```
+
+Backfilled from Git history: Task 1 is `40560b0`, **Task 2 is `9c0c329`**.
+Checkpoint 5 deferred Task 2's hash as "this checkpoint's own commit" and no
+later checkpoint resolved it; `git show --stat 9c0c329` matches Checkpoint 5's
+file list exactly.
+
+### Baseline drift
+
+The handoff recorded a 199-test baseline; the gate runs **216**. The
+eval-harness suite grew from 32 to 49 when Task 2 added the seventeen
+documentation-truth tests. The other five suites are unchanged. Expected growth
+from Task 2, not unexplained drift. The handoff now states both numbers.
+
+### Exit evidence confirmed
+
+The validator verified each item against source, not prose: ADR 0013 marked
+superseded by ADR 0014 insertion-only (+6/-0), its exactly-three
+Validator/Remediator topology replaced by the fixed root → one Orchestrator →
+generated isolated-agent control plane; the paused 4.0.0 plan marked superseded
+with zero semantic content removed, its raw +105/-98 being the later
+markdown-lint table reflow as confirmed by a whitespace-normalized diff; ADR
+0014 carrying forward engine authority, event-derived state, isolation,
+retry/block and adapter enforcement; a fourteen-row salvage table whose files
+all exist; a seven-item quarantine list whose targets are all absent from the
+tracked tree; the five outcomes; and Outcome 2's kernel slice named as next. No
+false present-tense runtime claim was found in ADR 0014 or this ledger.
+
+### Findings adjudicated
+
+1. **Task 2's commit hash was never resolved.** Repaired above as `9c0c329`.
+2. **Three owner-owned paths were committed without recorded authorization** —
+   `.claude/agents/impl-executor.md` and `.claude/agents/impl-validator.md` at
+   `5f6ac4f`, `docs/2026-09-04-master-plan-review.md` at `3c10fe5`. Root
+   refused to ratify its own boundary crossing and referred it to the owner,
+   who ratified all three as in scope and released them from the handoff's
+   protected list. Two files remain protected. Nothing was reverted.
+
+### Review-file repair
+
+With `docs/2026-09-04-master-plan-review.md` released, its broken links were
+repaired in `737cb68`: twelve citations corrected from `../../../AI_Codex/` to
+`../AI_Codex/`. The three `architecture-ruling.md` citations were **not**
+retargeted. The owner supplied provenance: that file was synthesized into the
+ignored subagent workspace
+`.superpowers/sdd/refactor-align-the-architecture-with-original-design/`, whose
+`.superpowers/sdd/.gitignore` is `*`, and the workspace was removed once its
+rulings were captured — verified against Checkpoint 4 and Checkpoint 12 of
+[[2026-09-04-032820-architecture-realignment]] and against the surviving
+`.superpowers/` tree. Their link syntax is stripped so the citation text
+survives as a plain source label, with a source note recording the provenance.
+Inferring a target would have manufactured false provenance.
+
+### Gate status — PASS
+
+Every Outcome 1 exit condition is met and executable. **Outcome 2, the
+executable kernel slice, is cleared to start.**
+
+### Operating change — quota
+
+Owner instruction, 2026-09-04: reduce testing cost by cutting repetition, never
+by skipping tests or validations. Applied from this checkpoint — root runs the
+suites once at a known-clean HEAD and validators consume that evidence rather
+than re-running it, and a quality reviewer is dispatched only when a diff
+exists for it to review. The host exposes no quota percentages to this session,
+so the threshold guard stays reactive to owner report or host warning.

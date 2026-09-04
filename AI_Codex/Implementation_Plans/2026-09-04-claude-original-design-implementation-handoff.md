@@ -17,7 +17,9 @@ skill: root-architect-execution
 ([`.cursor/skills/root-architect-execution/SKILL.md`](../../.cursor/skills/root-architect-execution/SKILL.md)
 and [`.claude/skills/root-architect-execution/SKILL.md`](../../.claude/skills/root-architect-execution/SKILL.md)).
 This note remains the workstream instance: checkout, owner-owned untracked
-paths, six baseline commands, Outcome 1 packets, and the 199-test gate.
+paths, six baseline commands, Outcome 1 packets, and the baseline gate — 199
+tests when this handoff was written, 216 after Outcome 1 Task 2 added the
+seventeen documentation-truth tests.
 
 Claude, you are the root architect for implementation. Hold the governing
 plan, delegate bounded product-code tasks to cheaper agents, review their
@@ -54,18 +56,25 @@ Validator/Remediator workflow, or copy either ancestor wholesale.
 | Branch      | local `main`; architectural baseline `75663be` before this handoff commit                                             |
 | Remote      | local `main` was 20 commits ahead of `origin/main`; do not reset to the remote                                        |
 | Integration | the realignment plan is already merged locally; its feature branch was deleted                                        |
-| Tests       | 199 offline tests: 98 scripts, 8 Claude hooks, 6 Claude adapter, 36 Codex adapter, 19 Cursor adapter, 32 eval harness |
+| Tests       | 199 offline tests at handoff time: 98 scripts, 8 Claude hooks, 6 Claude adapter, 36 Codex adapter, 19 Cursor adapter, 32 eval harness. Now 216 — the eval harness grew to 49 in Outcome 1 Task 2 |
 | Push policy | do not push, release, tag, or touch `upstream` without fresh owner authorization                                      |
 
-These five untracked files are owner-owned. Do not edit, stage, move, delete,
+These two untracked files are owner-owned. Do not edit, stage, move, delete,
 or use them as implementation truth unless the owner explicitly places one in
 scope:
 
-- `.claude/agents/impl-executor.md`
-- `.claude/agents/impl-validator.md`
 - `AI_Codex_OrchestratorQcPlugin/Agent_Sessions/2026-09-02-121500-eval-grader-rules-with-rationale-run-2.md`
 - `AI_Codex_OrchestratorQcPlugin/Agent_Sessions/2026-09-02-155800-approval-gate-defaults.md`
-- `docs/2026-09-04-master-plan-review.md`
+
+**Owner ruling, 2026-09-04.** This list originally named five files. Three of
+them — `.claude/agents/impl-executor.md`, `.claude/agents/impl-validator.md`,
+and `docs/2026-09-04-master-plan-review.md` — were committed at `5f6ac4f` and
+`3c10fe5` before any authorization was recorded. The Outcome 1 gate surfaced
+the gap; the owner ratified all three as in scope and released them from this
+list. They are now ordinary tracked files, governed by normal brief scope
+rather than by this protection. The review file's authority is unchanged: it
+remains a report, below the master plan and this handoff in the authority
+order above.
 
 ## Takeover sequence
 
