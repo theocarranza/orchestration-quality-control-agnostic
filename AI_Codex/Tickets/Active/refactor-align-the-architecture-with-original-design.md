@@ -28,8 +28,7 @@ Audit the current design and produce the concise [master plan](../../Implementat
 
 ## Acceptance
 
-- The master plan records five outcomes, exit evidence, non-goals, fixed-vs-generated distinction, and required sources.
-- The plan records the fixed control plane versus generated workflow, five outcomes with exit evidence, explicit non-goals, and required durable and external references.
+- The master plan records exactly five outcomes with exit evidence, explicit non-goals, the fixed control plane versus generated workflow distinction, and required durable and external sources.
 - The audit identifies the absent engine claims, fixed-output conflict, lifecycle/state, isolation, recovery, hooks, and delivery misalignments without treating prose as implementation evidence.
 - The ticket remains active as the planning source; future kernel and adapter implementation is governed by the plan, not required for this ticket's completion.
 

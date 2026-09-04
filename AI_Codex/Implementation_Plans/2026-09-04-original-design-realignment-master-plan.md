@@ -11,9 +11,9 @@ session: "[[2026-09-04-032820-architecture-realignment]]"
 
 This governing plan records the binding architecture decisions; the paused 4.0.0 plan is evidence, not build authority.
 
-## Product boundary
+## Target product boundary
 
-The product installs as an orchestration authoring and execution-control system: deterministic discovery and a short interview produce a workflow, then one Orchestrator runs it through isolated execution agents. Agents supply judgment and authored artifacts; deterministic code owns state, routing, validation, retries, and authorization boundaries.
+The product must install as an orchestration authoring and execution-control system: deterministic discovery and a short interview will produce a workflow, then one Orchestrator will run it through isolated execution agents. Agents will supply judgment and authored artifacts; deterministic code will own state, routing, validation, retries, and authorization boundaries.
 
 ```mermaid
 flowchart LR
@@ -48,21 +48,23 @@ Exit evidence: a decision record and ledger checkpoint name the superseded plan,
 
 ### 2. Executable kernel slice
 
-Implement `RunSpec`, `AgentSpec`, `Envelope`, derived `RunState`, append-only mailbox/events, pure `reduce`, `next`, `compile_brief`, `gate_result`, `retry_or_block`, routing checks, replay/verify, and one CLI/library boundary.
+Implement `RunSpec`, `AgentSpec`, `Envelope`, derived `RunState`, append-only mailbox/events, pure `reduce`, `next`, `compile_brief`, `gate_result`, `retry_or_block`, routing checks, replay/verify, and one CLI/library boundary. Define the narrow kernel-facing adapter port (spawn, status emission, question relay, and hooks/policy boundary) and a fake adapter.
 
-Exit evidence: table-tested observable phases (discovery, interview, planning, orchestration, execution, verification, completed, blocked, awaiting-user-input) plus a model-free replay of a two-task dependent DAG through one injected failure to completion with fake agents.
+The deterministic validation/compilation boundary must turn accepted discovery/interview decisions into a `RunSpec`, generated DAG, and generated `AgentSpec` records. A small contract fixture must show that a relevant input change changes the emitted DAG or agent manifest, and the model-free run must consume that emitted spec. Table tests must reject direct state mutation and illegal sender/recipient pairs.
+
+Exit evidence: table-tested observable phases (discovery, interview, planning, orchestration, execution, verification, completed, blocked, awaiting-user-input); a model-free replay with (a) a classified recoverable failure whose critique carries into retry and (b) exhausted retry reaching blocked or awaiting-user-input; and replay plus legal/illegal routing and no-direct-mutation cases using the fake adapter.
 
 ### 3. Real orchestration slice
 
-Add the vendor-neutral Orchestrator contract and dynamic `AgentSpec` generation. Run one small workflow: root interviews once, spawns one Orchestrator, remains observer/relay, and receives only state/result envelopes.
+Add the vendor-neutral Orchestrator contract and the smallest first-host adapter using the kernel-facing port. Run one small workflow: root interviews once, the adapter spawns one Orchestrator, and root remains observer/relay, receiving only state/result envelopes.
 
-Exit evidence: captured run with distinct agent identities, valid mailbox sequence and artifact hashes, and explicit blocked/user-input handoff when required.
+Exit evidence: one real end-to-end spawn through the first host adapter, consuming the emitted `RunSpec`/DAG/`AgentSpec`; a captured run with distinct agent identities, valid mailbox sequence and artifact hashes; and root idle until the engine emits an allowed blocked/awaiting-user-input state, then relaying a schema-valid answer through the adapter so the reducer resumes or remains terminally blocked.
 
 ### 4. Adapter compilation and enforcement
 
-Define one adapter port and complete one host end to end; map the same manifests to other hosts. Generate thin wrappers, test exposed model/effort/tool/sandbox settings, and use hooks for state and write/tool boundaries around the kernel. Disclose unenforceable controls.
+Generate thin host wrappers from the vendor-neutral manifests, harden enforcement and fallback disclosure, and map the same manifests to the remaining hosts. Test exposed model/effort/tool/sandbox settings and use hooks for state and write/tool boundaries around the kernel.
 
-Exit evidence: the first supported host has generated-config contract tests and a real end-to-end spawn; each later adapter has manifest mapping and its own smoke when that host is available, before support is claimed. Record a verified mailbox and enforcement/fallback matrix grounded in [Claude sub-agent docs](https://code.claude.com/docs/en/sub-agents), [Cursor subagents docs](https://cursor.com/docs/subagents), [Codex subagents docs](https://developers.openai.com/codex/subagents), and [OpenAI GPT-5.4 Mini docs](https://developers.openai.com/api/docs/models/gpt-5.4-mini).
+Exit evidence: generated-config contract coverage, hardened enforcement and fallback disclosures, and each remaining adapter's manifest mapping plus its own smoke when that host is available, before support is claimed. Record a verified mailbox and enforcement/fallback matrix grounded in [Claude sub-agent docs](https://code.claude.com/docs/en/sub-agents), [Cursor subagents docs](https://cursor.com/docs/subagents), [Codex subagents docs](https://developers.openai.com/codex/subagents), and [OpenAI GPT-5.4 Mini docs](https://developers.openai.com/api/docs/models/gpt-5.4-mini).
 
 ### 5. Product surface and consolidation
 

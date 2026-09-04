@@ -134,3 +134,14 @@ Scoped re-review of `1be3c8b..71b6624` resolved all six findings: 6 addressed,
 Cursor, and Codex subagent pages named by the plan. Task complete across
 `1be3c8b` and `71b6624`; review clean, with no deferred minors or parked
 findings.
+
+## Checkpoint 8 — final-review fix wave — 2026-09-04T03:57:57-03:00
+
+The whole-ticket architecture review of `e211e45..d184c77` returned 0
+Critical, 3 Important, and 2 Minor findings. Root accepted all five. The
+single authorized fix wave now places the adapter port/fake before the real
+spawn, proves discovery/interview inputs generate the DAG and agent manifests,
+proves recoverable and exhausted retry plus passive-root reply relay, changes
+target behavior to future tense, and deduplicates ticket acceptance. Worker
+checks pass: `git diff --check`, 11/11 local links, plan 87 lines, ticket 41
+lines. This commit is the candidate for the one scoped final re-review.
