@@ -5,6 +5,7 @@ type: ticket
 status: active
 priority: high
 plan: "[[2026-09-04-original-design-realignment-master-plan]]"
+handoff: "[[2026-09-04-claude-original-design-implementation-handoff]]"
 session: "[[2026-09-04-032820-architecture-realignment]]"
 ---
 
@@ -37,5 +38,6 @@ Audit the current design and produce the concise [master plan](../../Implementat
 - [ADR 0013](../../Architecture/ADR/0013-three-agent-parameterized-code-gated.md)
 - Paused [4.0.0 plan](../../Implementation_Plans/2026-09-02-return-to-intention-4-0-0.md) and [ledger](../../Implementation_Plans/2026-09-02-return-to-intention-ledger.md)
 - [Current session](../../Agent_Sessions/2026-09-04-032820-architecture-realignment.md) and prior [implementation session](../../Agent_Sessions/2026-09-02-212024-implement-4-0-0-orchestration.md)
+- [Claude implementation handoff](../../Implementation_Plans/2026-09-04-claude-original-design-implementation-handoff.md)
 - [agentic-e2e-test-workflow@775e57b](https://github.com/theocarranza/agentic-e2e-test-workflow/tree/775e57beaa28441be6657aebba9bb655d717d3c9) and [hierarchical-multi-agent-orchestrator@3efc011](https://github.com/theocarranza/hierarchical-multi-agent-orchestrator/tree/3efc011eef3c38d5e239a46fdac79b8d011cf0fa)
 - Current host references: [Claude subagents](https://code.claude.com/docs/en/sub-agents), [Cursor subagents](https://cursor.com/docs/subagents), [Codex subagents](https://developers.openai.com/codex/subagents), [OpenAI GPT-5.4 Mini](https://developers.openai.com/api/docs/models/gpt-5.4-mini)

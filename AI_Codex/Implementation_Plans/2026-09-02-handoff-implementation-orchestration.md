@@ -2,7 +2,8 @@
 title: Handoff — implementing 4.0.0 as an orchestration
 date: 2026-09-02
 audience: the implementation agent (root) and the owner
-status: ready to execute
+status: superseded
+superseded_by: "[[2026-09-04-claude-original-design-implementation-handoff]]"
 plan: "[[2026-09-02-return-to-intention-4-0-0]]"
 ledger: "[[2026-09-02-return-to-intention-ledger]]"
 context:
@@ -12,6 +13,10 @@ context:
 ---
 
 # Handoff: implement 4.0.0 by delegating discrete steps
+
+> **Superseded:** do not execute this handoff. Its fixed three-role topology
+> conflicts with the governing original-design realignment. Continue from
+> [[2026-09-04-claude-original-design-implementation-handoff]].
 
 You are the **root** implementation agent. You hold the plan; you do not
 write product code. For every step you delegate one **execution** to a cheap

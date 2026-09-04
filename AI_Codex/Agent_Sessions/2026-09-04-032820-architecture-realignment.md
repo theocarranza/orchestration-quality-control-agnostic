@@ -6,14 +6,14 @@ type: session
 status: closed
 branch: feature/4-0-0-return-to-intention
 previous: "[[2026-09-02-212024-implement-4-0-0-orchestration]]"
-next: null
+next: "[[2026-09-04-051440-claude-implementation-handoff]]"
 ticket: "[[refactor-align-the-architecture-with-original-design]]"
 ---
 
 # Session — Architecture realignment with the original design
 
 Previous Session: [[2026-09-02-212024-implement-4-0-0-orchestration]]
-Next Session: (none yet — open a new session to execute Outcome 1)
+Next Session: [[2026-09-04-051440-claude-implementation-handoff]]
 
 ## Mandate
 
