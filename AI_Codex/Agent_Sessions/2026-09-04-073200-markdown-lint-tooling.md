@@ -6,13 +6,13 @@ type: session
 status: closed
 branch: feature/original-design-realignment
 previous: "[[2026-09-04-055932-outcome-1-truth-reset]]"
-next: null
+next: "[[2026-09-04-162018-outcome-1-gate-closure]]"
 ---
 
 # Session — Markdown lint find-and-fix tooling
 
 Previous Session: [[2026-09-04-055932-outcome-1-truth-reset]]
-Next Session: (none)
+Next Session: [[2026-09-04-162018-outcome-1-gate-closure]]
 
 ## Mandate
 
