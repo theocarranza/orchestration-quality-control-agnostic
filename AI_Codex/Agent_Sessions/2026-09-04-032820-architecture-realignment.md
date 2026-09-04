@@ -140,9 +140,10 @@ findings.
 The whole-ticket architecture review of `e211e45..d184c77` returned 0
 Critical, 3 Important, and 2 Minor findings. Root accepted all five. The
 single authorized fix wave now places the adapter port/fake before the real
-spawn, proves discovery/interview inputs generate the DAG and agent manifests,
-proves recoverable and exhausted retry plus passive-root reply relay, changes
-target behavior to future tense, and deduplicates ticket acceptance. Worker
+spawn, updates the plan to require proof that discovery/interview inputs
+generate the DAG and agent manifests, and requires proof of recoverable and
+exhausted retry plus passive-root reply relay. It also changes target behavior
+to future tense and deduplicates ticket acceptance. Worker
 checks pass: `git diff --check`, 11/11 local links, plan 87 lines, ticket 41
 lines. This commit is the candidate for the one scoped final re-review.
 
@@ -159,3 +160,13 @@ usual single fix wave — the owner explicitly required continuous execution,
 and parking a known gap in the kernel's defining vertical-slice gate would
 defeat the ticket. Cost if wrong: one extra low-cost worker turn and narrow
 review are spent instead of surfacing the residual at handoff.
+
+## Checkpoint 10 — dependent-DAG proof restored — 2026-09-04T04:01:42-03:00
+
+The low-cost drafting worker restored the exact model-free completion path:
+the emitted two-task dependent DAG carries critique into a passing retry, runs
+the dependent task, and reaches `completed`; exhausted retry remains a separate
+blocked/awaiting-user-input fixture. Root corrected Checkpoint 8 to describe
+future proof requirements rather than claim absent implementation. `git diff
+--check` passes and the plan remains 87 lines. Candidate ready for narrow
+textual re-review.

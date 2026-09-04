@@ -52,7 +52,7 @@ Implement `RunSpec`, `AgentSpec`, `Envelope`, derived `RunState`, append-only ma
 
 The deterministic validation/compilation boundary must turn accepted discovery/interview decisions into a `RunSpec`, generated DAG, and generated `AgentSpec` records. A small contract fixture must show that a relevant input change changes the emitted DAG or agent manifest, and the model-free run must consume that emitted spec. Table tests must reject direct state mutation and illegal sender/recipient pairs.
 
-Exit evidence: table-tested observable phases (discovery, interview, planning, orchestration, execution, verification, completed, blocked, awaiting-user-input); a model-free replay with (a) a classified recoverable failure whose critique carries into retry and (b) exhausted retry reaching blocked or awaiting-user-input; and replay plus legal/illegal routing and no-direct-mutation cases using the fake adapter.
+Exit evidence: table-tested observable phases (discovery, interview, planning, orchestration, execution, verification, completed, blocked, awaiting-user-input); a model-free replay of the emitted two-task dependent DAG in which a classified failure carries critique into a passing retry, the dependent task then runs, and state reaches `completed`; a separate exhausted-retry fixture reaching `blocked` or `awaiting-user-input`; and replay plus legal/illegal routing and no-direct-mutation cases using the fake adapter.
 
 ### 3. Real orchestration slice
 
