@@ -17,9 +17,10 @@ skill: root-architect-execution
 ([`.cursor/skills/root-architect-execution/SKILL.md`](../../.cursor/skills/root-architect-execution/SKILL.md)
 and [`.claude/skills/root-architect-execution/SKILL.md`](../../.claude/skills/root-architect-execution/SKILL.md)).
 This note remains the workstream instance: checkout, owner-owned untracked
-paths, six baseline commands, Outcome 1 packets, and the baseline gate — 199
+paths, six baseline commands, the outcome packets, and the baseline gate — 199
 tests when this handoff was written, 216 after Outcome 1 Task 2 added the
-seventeen documentation-truth tests.
+seventeen documentation-truth tests, and 245 after Outcome 2 Task 1 took the
+scripts suite from 98 to 127.
 
 Claude, you are the root architect for implementation. Hold the governing
 plan, delegate bounded product-code tasks to cheaper agents, review their
@@ -56,7 +57,7 @@ Validator/Remediator workflow, or copy either ancestor wholesale.
 | Branch      | local `main`; architectural baseline `75663be` before this handoff commit                                             |
 | Remote      | local `main` was 20 commits ahead of `origin/main`; do not reset to the remote                                        |
 | Integration | the realignment plan is already merged locally; its feature branch was deleted                                        |
-| Tests       | 199 offline tests at handoff time: 98 scripts, 8 Claude hooks, 6 Claude adapter, 36 Codex adapter, 19 Cursor adapter, 32 eval harness. Now 216 — the eval harness grew to 49 in Outcome 1 Task 2 |
+| Tests       | 199 offline tests at handoff time: 98 scripts, 8 Claude hooks, 6 Claude adapter, 36 Codex adapter, 19 Cursor adapter, 32 eval harness. Now 245 under `python3.12`: 127 scripts, 8, 6, 36, 19, 49 |
 | Push policy | do not push, release, tag, or touch `upstream` without fresh owner authorization                                      |
 
 These two untracked files are owner-owned. Do not edit, stage, move, delete,
@@ -92,13 +93,21 @@ order above.
 - [ ] Run the six baseline commands below. Record one checkpoint and commit
       the session bootstrap before beginning Outcome 1.
 
+**Interpreter: `python3.12`, always.** Python 3.12 was always the intended
+stack. On this machine bare `python3` is 3.10.12 and `python3.12` is 3.12.13, so
+the two are not interchangeable: Outcome 2 Task 1 found `datetime.fromisoformat`
+accepting a `Z`-suffixed timestamp on 3.12 and rejecting it on 3.10, which would
+have made a validation verdict depend on the interpreter. Every command below,
+and every per-task acceptance command, names `python3.12` explicitly. Never
+substitute bare `python3`.
+
 ```bash
-PYTHONPATH=orchestration-quality-control/scripts:orchestration-quality-control/scripts/tests python3 -m unittest discover -s orchestration-quality-control/scripts/tests -p 'test_*.py'
-python3 -m unittest discover -s orchestration-quality-control/adapters/claude/hooks/tests -p 'test_*.py'
-python3 -m unittest discover -s orchestration-quality-control/adapters/claude/tests -p 'test_*.py'
-python3 -m unittest discover -s orchestration-quality-control/adapters/codex/tests -p 'test_*.py'
-python3 -m unittest discover -s orchestration-quality-control/adapters/cursor/tests -p 'test_*.py'
-python3 -m unittest discover -s eval-harness/tests -p 'test_*.py'
+PYTHONPATH=orchestration-quality-control/scripts:orchestration-quality-control/scripts/tests python3.12 -m unittest discover -s orchestration-quality-control/scripts/tests -p 'test_*.py'
+python3.12 -m unittest discover -s orchestration-quality-control/adapters/claude/hooks/tests -p 'test_*.py'
+python3.12 -m unittest discover -s orchestration-quality-control/adapters/claude/tests -p 'test_*.py'
+python3.12 -m unittest discover -s orchestration-quality-control/adapters/codex/tests -p 'test_*.py'
+python3.12 -m unittest discover -s orchestration-quality-control/adapters/cursor/tests -p 'test_*.py'
+python3.12 -m unittest discover -s eval-harness/tests -p 'test_*.py'
 ```
 
 ## Execution protocol
@@ -215,7 +224,8 @@ at those paths is what retires the quarantined claims.
 Per-task acceptance is targeted under the **Validation scope** rule: the focused
 test plus the `scripts` suite, since every new module lands under
 `orchestration-quality-control/scripts/`. The full six-suite sweep belongs to
-Task 7 alone.
+Task 7 alone. Every acceptance command runs under `python3.12`, per the
+interpreter rule above — briefs must name it explicitly rather than `python3`.
 
 ### Task 1: vendor-neutral records and the envelope contract
 
