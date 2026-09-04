@@ -78,3 +78,29 @@ current tree. The ancestors provide useful mechanisms, not a complete source
 to copy: the E2E runtime leaves worker outcomes disconnected and ships stub
 hooks, while the hierarchical runtime has a working reducer/stream but no
 persisted mailbox and retains concrete workflow/provider coupling.
+
+## Checkpoint 4 — root architecture ruling — 2026-09-04T03:39:00-03:00
+
+Root synthesized the evidence into
+`.superpowers/sdd/refactor-align-the-architecture-with-original-design/architecture-ruling.md`.
+
+- Ruling: the fixed topology is the product control plane — root/interviewer →
+  one Orchestrator → isolated execution agents — while each authored
+  workflow's task graph, roles, schemas, tools, and model tiers are generated.
+  Cost if wrong: the product may permit more workflow variation than a fixed
+  Validator/Remediator pattern would.
+- Ruling: deterministic code owns mailbox/event validation, immutable state
+  reduction, next-step routing, brief compilation, result gates, retry/block,
+  and replay. Agents judge and author only. Cost if wrong: the kernel becomes a
+  larger compatibility boundary across adapters.
+- Ruling: workflow-document QC becomes an internal or optional capability, not
+  the primary product identity. Cost if wrong: existing QC-focused users need
+  an explicit compatibility path.
+- Ruling: the existing eight-phase 4.0.0 plan is evidence but no longer the
+  governing build order. The replacement proves one model-free vertical slice
+  and one real host slice before broad migration, cleanup, or benchmarking.
+  Cost if wrong: some already-planned inventory and evaluation work will be
+  deferred or discarded.
+- Ruling: core agent manifests use capabilities and model/reasoning tiers;
+  adapters map them to host-native settings and disclose fallbacks. Cost if
+  wrong: adapters carry ongoing model-catalog maintenance.
