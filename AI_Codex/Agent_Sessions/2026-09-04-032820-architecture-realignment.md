@@ -145,3 +145,17 @@ proves recoverable and exhausted retry plus passive-root reply relay, changes
 target behavior to future tense, and deduplicates ticket acceptance. Worker
 checks pass: `git diff --check`, 11/11 local links, plan 87 lines, ticket 41
 lines. This commit is the candidate for the one scoped final re-review.
+
+## Checkpoint 9 — final re-review adjudication — 2026-09-04T04:00:30-03:00
+
+Scoped re-review resolved the five original findings (5 addressed, 0 open)
+and found 0 Critical, 1 new Important, and 1 new Minor. The Important finding
+is real and load-bearing: the expanded failure matrix dropped the explicit
+requirement that the recoverable two-task dependent DAG reaches `completed`.
+The Minor correctly notes that Checkpoint 8 says planned behavior was proved.
+
+Ruling: allow one narrow textual correction beyond the final-review workflow's
+usual single fix wave — the owner explicitly required continuous execution,
+and parking a known gap in the kernel's defining vertical-slice gate would
+defeat the ticket. Cost if wrong: one extra low-cost worker turn and narrow
+review are spent instead of surfacing the residual at handoff.
