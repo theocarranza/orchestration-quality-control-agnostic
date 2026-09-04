@@ -168,8 +168,7 @@ commit only these files plus the ledger.
   present-tense runtime claim.
 - Modify the open Claude session ledger.
 
-Implement a Python 3.10 stdlib check over those three product-facing files.
-For the absent core targets `scripts/oqc.py`, `scripts/mailbox.py`,
+Implement a ~~Python 3.10~~ Python 3.12 stdlib check over those three product-facing files. For the absent core targets `scripts/oqc.py`, `scripts/mailbox.py`,
 `scripts/compile_prompt.py`, `scripts/gate.py`, and
 `schemas/envelope.schema.json`, report `document:token:missing-target` and exit
 non-zero whenever a product-facing document names the token but its target is

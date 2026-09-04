@@ -222,3 +222,12 @@ Delivered: `eval-harness/check_documentation_truth.py` and
 (`scripts/oqc.py`, `scripts/mailbox.py`, `scripts/compile_prompt.py`,
 `scripts/gate.py`, `schemas/envelope.schema.json`) and fails on
 `document:token:missing-target`. Contributor prose is outside the scan.
+
+## Checkpoint 6 — owner authorized handoff repair — 2026-09-04T07:22:47-03:00
+
+Owner asked to fix the malformed handoff YAML, then to commit. Restored the
+frontmatter (`title:` plus closing `---`), the operational-form Markdown
+links, and the takeover-checklist continuation lines. Those restorations
+match the last committed text, so they produce no diff. The remaining
+substantive edit is Task 2's stack: Python 3.12. Commit hash is this
+checkpoint's own commit.
