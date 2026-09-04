@@ -115,3 +115,14 @@ created
 (43 lines). Its report records `git diff --check` PASS and 14 local links
 resolved with 0 missing targets. This checkpoint records a reviewable draft,
 not architectural approval; independent review follows from this commit.
+
+## Checkpoint 6 — draft fix round 1 — 2026-09-04T03:49:51-03:00
+
+Task review at `1be3c8b` returned spec FAIL / quality needs fixes: 0 Critical,
+3 Important. Root accepted the missing mechanical truth gate and weak host-doc
+sources, clarified the adapter-smoke sequence, and added three architecture
+corrections: remove links to ignored review scratch, restore this ticket's
+planning-only acceptance scope, and disposition ADR 0013's conflicting fixed
+worker roles. The original drafting agent amended its two owned artifacts;
+`git diff --check` passes, the plan is 85 lines, the ticket is 42 lines, and
+11 local links resolve. This commit is the fix candidate for scoped re-review.

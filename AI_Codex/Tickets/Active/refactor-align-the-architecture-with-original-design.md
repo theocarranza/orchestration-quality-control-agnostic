@@ -24,20 +24,19 @@ Realign the product after its core ideas were diluted across several projects. T
 
 ## Deliverable
 
-Produce and execute the concise [master plan](../../Implementation_Plans/2026-09-04-original-design-realignment-master-plan.md). First implement the smallest executable kernel: contracts, append-only mailbox, pure reducer/routing/compiler/gate/retry behavior, replay/verify, and a model-free two-task proof. Follow with one real host orchestration slice before broad migration or benchmarking.
+Audit the current design and produce the concise [master plan](../../Implementation_Plans/2026-09-04-original-design-realignment-master-plan.md) that will govern later implementation. The plan must establish the smallest executable kernel first, followed by one real host orchestration slice before broad migration or benchmarking.
 
 ## Acceptance
 
 - The master plan records five outcomes, exit evidence, non-goals, fixed-vs-generated distinction, and required sources.
-- Kernel and adapter slices have executable tests and captured evidence; agents cannot mutate state directly.
-- Root lifecycle, legal envelope pairs, hashes, retries, blockers, and adapter enforcement are observable and replayable.
-- Documentation describes install → discover → interview → build/run; prose or line-count gates do not substitute for code evidence.
+- The plan records the fixed control plane versus generated workflow, five outcomes with exit evidence, explicit non-goals, and required durable and external references.
+- The audit identifies the absent engine claims, fixed-output conflict, lifecycle/state, isolation, recovery, hooks, and delivery misalignments without treating prose as implementation evidence.
+- The ticket remains active as the planning source; future kernel and adapter implementation is governed by the plan, not required for this ticket's completion.
 
 ## References
 
-- Binding [architecture ruling](../../../.superpowers/sdd/refactor-align-the-architecture-with-original-design/architecture-ruling.md)
 - [ADR 0013](../../Architecture/ADR/0013-three-agent-parameterized-code-gated.md)
 - Paused [4.0.0 plan](../../Implementation_Plans/2026-09-02-return-to-intention-4-0-0.md) and [ledger](../../Implementation_Plans/2026-09-02-return-to-intention-ledger.md)
 - [Current session](../../Agent_Sessions/2026-09-04-032820-architecture-realignment.md) and prior [implementation session](../../Agent_Sessions/2026-09-02-212024-implement-4-0-0-orchestration.md)
 - [agentic-e2e-test-workflow@775e57b](https://github.com/theocarranza/agentic-e2e-test-workflow/tree/775e57beaa28441be6657aebba9bb655d717d3c9) and [hierarchical-multi-agent-orchestrator@3efc011](https://github.com/theocarranza/hierarchical-multi-agent-orchestrator/tree/3efc011eef3c38d5e239a46fdac79b8d011cf0fa)
-- Current host references: [Claude agents](https://github.com/anthropics/claude-code/blob/main/plugins/plugin-dev/skills/agent-development/SKILL.md), [Cursor subagents](https://cursor.com/docs/subagents), [OpenAI GPT-5.4 Mini](https://developers.openai.com/api/docs/models/gpt-5.4-mini)
+- Current host references: [Claude subagents](https://code.claude.com/docs/en/sub-agents), [Cursor subagents](https://cursor.com/docs/subagents), [Codex subagents](https://developers.openai.com/codex/subagents), [OpenAI GPT-5.4 Mini](https://developers.openai.com/api/docs/models/gpt-5.4-mini)
