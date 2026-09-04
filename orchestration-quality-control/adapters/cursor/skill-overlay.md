@@ -1,4 +1,4 @@
-## Cursor adapter execution
+# Cursor adapter execution
 
 This installed Cursor edition uses the host-specific nested topology below.
 This nested topology is the only shipped execution shape:

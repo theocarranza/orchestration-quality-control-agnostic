@@ -70,8 +70,13 @@ open a new worker until that attempt is exhausted or `blocked`.
 ## Checkpoint
 
 Append this to the open session ledger after a `PASS` pair of verdicts,
-with `commit hash` empty. Stage only brief-owned paths plus this ledger,
-run `git diff --cached --check`, make one commit, then fill `commit hash`.
+with `commit hash: pending` because a commit cannot contain its own hash.
+Stage only brief-owned paths plus this ledger, run `git diff --cached --check`,
+and make one narrow commit; do not edit/amend it or create a bookkeeping-only
+second commit afterward. At the next substantive checkpoint, backfill the
+prior hash from git history. For the final task, report its hash from git
+history in the final owner report/handoff; backfill it only in a later
+substantive authorized commit.
 
 ```text
 time:
@@ -84,7 +89,7 @@ quality reviewer:
 commands:
   command:
   counts:
-commit hash:
+commit hash: pending | <prior hash from git history>
 next:
 ```
 

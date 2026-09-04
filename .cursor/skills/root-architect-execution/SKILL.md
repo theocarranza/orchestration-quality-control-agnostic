@@ -29,9 +29,12 @@ wholesale.
 ## Takeover
 
 Confirm `pwd`, branch, `HEAD`, dirty paths; report drift. Read plan, ticket,
-latest session. Branch from current local HEAD; no pull, reset, rebase, or
-recreate of a deleted branch. Open a session ledger. Run plan-named baseline
-commands; checkpoint; one bootstrap commit. File the first owner report from
+latest session. Resolve the intended branch/base and permitted sync operations
+from the governing plan and repository policy; never assume current `HEAD` or
+hard-code a prohibition on pull, reset, or rebase. Preserve and report dirty
+paths. Stop only when the named base has a conflict that cannot be resolved
+safely without touching owner-owned work or history. Open a session ledger. Run
+plan-named baseline commands; checkpoint; one bootstrap commit. File the first owner report from
 [references/contracts.md](references/contracts.md).
 
 ## Per-task loop
