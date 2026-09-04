@@ -104,3 +104,14 @@ Root synthesized the evidence into
 - Ruling: core agent manifests use capabilities and model/reasoning tiers;
   adapters map them to host-native settings and disclose fallbacks. Cost if
   wrong: adapters carry ongoing model-catalog maintenance.
+
+## Checkpoint 5 — master-plan draft — 2026-09-04T03:44:29-03:00
+
+`gpt-5.6-luna` at medium effort completed the bounded drafting task. It
+created
+[[../Implementation_Plans/2026-09-04-original-design-realignment-master-plan]]
+(87 lines) and reformatted
+[[../Tickets/Active/refactor-align-the-architecture-with-original-design]]
+(43 lines). Its report records `git diff --check` PASS and 14 local links
+resolved with 0 missing targets. This checkpoint records a reviewable draft,
+not architectural approval; independent review follows from this commit.
