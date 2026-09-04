@@ -128,3 +128,96 @@ available.
   `language` and `en` split one intended code span into three, leaving a span
   with interior spaces. Removing the inner backticks restores a single span. The
   diff is markup only; no word of the superseded decision changed.
+
+## Checkpoint — Outcome 2 Task 1 — 2026-09-04T20:27:18-03:00
+
+```text
+time: 2026-09-04T20:27:18-03:00
+task: Outcome 2 Task 1 — vendor-neutral records and the envelope contract
+attempt: 3 of 3
+worker model: claude-sonnet-5
+worker effort: medium
+spec validator: claude-sonnet-5, read-only, FINDINGS (2) then resolved
+quality reviewer: claude-sonnet-5, read-only, fresh agent, FINDINGS (3) then
+  resolved; final verification done at root by direct execution, not a fourth
+  agent — see "Why no fourth review" below
+commands:
+  command: PYTHONPATH=... python3 -m unittest discover -s .../scripts/tests
+  counts: 127 tests, OK (Python 3.10.12)
+  command: PYTHONPATH=... /usr/local/bin/python3.12 -m unittest discover -s .../scripts/tests
+  counts: 127 tests, OK (Python 3.12.13) — identical, which is the point
+  command: root reproduction script against the fixed module, both interpreters
+  counts: 4 of 4 behaviours correct and identical on 3.10.12 and 3.12.13
+  command: other five suites
+  counts: not run — no file outside scripts/ changed; they belong to the Task 7 gate
+commit hash: pending
+next: Outcome 2 Task 2 — append-only mailbox and derived run state
+```
+
+Delivered `schemas/envelope.schema.json`, `scripts/kernel_specs.py` and
+`scripts/tests/test_kernel_specs.py`. `RunSpec`, `AgentSpec` and `Envelope` are
+frozen records; `Envelope` validates against the schema file through a narrow
+JSON-Schema-subset interpreter so schema and Python cannot drift.
+
+### Three review rounds, and what each caught
+
+Attempt 1 passed its own tests. Plan-compliance then found an unused
+`ENVELOPE_KINDS` constant — a second hand-authored copy of the vocabulary the
+schema-driven design exists to prevent — and, more importantly, that the
+nested-payload immutability proof was **implemented but never tested**: every
+payload fixture was flat, so a regression to shallow freezing would have passed
+the whole suite.
+
+Attempt 2 fixed both, and proved the new test bites by temporarily making
+`_freeze` shallow, watching it fail, and restoring the file byte-identically.
+
+Quality review then found three defects neither earlier pass caught, all
+reproduced at root by executing the module:
+
+1. `re.match` instead of `re.fullmatch` at three sites. Python's `$` matches
+   before a trailing newline, so `envelope_id="env-0001\n"` constructed happily.
+   Affected every identifier and token field on all three records.
+2. **Date-time validation was interpreter-dependent.** `datetime.fromisoformat`
+   gained `Z` support in 3.11, so `2026-09-04T12:00:00Z` was rejected on 3.10.12
+   and accepted on 3.12.13 — the same envelope valid or invalid depending on
+   which Python validated it. Fatal for a kernel whose purpose is deterministic
+   replay. The inverse hole existed too: bare `2026-09-04` passed as a date-time.
+3. `_freeze` returned a `MappingProxyType` unchanged without recursing. Since
+   `Envelope` is a public frozen dataclass, direct construction with an
+   already-frozen payload left nested dicts mutable — a hole in the very
+   invariant attempt 2 had just hardened. The test passed only because
+   `from_dict` happens to supply a plain dict.
+
+Attempt 3 fixed all three and went further than asked on the second: rather than
+normalising `Z` and re-delegating to `fromisoformat`, it validates date-times
+with a fixed regex plus calendar construction, removing every version-dependent
+parsing surface rather than only the one that was caught. Root endorses that
+widening — it addresses the class, not the instance.
+
+### Why no fourth review
+
+The skill pairs a plan-compliance agent with a separate quality agent per task,
+and both ran. After attempt 3 root verified by direct execution on both
+interpreters instead of dispatching a fourth agent: every finding was
+behavioural, so running the code is stronger evidence than a further reading of
+it, and the quota rule forbids repetition that buys nothing. The reproduction
+script and its output are recorded above.
+
+### Carried interpretation calls, endorsed by root
+
+- `RunSpec` deliberately does not embed the generated DAG or an agent roster.
+  ADR 0014 and Task 6 treat the three as sibling artifacts. This constrains
+  Task 6 and is recorded here so it is a decision rather than an accident.
+- The JSON-Schema-subset interpreter is intentionally narrow and auditable, not
+  a general engine, because the stdlib-only constraint bars `jsonschema`.
+
+### Open item for the owner
+
+`python3` on this machine is **3.10.12**, while the handoff mandates Python
+3.12; `/usr/local/bin/python3.12` exists separately. Every suite this session
+has run under 3.10, and defect 2 above is exactly the class of bug that hides in
+that gap. The delivered code is now interpreter-independent by construction, so
+this is no longer urgent, but the packet's acceptance commands still say
+`python3` and therefore still exercise an interpreter the plan does not claim.
+Recommendation, pending owner decision: pin the Outcome 2 acceptance commands to
+`python3.12` so the stated stack and the executed stack agree.

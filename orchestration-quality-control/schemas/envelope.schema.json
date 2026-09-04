@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestration-quality-control/schemas/envelope.schema.json",
+  "title": "Envelope",
+  "description": "One hand-off appended to a run's append-only mailbox. Envelopes are the only channel between root and the Orchestrator, and between the Orchestrator and a generated execution agent; a run's state is a pure reduction over the ordered sequence of these envelopes and is never mutated directly. See AI_Codex/Architecture/ADR/0014-generated-workflow-deterministic-kernel.md, decision 2. This is the authoritative Envelope contract; scripts/kernel_specs.py validates every constructed Envelope against this file rather than against a hand-duplicated field list.",
+  "type": "object",
+  "required": [
+    "schema_version", "envelope_id", "run_id", "sender", "recipient",
+    "kind", "payload", "created_at"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "description": "Envelope contract version. Never inferred; always checked explicitly."
+    },
+    "envelope_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$",
+      "description": "Unique identifier for this envelope within its run's mailbox. Assignment and ordering are a mailbox concern, not this schema's."
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?$",
+      "description": "Identifies the run this envelope belongs to. Matches RunSpec.run_id."
+    },
+    "sender": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?::[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)?$",
+      "description": "Role identifier of the envelope's origin: 'root', 'orchestrator', or 'agent:<agent_id>'. Legal sender/recipient pairing (root<->orchestrator, orchestrator<->worker only) is enforced by the router introduced in a later task, not by this schema."
+    },
+    "recipient": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?::[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?)?$",
+      "description": "Role identifier of the envelope's destination. Same shape as sender."
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["request", "result", "status", "question", "answer"],
+      "description": "What the envelope carries: a bounded request to an agent, a completed result, a state/status notice, a question that needs a root answer, or that answer."
+    },
+    "payload": {
+      "type": "object",
+      "description": "Kind-specific content, e.g. a compiled brief and its hash for 'request', or a produced artifact and its hash for 'result'. The exact per-kind payload shape is owned by the brief compiler and result gate introduced in a later task, not by this schema."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the envelope was appended to the mailbox."
+    }
+  }
+}
