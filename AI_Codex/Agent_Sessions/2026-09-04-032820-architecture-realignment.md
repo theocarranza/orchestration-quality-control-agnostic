@@ -49,5 +49,13 @@ design, and produce a short master plan that governs later implementation.
   remains paused until the owner accepts or executes the new master plan.
 - Ownership interruption: staging initially failed because `.git/objects` and
   the predecessor note were owned by another filesystem UID. The owner repaired
-  both paths at 2026-09-04T03:35-03:00; the predecessor now links forward and
+  both paths during this checkpoint; the predecessor now links forward and
   commit-backed checkpoints can resume.
+
+## Checkpoint 2 — fresh offline baseline — 2026-09-04T03:33:40-03:00
+
+PASS. The six recorded suites ran from `562e8f9` with the scripts suite's
+required `PYTHONPATH`; 98 scripts + 8 Claude hooks + 6 Claude adapter + 36
+Codex adapter + 19 Cursor adapter + 32 eval-harness = **199 tests, 0
+failures**. Cursor's installer refusal messages are expected assertions in
+passing tests. Product code was unchanged.
