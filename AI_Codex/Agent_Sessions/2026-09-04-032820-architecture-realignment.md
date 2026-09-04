@@ -126,3 +126,11 @@ planning-only acceptance scope, and disposition ADR 0013's conflicting fixed
 worker roles. The original drafting agent amended its two owned artifacts;
 `git diff --check` passes, the plan is 85 lines, the ticket is 42 lines, and
 11 local links resolve. This commit is the fix candidate for scoped re-review.
+
+## Checkpoint 7 — drafting task complete — 2026-09-04T03:51:24-03:00
+
+Scoped re-review of `1be3c8b..71b6624` resolved all six findings: 6 addressed,
+0 open, 0 new breakage. Root separately fetched the current official Claude,
+Cursor, and Codex subagent pages named by the plan. Task complete across
+`1be3c8b` and `71b6624`; review clean, with no deferred minors or parked
+findings.
