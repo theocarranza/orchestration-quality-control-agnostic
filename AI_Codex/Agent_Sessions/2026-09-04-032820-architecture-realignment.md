@@ -1,7 +1,7 @@
 ---
 date: 2026-09-04
 timestamp: 2026-09-04T03:28:20-03:00
-closed: 2026-09-04T04:13:36-03:00
+closed: 2026-09-04T04:21:21-03:00
 type: session
 status: closed
 branch: feature/4-0-0-return-to-intention
@@ -212,3 +212,18 @@ the feature HEAD at `472e8e5`, merge base `f34404d`, and no tracked `main`
 paths colliding with the five unrelated untracked files. Authorized sequence:
 update `main`, merge without rewriting history, rerun all six suites on the
 merged tree, then remove the fully merged feature branch.
+
+## Checkpoint 14 — local integration complete — 2026-09-04T04:21:21-03:00
+
+PASS. The owner repaired the sole unwritable feature-touched directory,
+`orchestration-quality-control/evals/author/`; root restored the partial
+checkout to the committed `main` blob, and `git pull --ff-only` reported
+already up to date. Local `main` then fast-forwarded from `f34404d` to
+`14c54f6` without a merge commit or history rewrite.
+
+Merged-result verification passed: 98 scripts + 8 Claude hooks + 6 Claude
+adapter + 36 Codex adapter + 19 Cursor adapter + 32 eval-harness = **199
+tests, 0 failures**. The local feature branch contained zero commits absent
+from `main`; after removing its stale upstream association, normal non-force
+deletion succeeded. The remote feature branch was not changed. The five
+unrelated untracked files remain untouched, and no push was performed.
