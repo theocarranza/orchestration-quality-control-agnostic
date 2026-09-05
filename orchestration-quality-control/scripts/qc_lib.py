@@ -12,6 +12,7 @@ import re
 import sys
 import unicodedata
 from pathlib import PurePosixPath
+from types import MappingProxyType
 
 
 class Blocked(Exception):
@@ -172,3 +173,32 @@ def read_stdin_json(*, stage):
             detail=f"invalid JSON on stdin: {exc}",
             recovery_action="pipe well-formed JSON to this script",
         ) from exc
+
+
+def freeze(value):
+    """Recursively convert dicts/lists to immutable MappingProxyType/tuples.
+
+    A MappingProxyType at the top level is not itself proof that its
+    *contents* are frozen, so it must be walked exactly like a plain dict
+    rather than returned unchanged.
+    """
+    if isinstance(value, (dict, MappingProxyType)):
+        return MappingProxyType({key: freeze(item) for key, item in value.items()})
+    if isinstance(value, (list, tuple)):
+        return tuple(freeze(item) for item in value)
+    return value
+
+
+def thaw(value):
+    """Recursively convert MappingProxyType/tuples back to plain dicts/lists.
+
+    Must be symmetric with freeze: accepts any mixture of plain and frozen
+    values and returns everything plain. freeze recurses on both (dict,
+    MappingProxyType) and (list, tuple); thaw must do the same to ensure
+    a plain dict wrapping frozen values gets fully thawed.
+    """
+    if isinstance(value, (dict, MappingProxyType)):
+        return {key: thaw(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [thaw(item) for item in value]
+    return value

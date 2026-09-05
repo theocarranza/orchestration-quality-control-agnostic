@@ -27,9 +27,8 @@ router or brief compiler passing through kernel-invisible traffic.
 """
 
 from dataclasses import dataclass
-from types import MappingProxyType
 
-from qc_lib import Blocked
+from qc_lib import Blocked, freeze
 
 STAGE = "run_state"
 
@@ -46,26 +45,6 @@ PHASES = (
 )
 
 INITIAL_PHASE = "discovery"
-
-
-# ---------------------------------------------------------------------------
-# Freeze: how a status envelope's payload becomes an immutable `context`,
-# recursively, regardless of whether it arrives as a plain dict/list or as
-# an already-frozen MappingProxyType/tuple. This mirrors kernel_specs._freeze
-# exactly (same rationale: a MappingProxyType at the top level is not proof
-# its *contents* are frozen, since RunState is a public dataclass and
-# nothing forces construction through `reduce`). It is duplicated locally,
-# in a few lines, rather than imported from kernel_specs, because that
-# module's helper is private and kernel_specs.py is read-only for this task.
-# ---------------------------------------------------------------------------
-
-
-def _freeze(value):
-    if isinstance(value, (dict, MappingProxyType)):
-        return MappingProxyType({key: _freeze(item) for key, item in value.items()})
-    if isinstance(value, (list, tuple)):
-        return tuple(_freeze(item) for item in value)
-    return value
 
 
 @dataclass(frozen=True)
@@ -101,7 +80,7 @@ class RunState:
 
     def __post_init__(self):
         object.__setattr__(self, "history", tuple(self.history))
-        object.__setattr__(self, "context", _freeze(self.context))
+        object.__setattr__(self, "context", freeze(self.context))
 
 
 def initial_state():

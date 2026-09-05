@@ -23,9 +23,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
-from types import MappingProxyType
 
-from qc_lib import Blocked, load_json_file, require_enum, require_fields
+from qc_lib import Blocked, freeze, load_json_file, require_enum, require_fields, thaw
 
 SCRIPTS_DIR = Path(__file__).resolve().parent
 SCHEMA_DIR = SCRIPTS_DIR.parent / "schemas"
@@ -48,32 +47,6 @@ _JSON_SCHEMA_TYPES = {
     "array": (list, tuple),
     "null": type(None),
 }
-
-
-# ---------------------------------------------------------------------------
-# Freeze/thaw: how nested, JSON-shaped values become immutable record fields
-# and back into plain dicts/lists for serialisation.
-# ---------------------------------------------------------------------------
-
-
-def _freeze(value):
-    # A MappingProxyType is not itself proof that its *contents* are frozen
-    # (Envelope is a public dataclass; nothing forces construction through
-    # from_dict), so it must be walked exactly like a plain dict rather than
-    # returned unchanged.
-    if isinstance(value, (dict, MappingProxyType)):
-        return MappingProxyType({key: _freeze(item) for key, item in value.items()})
-    if isinstance(value, (list, tuple)):
-        return tuple(_freeze(item) for item in value)
-    return value
-
-
-def _thaw(value):
-    if isinstance(value, MappingProxyType):
-        return {key: _thaw(item) for key, item in value.items()}
-    if isinstance(value, tuple):
-        return [_thaw(item) for item in value]
-    return value
 
 
 # ---------------------------------------------------------------------------
@@ -460,7 +433,7 @@ class Envelope:
     created_at: str
 
     def __post_init__(self):
-        object.__setattr__(self, "payload", _freeze(self.payload))
+        object.__setattr__(self, "payload", freeze(self.payload))
 
     @classmethod
     def from_dict(cls, data):
@@ -496,7 +469,7 @@ class Envelope:
             "sender": self.sender,
             "recipient": self.recipient,
             "kind": self.kind,
-            "payload": _thaw(self.payload),
+            "payload": thaw(self.payload),
             "created_at": self.created_at,
         }
 
