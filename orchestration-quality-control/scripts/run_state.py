@@ -24,6 +24,34 @@ reads that field and nothing else to decide the phase; every other
 envelope kind still counts toward `envelope_count` (so the fold sees every
 envelope) but leaves `phase`/`context`/`history` unchanged, exactly like a
 router or brief compiler passing through kernel-invisible traffic.
+
+Attempt bookkeeping (Outcome 2 Task 4 quality-review fix, and its round-3
+follow-up). A `request` envelope's payload carries `task_id` and, when it
+also carries `task_id`, `attempt` is now MANDATORY, not merely validated
+when present: a `request` envelope always dispatches one attempt of one
+task, so "which attempt" is never meaningfully absent, and this module
+raises `Blocked` naming the field if it is missing. (An earlier round of
+this fix made `attempt` presence-gated exactly like `task_id` -- validated
+only if included -- to avoid breaking a then-frozen test file's fixtures
+that never carried the field at all. That reading left the guarantee
+defeatable by omission: three `request` envelopes for the same task with
+no `attempt` key folded to `attempts_of() == 0` and status `running`,
+identical in shape to the unenforced-convention problem this fix exists
+to eliminate. Root re-scoped the frozen file to close the gap; see that
+file's own history for the one-line fixture change this forced.) Once
+present, `attempt` must be a non-negative integer, and the sequence of
+attempts for one task_id must be exactly 1, 2, 3, ... with no repeats and
+no gaps -- a second `request` for a (task_id, attempt) pair already seen,
+or one that skips ahead, is rejected here, in the reducer, rather than by
+the mailbox (which stays a dumb append-only log with no opinion about
+payload shape). `attempts` (the derived mapping this validation feeds) is
+exact only because both the mandatory-presence check and the sequencing
+rejection hold. `result` envelopes get type validation on `attempt` when
+present (still presence-gated: a missing `attempt` there is not the same
+defect, since a result is reporting on an attempt a request already
+claimed and counted, not claiming a new one itself) but no mandatory
+requirement and no sequencing rule -- (b)/(c) in the fix, and this
+follow-up, are request-only.
 """
 
 from dataclasses import dataclass
@@ -77,17 +105,26 @@ class RunState:
     the task running; a `result` envelope with an outcome marks it
     passed or failed. Any task never mentioned is pending.
 
+    `attempts` is a frozen mapping from task_id to the number of `request`
+    envelopes carrying a valid `attempt` number seen for that task_id --
+    exact because `_apply` rejects a repeated or out-of-order attempt
+    number for the same task_id before it ever reaches this mapping (see
+    the module docstring). A task_id never mentioned with an `attempt` is
+    absent from the mapping; `attempts_of` below makes that default (0)
+    explicit, mirroring `status_of`'s "pending" default for `task_status`.
+
     This is a plain frozen dataclass with no validating alternate
     constructor, unlike `RunSpec`/`AgentSpec`/`Envelope` in kernel_specs.py
     -- there is nothing here for an external caller to get wrong the way a
     hand-authored RunSpec/AgentSpec/Envelope can be malformed, since the
     only way to *reach* a given RunState in a real run is by folding
     Envelope objects that were already validated on construction. What
-    __post_init__ below does guard is immutability itself: `history` and
-    `context` must end up frozen (a tuple of strings, and a recursively
-    frozen mapping) no matter which of the two construction paths --
-    `reduce`'s internal building, or a direct `RunState(...)` call bypassing
-    reduce entirely -- was used to build this instance.
+    __post_init__ below does guard is immutability itself: `history`,
+    `context`, `task_status` and `attempts` must end up frozen (a tuple of
+    strings, and recursively frozen mappings) no matter which of the two
+    construction paths -- `reduce`'s internal building, or a direct
+    `RunState(...)` call bypassing reduce entirely -- was used to build
+    this instance.
     """
 
     run_id: object
@@ -96,11 +133,13 @@ class RunState:
     context: object
     history: tuple
     task_status: object
+    attempts: object
 
     def __post_init__(self):
         object.__setattr__(self, "history", tuple(self.history))
         object.__setattr__(self, "context", freeze(self.context))
         object.__setattr__(self, "task_status", freeze(self.task_status))
+        object.__setattr__(self, "attempts", freeze(self.attempts))
 
 
 def initial_state():
@@ -118,6 +157,7 @@ def initial_state():
         context={},
         history=(INITIAL_PHASE,),
         task_status={},
+        attempts={},
     )
 
 
@@ -132,6 +172,20 @@ def status_of(state, task_id):
     if task_id in state.task_status:
         return state.task_status[task_id]
     return "pending"
+
+
+def attempts_of(state, task_id):
+    """Return the number of valid 'request' attempts recorded for a task,
+    or 0 if the task was never mentioned with an `attempt` number.
+
+    Mirrors `status_of`'s explicit default. Exact (not merely a count of
+    'request' envelopes seen) because `_apply` rejects a duplicate or
+    out-of-order `attempt` value for the same task_id before it can ever
+    be folded into `state.attempts` -- see the module docstring.
+    """
+    if task_id in state.attempts:
+        return state.attempts[task_id]
+    return 0
 
 
 def _apply(state, envelope):
@@ -150,6 +204,7 @@ def _apply(state, envelope):
     # Handle task status updates from request and result envelopes
     # task_status contains only tasks that have been mentioned in envelopes
     task_status = dict(state.task_status)
+    attempts = dict(state.attempts)
 
     if envelope.kind == "request":
         payload = envelope.payload
@@ -169,8 +224,81 @@ def _apply(state, envelope):
                     recovery_action="set payload['task_id'] to a non-empty string",
                 )
             task_status[task_id] = "running"
+
+            # attempt is now MANDATORY on a task-dispatching request (round-3
+            # follow-up to FIX 4): a request always dispatches one attempt of
+            # one task, so unlike task_id's own presence-gated pattern above,
+            # there is no valid reading of "this request carries no attempt
+            # number". Presence-gating this (an earlier round's judgment
+            # call) left attempts_of() defeatable by omission -- see the
+            # module docstring for the exact reproduction that forced this.
+            if "attempt" not in payload:
+                raise Blocked(
+                    stage=STAGE,
+                    reason_code="malformed_checkpoint",
+                    detail=(
+                        "'request' envelope payload is missing required "
+                        "field 'attempt'"
+                    ),
+                    recovery_action=(
+                        "set payload['attempt'] to the next sequential "
+                        f"attempt number for task_id={task_id!r}"
+                    ),
+                )
+            attempt = payload.get("attempt")
+            if (
+                not isinstance(attempt, int)
+                or isinstance(attempt, bool)
+                or attempt < 0
+            ):
+                raise Blocked(
+                    stage=STAGE,
+                    reason_code="malformed_checkpoint",
+                    detail=(
+                        f"'request' envelope payload['attempt'] must be a "
+                        f"non-negative integer, got {attempt!r}"
+                    ),
+                    recovery_action="set payload['attempt'] to a non-negative integer",
+                )
+            expected_next = attempts.get(task_id, 0) + 1
+            if attempt != expected_next:
+                raise Blocked(
+                    stage=STAGE,
+                    reason_code="malformed_checkpoint",
+                    detail=(
+                        f"'request' envelope for task_id={task_id!r} has "
+                        f"attempt={attempt!r}, but attempt {expected_next} "
+                        "was expected next (a duplicate or out-of-order "
+                        "attempt number for this task)"
+                    ),
+                    recovery_action=(
+                        f"set payload['attempt'] to {expected_next} for "
+                        f"task_id={task_id!r}"
+                    ),
+                )
+            attempts[task_id] = attempt
     elif envelope.kind == "result":
         payload = envelope.payload
+        # attempt on a result gets the same type validation as on a
+        # request (presence-gated), but no sequencing rule: a result is
+        # reporting on an attempt a request already claimed and validated,
+        # not claiming a new one itself.
+        if hasattr(payload, "get") and "attempt" in payload:
+            attempt = payload.get("attempt")
+            if (
+                not isinstance(attempt, int)
+                or isinstance(attempt, bool)
+                or attempt < 0
+            ):
+                raise Blocked(
+                    stage=STAGE,
+                    reason_code="malformed_checkpoint",
+                    detail=(
+                        f"'result' envelope payload['attempt'] must be a "
+                        f"non-negative integer, got {attempt!r}"
+                    ),
+                    recovery_action="set payload['attempt'] to a non-negative integer",
+                )
         # Presence, not truthiness: `if task_id and outcome:` used to let a
         # present-but-falsy outcome (e.g. "") short-circuit before the
         # VALID_OUTCOMES check ever ran, silently leaving the task stranded
@@ -214,6 +342,7 @@ def _apply(state, envelope):
             context=state.context,
             history=state.history,
             task_status=task_status,
+            attempts=attempts,
         )
 
     payload = envelope.payload
@@ -235,6 +364,7 @@ def _apply(state, envelope):
         context=payload,
         history=state.history + (phase,),
         task_status=task_status,
+        attempts=attempts,
     )
 
 

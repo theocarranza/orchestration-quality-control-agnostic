@@ -5,7 +5,7 @@ from types import MappingProxyType
 from kernel_specs import Envelope
 from qc_lib import Blocked
 
-from run_state import PHASES, RunState, initial_state, reduce, status_of
+from run_state import PHASES, RunState, attempts_of, initial_state, reduce, status_of
 
 
 def _status(phase, *, envelope_id="env-status", run_id="run-0001", extra=None):
@@ -150,7 +150,9 @@ class ReducePurityTest(unittest.TestCase):
             _status("verification", envelope_id="env-7"),
             _status("completed", envelope_id="env-8"),
         ]
-        # Sequence with task status updates
+        # Sequence with task status updates. `attempt` is included on both
+        # envelopes so these shared purity tests also exercise the derived
+        # `attempts` mapping for free, not just `task_status`.
         cls.TASK_SEQUENCE = [
             Envelope.from_dict({
                 "schema_version": 1,
@@ -159,7 +161,7 @@ class ReducePurityTest(unittest.TestCase):
                 "sender": "orchestrator",
                 "recipient": "agent:worker-1",
                 "kind": "request",
-                "payload": {"task_id": "task-1"},
+                "payload": {"task_id": "task-1", "attempt": 1},
                 "created_at": "2026-09-04T12:00:00Z",
             }),
             Envelope.from_dict({
@@ -169,7 +171,7 @@ class ReducePurityTest(unittest.TestCase):
                 "sender": "agent:worker-1",
                 "recipient": "orchestrator",
                 "kind": "result",
-                "payload": {"task_id": "task-1", "outcome": "passed"},
+                "payload": {"task_id": "task-1", "attempt": 1, "outcome": "passed"},
                 "created_at": "2026-09-04T12:00:01Z",
             }),
         ]
@@ -187,6 +189,13 @@ class ReducePurityTest(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertEqual(first.task_status, second.task_status)
         self.assertIsNot(first, second)
+
+    def test_reducing_task_sequence_twice_yields_equal_attempts(self):
+        # Same guarantee, for the derived `attempts` mapping.
+        first = reduce(self.TASK_SEQUENCE)
+        second = reduce(self.TASK_SEQUENCE)
+        self.assertEqual(first.attempts, second.attempts)
+        self.assertEqual(dict(first.attempts), {"task-1": 1})
 
     def test_reducing_does_not_mutate_its_input_sequence(self):
         sequence_copy = list(self.SEQUENCE)
@@ -269,6 +278,7 @@ class RunStateImmutabilityTest(unittest.TestCase):
             context={"nested": {"inner": "value"}, "targets": ["a.md"]},
             history=["discovery", "planning"],
             task_status={},
+            attempts={},
         )
         with self.assertRaises(FrozenInstanceError):
             state.phase = "blocked"
@@ -282,6 +292,7 @@ class RunStateImmutabilityTest(unittest.TestCase):
             context={},
             history=mutable_history,
             task_status={},
+            attempts={},
         )
         mutable_history.append("tampered-after-construction")
         self.assertEqual(state.history, ("discovery", "planning"))
@@ -296,6 +307,7 @@ class RunStateImmutabilityTest(unittest.TestCase):
             context={"nested": {"inner": "value"}, "targets": ["a.md", "b.md"]},
             history=["discovery", "planning"],
             task_status={},
+            attempts={},
         )
         with self.assertRaises(TypeError):
             state.context["nested"]["inner"] = "tampered"
@@ -316,11 +328,32 @@ class RunStateImmutabilityTest(unittest.TestCase):
             context=context,
             history=("discovery", "planning"),
             task_status={},
+            attempts={},
         )
         with self.assertRaises(TypeError):
             state.context["nested"]["inner"] = "tampered"
         with self.assertRaises(TypeError):
             state.context["targets"][0] = "tampered"
+
+    def test_attempts_mapping_passed_directly_is_coerced_and_protected(self):
+        # Mirrors test_history_list_passed_directly_is_coerced_and_protected
+        # for the new `attempts` field: not aliased from external mutable
+        # input, and item assignment on the frozen result is blocked.
+        mutable_attempts = {"task-1": 1}
+        state = RunState(
+            run_id="run-0001",
+            phase="planning",
+            envelope_count=1,
+            context={},
+            history=["discovery", "planning"],
+            task_status={},
+            attempts=mutable_attempts,
+        )
+        mutable_attempts["task-1"] = 999
+        mutable_attempts["task-2"] = 1
+        self.assertEqual(dict(state.attempts), {"task-1": 1})
+        with self.assertRaises(TypeError):
+            state.attempts["task-1"] = 2
 
     def test_initial_state_is_also_immutable(self):
         state = initial_state()
@@ -338,7 +371,7 @@ class TaskStatusTest(unittest.TestCase):
             "sender": "orchestrator",
             "recipient": "agent:worker-1",
             "kind": "request",
-            "payload": {"task_id": "task-1"},
+            "payload": {"task_id": "task-1", "attempt": 1},
             "created_at": "2026-09-04T12:00:00Z",
         })
         state = reduce([request])
@@ -365,7 +398,7 @@ class TaskStatusTest(unittest.TestCase):
             "sender": "orchestrator",
             "recipient": "agent:worker-1",
             "kind": "request",
-            "payload": {"task_id": "analyze"},
+            "payload": {"task_id": "analyze", "attempt": 1},
             "created_at": "2026-09-04T12:00:00Z",
         })
         state = reduce([request])
@@ -476,7 +509,7 @@ class TaskStatusTest(unittest.TestCase):
             "sender": "orchestrator",
             "recipient": "agent:worker-1",
             "kind": "request",
-            "payload": {"task_id": "t1"},
+            "payload": {"task_id": "t1", "attempt": 1},
             "created_at": "2026-09-04T12:00:00Z",
         })
         result = Envelope.from_dict({
@@ -501,7 +534,7 @@ class TaskStatusTest(unittest.TestCase):
                 "sender": "orchestrator",
                 "recipient": "agent:worker-1",
                 "kind": "request",
-                "payload": {"task_id": "discover"},
+                "payload": {"task_id": "discover", "attempt": 1},
                 "created_at": "2026-09-04T12:00:00Z",
             }),
             Envelope.from_dict({
@@ -521,7 +554,7 @@ class TaskStatusTest(unittest.TestCase):
                 "sender": "orchestrator",
                 "recipient": "agent:worker-2",
                 "kind": "request",
-                "payload": {"task_id": "analyze"},
+                "payload": {"task_id": "analyze", "attempt": 1},
                 "created_at": "2026-09-04T12:00:02Z",
             }),
         ]
@@ -552,6 +585,278 @@ class TaskStatusTest(unittest.TestCase):
         })
         state = reduce([request])
         self.assertNotIn("task-1", state.task_status)
+
+
+def _request_with_attempt(task_id, attempt, *, envelope_id, run_id="run-1"):
+    return Envelope.from_dict({
+        "schema_version": 1,
+        "envelope_id": envelope_id,
+        "run_id": run_id,
+        "sender": "orchestrator",
+        "recipient": "agent:worker-1",
+        "kind": "request",
+        "payload": {"task_id": task_id, "attempt": attempt},
+        "created_at": "2026-09-04T12:00:00Z",
+    })
+
+
+def _result_with_attempt(task_id, attempt, outcome, *, envelope_id, run_id="run-1"):
+    return Envelope.from_dict({
+        "schema_version": 1,
+        "envelope_id": envelope_id,
+        "run_id": run_id,
+        "sender": "agent:worker-1",
+        "recipient": "orchestrator",
+        "kind": "result",
+        "payload": {"task_id": task_id, "attempt": attempt, "outcome": outcome},
+        "created_at": "2026-09-04T12:00:01Z",
+    })
+
+
+class RequestAttemptValidationTest(unittest.TestCase):
+    # Outcome 2 Task 4 quality-review FIX 4(a), and its round-3 follow-up:
+    # `attempt` is now MANDATORY on a task-dispatching 'request' envelope,
+    # not merely validated when present. An earlier round made it
+    # presence-gated exactly like task_id, to avoid breaking a
+    # then-frozen test_router.py fixture; root reproduced the resulting
+    # gap directly (three requests with no attempt at all silently
+    # reduced to attempts_of == 0) and re-scoped test_router.py (this
+    # round's widened scope) rather than leave the guarantee defeatable
+    # by omission. See run_state.py's module docstring for the full
+    # history.
+
+    def test_valid_attempt_on_request_is_accepted_and_recorded(self):
+        state = reduce([_request_with_attempt("task-1", 1, envelope_id="env-1")])
+        self.assertEqual(attempts_of(state, "task-1"), 1)
+
+    def test_missing_attempt_on_request_is_blocked(self):
+        request = Envelope.from_dict({
+            "schema_version": 1,
+            "envelope_id": "env-1",
+            "run_id": "run-1",
+            "sender": "orchestrator",
+            "recipient": "agent:worker-1",
+            "kind": "request",
+            "payload": {"task_id": "task-1"},
+            "created_at": "2026-09-04T12:00:00Z",
+        })
+        with self.assertRaises(Blocked) as ctx:
+            reduce([request])
+        self.assertIn("attempt", ctx.exception.detail)
+
+    def test_three_requests_with_no_attempt_for_one_task_is_blocked(self):
+        # Root's exact reproduction: three 'request' envelopes for the
+        # same task with NO attempt key at all used to reduce cleanly to
+        # attempts_of == 0 and status 'running' -- an unenforced
+        # convention identical in shape to the one FIX 4 itself
+        # eliminated for task_id/outcome. There is no valid count this
+        # task could silently settle at, so this must raise (on the
+        # first such envelope, since reduce is a left fold that stops at
+        # the first Blocked -- see test_missing_attempt_on_request_is_blocked
+        # for that single-envelope case in isolation).
+        def _request_without_attempt(envelope_id):
+            return Envelope.from_dict({
+                "schema_version": 1,
+                "envelope_id": envelope_id,
+                "run_id": "run-1",
+                "sender": "orchestrator",
+                "recipient": "agent:worker-1",
+                "kind": "request",
+                "payload": {"task_id": "task-1"},
+                "created_at": "2026-09-04T12:00:00Z",
+            })
+
+        with self.assertRaises(Blocked) as ctx:
+            reduce([
+                _request_without_attempt("env-1"),
+                _request_without_attempt("env-2"),
+                _request_without_attempt("env-3"),
+            ])
+        self.assertIn("attempt", ctx.exception.detail)
+
+    def test_non_integer_attempt_on_request_is_blocked(self):
+        request = Envelope.from_dict({
+            "schema_version": 1,
+            "envelope_id": "env-1",
+            "run_id": "run-1",
+            "sender": "orchestrator",
+            "recipient": "agent:worker-1",
+            "kind": "request",
+            "payload": {"task_id": "task-1", "attempt": "1"},
+            "created_at": "2026-09-04T12:00:00Z",
+        })
+        with self.assertRaises(Blocked) as ctx:
+            reduce([request])
+        self.assertIn("attempt", ctx.exception.detail)
+
+    def test_negative_attempt_on_request_is_blocked(self):
+        with self.assertRaises(Blocked) as ctx:
+            reduce([_request_with_attempt("task-1", -1, envelope_id="env-1")])
+        self.assertIn("attempt", ctx.exception.detail)
+
+    def test_boolean_attempt_on_request_is_blocked(self):
+        # bool is a subclass of int; True/False must not silently pass as
+        # 1/0 (mirrors kernel_specs._require_const_int's guard).
+        request = Envelope.from_dict({
+            "schema_version": 1,
+            "envelope_id": "env-1",
+            "run_id": "run-1",
+            "sender": "orchestrator",
+            "recipient": "agent:worker-1",
+            "kind": "request",
+            "payload": {"task_id": "task-1", "attempt": True},
+            "created_at": "2026-09-04T12:00:00Z",
+        })
+        with self.assertRaises(Blocked) as ctx:
+            reduce([request])
+        self.assertIn("attempt", ctx.exception.detail)
+
+    def test_none_attempt_on_request_is_blocked(self):
+        # Presence, not truthiness: an explicit attempt=None is present
+        # but invalid, and must be rejected exactly like a missing-but-
+        # required task_id already is.
+        request = Envelope.from_dict({
+            "schema_version": 1,
+            "envelope_id": "env-1",
+            "run_id": "run-1",
+            "sender": "orchestrator",
+            "recipient": "agent:worker-1",
+            "kind": "request",
+            "payload": {"task_id": "task-1", "attempt": None},
+            "created_at": "2026-09-04T12:00:00Z",
+        })
+        with self.assertRaises(Blocked) as ctx:
+            reduce([request])
+        self.assertIn("attempt", ctx.exception.detail)
+
+
+class ResultAttemptValidationTest(unittest.TestCase):
+    # FIX 4(a)'s other half: type validation on 'result' payloads too, but
+    # (per the module docstring) no sequencing rule -- that lives only on
+    # 'request', which is what actually claims a new attempt.
+
+    def test_valid_attempt_on_result_is_accepted(self):
+        state = reduce([_result_with_attempt("task-1", 1, "passed", envelope_id="env-1")])
+        self.assertEqual(status_of(state, "task-1"), "passed")
+
+    def test_missing_attempt_on_result_is_still_valid(self):
+        result = Envelope.from_dict({
+            "schema_version": 1,
+            "envelope_id": "env-1",
+            "run_id": "run-1",
+            "sender": "agent:worker-1",
+            "recipient": "orchestrator",
+            "kind": "result",
+            "payload": {"task_id": "task-1", "outcome": "passed"},
+            "created_at": "2026-09-04T12:00:00Z",
+        })
+        state = reduce([result])
+        self.assertEqual(status_of(state, "task-1"), "passed")
+
+    def test_non_integer_attempt_on_result_is_blocked(self):
+        result = Envelope.from_dict({
+            "schema_version": 1,
+            "envelope_id": "env-1",
+            "run_id": "run-1",
+            "sender": "agent:worker-1",
+            "recipient": "orchestrator",
+            "kind": "result",
+            "payload": {"task_id": "task-1", "attempt": "1", "outcome": "passed"},
+            "created_at": "2026-09-04T12:00:00Z",
+        })
+        with self.assertRaises(Blocked) as ctx:
+            reduce([result])
+        self.assertIn("attempt", ctx.exception.detail)
+
+    def test_negative_attempt_on_result_is_blocked(self):
+        with self.assertRaises(Blocked) as ctx:
+            reduce([_result_with_attempt("task-1", -1, "passed", envelope_id="env-1")])
+        self.assertIn("attempt", ctx.exception.detail)
+
+
+class DuplicateAttemptRejectionTest(unittest.TestCase):
+    # Outcome 2 Task 4 quality-review FIX 4(b) -- the guarantee that
+    # matters most: root reproduced spawning twice for the identical
+    # (task_id="task-a", attempt=1), which used to be silently accepted,
+    # leaving `reduce` unable to tell a genuine retry from a duplicate
+    # spawn (counting envelopes gave 2, counting distinct attempts gave
+    # 1). This is the one broken-and-restored for the implementer report.
+
+    def test_second_request_with_the_same_attempt_is_blocked(self):
+        first = _request_with_attempt("task-a", 1, envelope_id="env-1")
+        duplicate = _request_with_attempt("task-a", 1, envelope_id="env-2")
+        with self.assertRaises(Blocked) as ctx:
+            reduce([first, duplicate])
+        self.assertIn("task-a", ctx.exception.detail)
+        self.assertIn("attempt", ctx.exception.detail.lower())
+
+    def test_out_of_order_attempt_is_blocked(self):
+        # attempt=1 then attempt=3, skipping 2 -- also not "the next
+        # expected attempt", so also rejected.
+        first = _request_with_attempt("task-a", 1, envelope_id="env-1")
+        skipped = _request_with_attempt("task-a", 3, envelope_id="env-2")
+        with self.assertRaises(Blocked):
+            reduce([first, skipped])
+
+    def test_sequential_retries_for_the_same_task_are_accepted(self):
+        sequence = [
+            _request_with_attempt("task-a", 1, envelope_id="env-1"),
+            _result_with_attempt("task-a", 1, "failed", envelope_id="env-2"),
+            _request_with_attempt("task-a", 2, envelope_id="env-3"),
+            _result_with_attempt("task-a", 2, "passed", envelope_id="env-4"),
+        ]
+        state = reduce(sequence)
+        self.assertEqual(attempts_of(state, "task-a"), 2)
+        self.assertEqual(status_of(state, "task-a"), "passed")
+
+    def test_sequential_attempts_across_two_tasks_do_not_interfere(self):
+        sequence = [
+            _request_with_attempt("task-a", 1, envelope_id="env-1"),
+            _request_with_attempt("task-b", 1, envelope_id="env-2"),
+        ]
+        state = reduce(sequence)
+        self.assertEqual(attempts_of(state, "task-a"), 1)
+        self.assertEqual(attempts_of(state, "task-b"), 1)
+
+
+class AttemptsMappingDerivationTest(unittest.TestCase):
+    # FIX 4(c): a first-class, exact attempts-per-task view.
+
+    def test_attempts_mapping_counts_valid_request_envelopes_per_task(self):
+        sequence = [
+            _request_with_attempt("task-a", 1, envelope_id="env-1"),
+            _request_with_attempt("task-a", 2, envelope_id="env-2"),
+            _request_with_attempt("task-a", 3, envelope_id="env-3"),
+        ]
+        state = reduce(sequence)
+        self.assertEqual(attempts_of(state, "task-a"), 3)
+
+    def test_attempts_mapping_only_contains_mentioned_tasks(self):
+        state = reduce([_request_with_attempt("task-a", 1, envelope_id="env-1")])
+        self.assertIn("task-a", state.attempts)
+        self.assertNotIn("task-b", state.attempts)
+
+    def test_attempts_of_returns_zero_for_unmentioned_task(self):
+        state = reduce([])
+        self.assertEqual(attempts_of(state, "never-requested"), 0)
+
+    def test_attempts_mapping_unaffected_by_a_results_own_attempt_field(self):
+        # A result's attempt is validated (ResultAttemptValidationTest) but
+        # must not itself bump the count -- only a 'request' claims a new
+        # attempt; a 'result' merely reports on one already claimed.
+        sequence = [
+            _request_with_attempt("task-a", 1, envelope_id="env-1"),
+            _result_with_attempt("task-a", 1, "failed", envelope_id="env-2"),
+        ]
+        state = reduce(sequence)
+        self.assertEqual(attempts_of(state, "task-a"), 1)
+
+
+class AttemptsImmutabilityTest(unittest.TestCase):
+    def test_attempts_mapping_item_assignment_raises_via_reduce(self):
+        state = reduce([_request_with_attempt("task-a", 1, envelope_id="env-1")])
+        with self.assertRaises(TypeError):
+            state.attempts["task-a"] = 99
 
 
 class RunStateDerivationIsNeverStoredTest(unittest.TestCase):

@@ -285,3 +285,92 @@ behavioural failures. That is not evidence, and root did not report it as such.
 The quality validator ran the drill properly and got the real answer — exactly
 three cycle tests fail when the check is disabled, so detection is genuinely
 proven while its recursion depth was not.
+
+## Checkpoint — Outcome 2 Task 4 — 2026-09-05T08:02:36-03:00
+
+```text
+time: 2026-09-05T08:02:36-03:00
+task: Outcome 2 Task 4 — adapter port, fake adapter, result gate, retry, replay
+attempt: 3 of 3
+worker model: claude-sonnet-5
+worker effort: not settable on this host
+spec validator: claude-sonnet-5, read-only, PASS with two recommendations
+quality reviewer: claude-sonnet-5, fresh agent, FINDINGS (6), four fixed here
+  and two carried to Task 5
+commands:
+  command: PYTHONPATH=... python3.12 -m unittest discover -s .../scripts/tests
+  counts: 341 tests, OK (246 entering the task)
+  command: root drill — break the critique-carrying path in gate.py
+  counts: all 6 replay tests fail, restore byte-identical
+  command: root verification — duplicate ids, resume seeding, attempt counting
+  counts: every fixed defect confirmed by execution
+  command: other five suites
+  counts: not run — nothing outside scripts/ changed; Task 7 owns the sweep
+commit hash: pending
+next: Outcome 2 Task 5 — brief compilation, replay/verify, CLI boundary
+```
+
+Delivered `adapter_port.py`, `fake_adapter.py`, `gate.py` and four test modules,
+plus fixes to `mailbox.py` and `run_state.py` under widened scope. This task
+carries Outcome 2's load-bearing evidence: a two-task DAG in which a classified
+failure carries its critique into a passing retry, the dependent task then runs,
+and reduce-derived state reaches `completed`; and a separate fixture exhausting
+retries to `blocked` with the dependent task proven never to have run.
+
+### The port makes illegal pairs unconstructible, not merely rejected
+
+None of the four operations takes a `sender` or `recipient`, so there is no way
+to express a root-to-worker envelope through the API at all. `router.validate_pair`
+remains as a backstop for a caller reaching past the narrow methods. Plan
+compliance verified both axes. ADR 0014 decision 3 calls isolation the primary
+asset; this is what enforcing that structurally looks like.
+
+### Three rounds, and what the third one bought
+
+Round 1 delivered both fixtures and passed plan compliance. Root's own drill
+confirmed the evidence bites: breaking the critique-carrying path fails all six
+replay tests.
+
+Round 2 fixed four quality findings. Two mattered. **Envelope ids collided** —
+two adapters writing one mailbox produced `env-1, env-2, env-1, env-2`, silently
+accepted despite the schema declaring uniqueness, with the realistic trigger
+being a resume that restarts a counter at zero. And **attempt bookkeeping was
+underivable**: spawning twice for the identical `(task-a, attempt=1)` was
+accepted, leaving two request envelopes carrying one distinct attempt value, so
+"attempts made" was 2 by one count and 1 by another while `reduce` showed only
+the latest status. Task 5's retry loop reads that number.
+
+Round 3 closed a gap root found in round 2's own fix. `attempt` had been made
+presence-gated rather than mandatory, to avoid touching a `test_router.py` root
+had frozen. Root reproduced the consequence: three requests with no `attempt`
+key reduce to `attempts_of == 0` with the sequencing rule never firing. The
+guarantee held only for producers that volunteered the field — an unenforced
+convention, which is exactly what the round-2 fix existed to remove. Root widened
+scope rather than accept the hole; `attempt` is now mandatory on `request`
+envelopes and the count cannot be defeated by omission.
+
+The implementer's reasoning in round 2 was correct given the constraint. The
+constraint was root's, and root removed it.
+
+### Reserved rather than missing
+
+`retry_or_block` always returns `blocked` on exhaustion. Plan compliance
+confirmed `awaiting-user-input` is unreachable through every delivered path —
+no question-triggered transition exists in this slice. That is now recorded in
+`gate.py` beside the constant and in the docstring, so a future reader sees a
+scope decision rather than an oversight. The master plan's exit evidence accepts
+either state, so the outcome is satisfied.
+
+### Two findings carried to Task 5, deliberately not fixed here
+
+- A RETRY decision leaves no durable mailbox trace. If an orchestrator loop
+  computes a retry and then crashes before spawning, the mailbox is
+  indistinguishable from silent abandonment: the task sits `failed`, no terminal
+  phase is set, and `next_tasks` will never offer it again. Task 5's loop must
+  record the decision when it makes it.
+- No fixture composes `relay_question` or `enforce_policy` with the gate and
+  retry. Two of the port's four operations are proven only in isolation, so
+  Task 5 has no precedent for how they fit into a real loop.
+
+Both are real; neither is a Task 4 defect. Folding them in would have blurred
+what this task's evidence actually proves.

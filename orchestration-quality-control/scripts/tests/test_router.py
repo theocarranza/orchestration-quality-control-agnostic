@@ -43,7 +43,11 @@ class NextTasksTest(unittest.TestCase):
             "sender": "orchestrator",
             "recipient": "agent:worker-1",
             "kind": "request",
-            "payload": {"task_id": "task-1"},
+            # attempt is required on a 'request' payload as of run_state's
+            # round-3 attempt-bookkeeping fix (Outcome 2 Task 4); this
+            # fixture only needed updating to keep carrying task_id, not
+            # any change to what the test asserts.
+            "payload": {"task_id": "task-1", "attempt": 1},
             "created_at": "2026-09-04T12:00:00Z",
         })
         state = reduce([request])

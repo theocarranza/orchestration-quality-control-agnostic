@@ -42,6 +42,48 @@ class MailboxAppendAndReadAllTest(unittest.TestCase):
         self.assertIn("Envelope", ctx.exception.detail)
 
 
+class MailboxEnvelopeIdUniquenessTest(unittest.TestCase):
+    # Outcome 2 Task 4 quality-review FIX 3: the schema documents
+    # envelope_id as unique within a run's mailbox, but nothing enforced
+    # it. Root reproduced two FakeAdapter instances producing
+    # ['env-1', 'env-2', 'env-1', 'env-2'] into one mailbox, silently
+    # accepted. This is the one broken-and-restored for the implementer
+    # report.
+
+    def test_appending_a_duplicate_envelope_id_is_blocked(self):
+        mailbox = Mailbox()
+        mailbox.append(_envelope(envelope_id="env-1"))
+        with self.assertRaises(Blocked) as ctx:
+            mailbox.append(_envelope(envelope_id="env-1", kind="result", payload={"n": 2}))
+        self.assertIn("env-1", ctx.exception.detail)
+
+    def test_a_rejected_duplicate_does_not_land_in_the_mailbox(self):
+        mailbox = Mailbox()
+        mailbox.append(_envelope(envelope_id="env-1"))
+        with self.assertRaises(Blocked):
+            mailbox.append(_envelope(envelope_id="env-1"))
+        self.assertEqual(len(mailbox.read_all()), 1)
+
+    def test_constructor_also_rejects_a_duplicate_envelope_id(self):
+        with self.assertRaises(Blocked) as ctx:
+            Mailbox([_envelope(envelope_id="env-1"), _envelope(envelope_id="env-1")])
+        self.assertIn("env-1", ctx.exception.detail)
+
+    def test_from_jsonl_rejects_a_persisted_log_with_duplicate_ids(self):
+        duplicated_text = (
+            _envelope(envelope_id="env-1").to_json() + "\n"
+            + _envelope(envelope_id="env-1", kind="result", payload={"n": 2}).to_json() + "\n"
+        )
+        with self.assertRaises(Blocked):
+            Mailbox.from_jsonl(duplicated_text)
+
+    def test_distinct_ids_are_unaffected(self):
+        mailbox = Mailbox()
+        mailbox.append(_envelope(envelope_id="env-1"))
+        mailbox.append(_envelope(envelope_id="env-2"))
+        self.assertEqual(len(mailbox.read_all()), 2)
+
+
 class MailboxGenuinelyAppendOnlyTest(unittest.TestCase):
     # These tests are written to FAIL if the append-only guarantee is ever
     # weakened -- e.g. if append() were changed to allow replacing an
