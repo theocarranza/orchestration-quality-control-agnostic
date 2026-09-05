@@ -46,6 +46,18 @@ PHASES = (
 
 INITIAL_PHASE = "discovery"
 
+TASK_STATUSES = ("pending", "running", "passed", "failed")
+VALID_OUTCOMES = ("passed", "failed")
+
+# Structural guarantee, checked once at import time rather than on every
+# envelope reduced: every valid outcome must also be a valid task status,
+# since a 'result' envelope's outcome is written straight into task_status.
+# This is the only place that relationship can actually be violated -- an
+# edit to one of the two constants above -- so this is where it is enforced.
+assert set(VALID_OUTCOMES) <= set(TASK_STATUSES), (
+    "VALID_OUTCOMES must be a subset of TASK_STATUSES"
+)
+
 
 @dataclass(frozen=True)
 class RunState:
@@ -58,6 +70,12 @@ class RunState:
     phase (empty for the untouched initial state), so a `blocked` or
     `awaiting-user-input` state can carry along e.g. a reason or question
     without this module needing to know what a reason or question is.
+
+    `task_status` is a frozen mapping from task_id to one of
+    ("pending", "running", "passed", "failed"), derived from `request` and
+    `result` envelopes: a `request` envelope carrying a task_id marks
+    the task running; a `result` envelope with an outcome marks it
+    passed or failed. Any task never mentioned is pending.
 
     This is a plain frozen dataclass with no validating alternate
     constructor, unlike `RunSpec`/`AgentSpec`/`Envelope` in kernel_specs.py
@@ -77,10 +95,12 @@ class RunState:
     envelope_count: int
     context: object
     history: tuple
+    task_status: object
 
     def __post_init__(self):
         object.__setattr__(self, "history", tuple(self.history))
         object.__setattr__(self, "context", freeze(self.context))
+        object.__setattr__(self, "task_status", freeze(self.task_status))
 
 
 def initial_state():
@@ -97,7 +117,21 @@ def initial_state():
         envelope_count=0,
         context={},
         history=(INITIAL_PHASE,),
+        task_status={},
     )
+
+
+def status_of(state, task_id):
+    """Return the status of a task, or 'pending' if the task was never mentioned.
+
+    `task_status` records only tasks that have been mentioned in envelopes
+    (via a 'request' or 'result' envelope carrying the task_id). Any task
+    not in task_status is implicitly pending and has not yet started.
+    This function makes that default explicit.
+    """
+    if task_id in state.task_status:
+        return state.task_status[task_id]
+    return "pending"
 
 
 def _apply(state, envelope):
@@ -113,6 +147,65 @@ def _apply(state, envelope):
         )
     run_id = envelope.run_id if state.run_id is None else state.run_id
 
+    # Handle task status updates from request and result envelopes
+    # task_status contains only tasks that have been mentioned in envelopes
+    task_status = dict(state.task_status)
+
+    if envelope.kind == "request":
+        payload = envelope.payload
+        if hasattr(payload, "get") and "task_id" in payload:
+            # Presence, not truthiness: a present-but-invalid task_id (e.g.
+            # "", None, 0) must be validated and rejected, not silently
+            # skipped the way `if task_id:` used to skip it.
+            task_id = payload.get("task_id")
+            if not isinstance(task_id, str) or not task_id:
+                raise Blocked(
+                    stage=STAGE,
+                    reason_code="malformed_checkpoint",
+                    detail=(
+                        f"'request' envelope payload['task_id'] must be a "
+                        f"non-empty string, got {task_id!r}"
+                    ),
+                    recovery_action="set payload['task_id'] to a non-empty string",
+                )
+            task_status[task_id] = "running"
+    elif envelope.kind == "result":
+        payload = envelope.payload
+        # Presence, not truthiness: `if task_id and outcome:` used to let a
+        # present-but-falsy outcome (e.g. "") short-circuit before the
+        # VALID_OUTCOMES check ever ran, silently leaving the task stranded
+        # at "running" forever. Gate on whether the keys are present at
+        # all, then validate whatever value is there -- absent means
+        # absent, present means validated.
+        if (
+            hasattr(payload, "get")
+            and "task_id" in payload
+            and "outcome" in payload
+        ):
+            task_id = payload.get("task_id")
+            outcome = payload.get("outcome")
+            if not isinstance(task_id, str) or not task_id:
+                raise Blocked(
+                    stage=STAGE,
+                    reason_code="malformed_checkpoint",
+                    detail=(
+                        f"'result' envelope payload['task_id'] must be a "
+                        f"non-empty string, got {task_id!r}"
+                    ),
+                    recovery_action="set payload['task_id'] to a non-empty string",
+                )
+            if outcome not in VALID_OUTCOMES:
+                raise Blocked(
+                    stage=STAGE,
+                    reason_code="malformed_checkpoint",
+                    detail=(
+                        f"'result' envelope outcome must be one of {VALID_OUTCOMES}, "
+                        f"got {outcome!r}"
+                    ),
+                    recovery_action=f"set payload['outcome'] to one of {VALID_OUTCOMES}",
+                )
+            task_status[task_id] = outcome
+
     if envelope.kind != "status":
         return RunState(
             run_id=run_id,
@@ -120,6 +213,7 @@ def _apply(state, envelope):
             envelope_count=state.envelope_count + 1,
             context=state.context,
             history=state.history,
+            task_status=task_status,
         )
 
     payload = envelope.payload
@@ -140,6 +234,7 @@ def _apply(state, envelope):
         envelope_count=state.envelope_count + 1,
         context=payload,
         history=state.history + (phase,),
+        task_status=task_status,
     )
 
 

@@ -409,6 +409,206 @@ class AgentSpec:
 
 
 # ---------------------------------------------------------------------------
+# TaskNode and TaskDag
+# ---------------------------------------------------------------------------
+
+_TASK_NODE_REQUIRED = ("task_id", "role", "depends_on")
+
+
+def _require_identifier_tuple(value, field_name, *, stage, allow_empty=False):
+    """Validate a list/tuple of identifiers (like task_ids in depends_on)."""
+    if not isinstance(value, (list, tuple)):
+        raise Blocked(
+            stage=stage,
+            reason_code="malformed_checkpoint",
+            detail=f"field '{field_name}' must be an array, got {value!r}",
+            recovery_action=f"set '{field_name}' to an array of identifiers",
+        )
+    if not allow_empty and len(value) == 0:
+        raise Blocked(
+            stage=stage,
+            reason_code="malformed_checkpoint",
+            detail=f"field '{field_name}' must contain at least one item",
+            recovery_action=f"add at least one identifier to '{field_name}'",
+        )
+    for index, item in enumerate(value):
+        _require_identifier(item, f"{field_name}[{index}]", stage=stage)
+    return tuple(value)
+
+
+@dataclass(frozen=True)
+class TaskNode:
+    """One node in a generated task DAG.
+
+    `depends_on` is a tuple of task_ids that must complete before this
+    task can be scheduled.
+    """
+
+    task_id: str
+    role: str
+    depends_on: tuple
+
+    def __post_init__(self):
+        object.__setattr__(self, "depends_on", tuple(self.depends_on))
+
+    @classmethod
+    def from_dict(cls, data):
+        if not isinstance(data, dict):
+            raise Blocked(
+                stage="task_node",
+                reason_code="malformed_checkpoint",
+                detail=f"TaskNode must be a JSON object, got {type(data).__name__}",
+                recovery_action="pass a JSON object with every TaskNode field",
+            )
+        require_fields(data, _TASK_NODE_REQUIRED, stage="task_node")
+        _require_identifier(data["task_id"], "task_id", stage="task_node")
+        _require_identifier(data["role"], "role", stage="task_node")
+        depends_on = _require_identifier_tuple(data["depends_on"], "depends_on", stage="task_node", allow_empty=True)
+        return cls(
+            task_id=data["task_id"],
+            role=data["role"],
+            depends_on=depends_on,
+        )
+
+    @classmethod
+    def from_json(cls, text):
+        return cls.from_dict(json.loads(text))
+
+    def to_dict(self):
+        return {
+            "task_id": self.task_id,
+            "role": self.role,
+            "depends_on": list(self.depends_on),
+        }
+
+    def to_json(self):
+        return _canonical_json(self.to_dict())
+
+
+@dataclass(frozen=True)
+class TaskDag:
+    """A directed acyclic graph of task nodes.
+
+    The tasks field is a tuple of TaskNode; accessing it by index is
+    stable and the tuple itself is immutable. Validation ensures: no
+    duplicate task_ids, no unknown dependencies, and no cycles.
+    """
+
+    tasks: tuple
+
+    def __post_init__(self):
+        object.__setattr__(self, "tasks", tuple(self.tasks))
+
+    @classmethod
+    def from_list(cls, data):
+        if not isinstance(data, list):
+            raise Blocked(
+                stage="task_dag",
+                reason_code="malformed_checkpoint",
+                detail=f"TaskDag must be a list, got {type(data).__name__}",
+                recovery_action="pass a list of task node objects",
+            )
+
+        nodes = []
+        task_ids = set()
+        for item in data:
+            node = TaskNode.from_dict(item)
+            if node.task_id in task_ids:
+                raise Blocked(
+                    stage="task_dag",
+                    reason_code="malformed_checkpoint",
+                    detail=f"duplicate task_id: {node.task_id!r}",
+                    recovery_action=f"ensure every task_id in the DAG is unique",
+                )
+            task_ids.add(node.task_id)
+            nodes.append(node)
+
+        # Validate: all dependencies reference known task_ids
+        for node in nodes:
+            for dep in node.depends_on:
+                if dep not in task_ids:
+                    raise Blocked(
+                        stage="task_dag",
+                        reason_code="malformed_checkpoint",
+                        detail=f"task '{node.task_id}' depends on unknown task '{dep}'",
+                        recovery_action=f"ensure all task_ids referenced in depends_on exist in the DAG",
+                    )
+
+        # Validate: no cycles using DFS
+        _check_dag_acyclic(nodes)
+
+        return cls(tasks=tuple(nodes))
+
+    @classmethod
+    def from_json(cls, text):
+        return cls.from_list(json.loads(text))
+
+    def to_list(self):
+        return [node.to_dict() for node in self.tasks]
+
+    def to_json(self):
+        return _canonical_json(self.to_list())
+
+
+def _check_dag_acyclic(nodes):
+    """Verify a list of TaskNode has no cycles.
+
+    Three-colour DFS -- white (unvisited), gray (on the current path),
+    black (fully processed) -- with a back edge to a gray node reported as
+    a cycle, same as a textbook recursive implementation. The traversal
+    itself is iterative with an explicit stack, not Python-level
+    recursion: a recursive visit() puts one call frame on the interpreter
+    stack per edge, so a long mostly-linear pipeline (exactly what a DAG
+    generator emits) could raise a bare RecursionError instead of Blocked,
+    with the exact threshold depending on sys.getrecursionlimit() and on
+    input ordering -- the same logical DAG could pass on one host and
+    crash on another. An explicit stack has no such limit; it is bounded
+    by heap memory, not call depth.
+    """
+    task_map = {node.task_id: node for node in nodes}
+    color = {node.task_id: "white" for node in nodes}
+
+    for start in nodes:
+        if color[start.task_id] != "white":
+            continue
+
+        # Each stack frame is (task_id, iterator over its remaining
+        # dependencies, path of ancestors leading to task_id) -- this
+        # triple is exactly what a recursive visit(task_id, path) call
+        # would have held in its local variables and the interpreter's
+        # call stack; here it lives on an explicit Python list instead.
+        stack = [(start.task_id, iter(task_map[start.task_id].depends_on), [])]
+        color[start.task_id] = "gray"
+
+        while stack:
+            task_id, dep_iter, path = stack[-1]
+            dep = next(dep_iter, None)
+            # depends_on entries are always non-empty validated
+            # identifiers (see TaskNode.from_dict), so None can only mean
+            # the iterator over this node's dependencies is exhausted.
+            if dep is None:
+                color[task_id] = "black"
+                stack.pop()
+                continue
+
+            if color[dep] == "gray":
+                raise Blocked(
+                    stage="task_dag",
+                    reason_code="malformed_checkpoint",
+                    detail=(
+                        f"cycle detected in task DAG: "
+                        f"{' -> '.join(path + [task_id, dep])}"
+                    ),
+                    recovery_action="restructure the task DAG to eliminate the cycle",
+                )
+            if color[dep] == "black":
+                continue
+
+            color[dep] = "gray"
+            stack.append((dep, iter(task_map[dep].depends_on), path + [task_id]))
+
+
+# ---------------------------------------------------------------------------
 # Envelope
 # ---------------------------------------------------------------------------
 

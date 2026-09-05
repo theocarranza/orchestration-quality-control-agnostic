@@ -6,7 +6,7 @@ from types import MappingProxyType
 from tests import SCRIPTS_DIR
 
 from qc_lib import Blocked
-from kernel_specs import AgentSpec, Envelope, RunSpec
+from kernel_specs import AgentSpec, Envelope, RunSpec, TaskNode, TaskDag
 
 
 def _agent_dict(**overrides):
@@ -280,6 +280,202 @@ class EnvelopeTest(unittest.TestCase):
         second = restored.to_json()
         self.assertEqual(first, second)
         self.assertEqual(envelope.to_dict(), restored.to_dict())
+
+
+class TaskNodeTest(unittest.TestCase):
+    def test_well_formed_task_node_constructs(self):
+        node = TaskNode.from_dict({
+            "task_id": "analyze-target",
+            "role": "researcher",
+            "depends_on": ["discover-files"],
+        })
+        self.assertEqual(node.task_id, "analyze-target")
+        self.assertEqual(node.role, "researcher")
+        self.assertEqual(node.depends_on, ("discover-files",))
+
+    def test_task_node_with_empty_depends_on(self):
+        node = TaskNode.from_dict({
+            "task_id": "root-task",
+            "role": "root",
+            "depends_on": [],
+        })
+        self.assertEqual(node.depends_on, ())
+
+    def test_each_required_field_absence_is_named(self):
+        for field_name in ("task_id", "role", "depends_on"):
+            with self.subTest(field=field_name):
+                data = {
+                    "task_id": "task-1",
+                    "role": "worker",
+                    "depends_on": [],
+                }
+                del data[field_name]
+                with self.assertRaises(Blocked) as ctx:
+                    TaskNode.from_dict(data)
+                self.assertIn(field_name, ctx.exception.detail)
+
+    def test_task_node_mutation_after_construction_raises(self):
+        node = TaskNode.from_dict({
+            "task_id": "task-1",
+            "role": "worker",
+            "depends_on": [],
+        })
+        with self.assertRaises(FrozenInstanceError):
+            node.task_id = "task-2"
+
+    def test_task_node_serialisation_round_trips(self):
+        node = TaskNode.from_dict({
+            "task_id": "task-1",
+            "role": "worker",
+            "depends_on": ["task-0"],
+        })
+        first = node.to_json()
+        restored = TaskNode.from_json(first)
+        second = restored.to_json()
+        self.assertEqual(first, second)
+
+    def test_invalid_identifier_in_depends_on_labels_correct_index(self):
+        # Verify error labels index correctly when invalid item is not first
+        with self.assertRaises(Blocked) as ctx:
+            TaskNode.from_dict({
+                "task_id": "task-1",
+                "role": "worker",
+                "depends_on": ["good-id", "Bad-With-Caps", "another-good-id"],
+            })
+        # Should report error at index 1 (the invalid "Bad-With-Caps")
+        self.assertIn("depends_on[1]", ctx.exception.detail)
+        self.assertIn("Bad-With-Caps", ctx.exception.detail)
+
+
+class TaskDagTest(unittest.TestCase):
+    def test_well_formed_task_dag_constructs(self):
+        dag = TaskDag.from_list([
+            {"task_id": "discover", "role": "root", "depends_on": []},
+            {"task_id": "analyze", "role": "worker", "depends_on": ["discover"]},
+        ])
+        self.assertEqual(len(dag.tasks), 2)
+        self.assertEqual(dag.tasks[0].task_id, "discover")
+        self.assertEqual(dag.tasks[1].depends_on, ("discover",))
+
+    def test_duplicate_task_id_is_rejected(self):
+        with self.assertRaises(Blocked) as ctx:
+            TaskDag.from_list([
+                {"task_id": "task-1", "role": "root", "depends_on": []},
+                {"task_id": "task-1", "role": "worker", "depends_on": []},
+            ])
+        self.assertIn("duplicate", ctx.exception.detail.lower())
+        self.assertIn("task_id", ctx.exception.detail)
+
+    def test_unknown_dependency_is_rejected(self):
+        with self.assertRaises(Blocked) as ctx:
+            TaskDag.from_list([
+                {"task_id": "task-1", "role": "root", "depends_on": []},
+                {"task_id": "task-2", "role": "worker", "depends_on": ["unknown-task"]},
+            ])
+        self.assertIn("unknown", ctx.exception.detail.lower())
+        self.assertIn("unknown-task", ctx.exception.detail)
+
+    def test_cycle_is_rejected(self):
+        with self.assertRaises(Blocked) as ctx:
+            TaskDag.from_list([
+                {"task_id": "task-1", "role": "root", "depends_on": ["task-2"]},
+                {"task_id": "task-2", "role": "worker", "depends_on": ["task-1"]},
+            ])
+        self.assertIn("cycle", ctx.exception.detail.lower())
+
+    def test_self_loop_cycle_is_rejected(self):
+        with self.assertRaises(Blocked) as ctx:
+            TaskDag.from_list([
+                {"task_id": "task-1", "role": "root", "depends_on": ["task-1"]},
+            ])
+        self.assertIn("cycle", ctx.exception.detail.lower())
+
+    def test_longer_cycle_is_rejected(self):
+        with self.assertRaises(Blocked) as ctx:
+            TaskDag.from_list([
+                {"task_id": "task-1", "role": "root", "depends_on": ["task-2"]},
+                {"task_id": "task-2", "role": "worker", "depends_on": ["task-3"]},
+                {"task_id": "task-3", "role": "worker", "depends_on": ["task-1"]},
+            ])
+        self.assertIn("cycle", ctx.exception.detail.lower())
+
+    def test_task_dag_serialisation_round_trips(self):
+        data = [
+            {"task_id": "discover", "role": "root", "depends_on": []},
+            {"task_id": "analyze", "role": "worker", "depends_on": ["discover"]},
+        ]
+        dag = TaskDag.from_list(data)
+        first = dag.to_json()
+        restored = TaskDag.from_json(first)
+        second = restored.to_json()
+        self.assertEqual(first, second)
+
+    def test_task_dag_mutation_after_construction_raises(self):
+        dag = TaskDag.from_list([
+            {"task_id": "task-1", "role": "root", "depends_on": []},
+        ])
+        with self.assertRaises(TypeError):
+            dag.tasks[0] = None
+
+    def test_task_dag_field_reassignment_raises(self):
+        # test_task_dag_mutation_after_construction_raises only proves the
+        # `tasks` tuple itself rejects item assignment, which is true of
+        # any tuple whether or not TaskDag is frozen -- it would pass
+        # identically with `frozen=True` removed. Reassigning the `tasks`
+        # field itself is what actually exercises TaskDag's own frozen
+        # guarantee.
+        dag = TaskDag.from_list([
+            {"task_id": "task-1", "role": "root", "depends_on": []},
+        ])
+        with self.assertRaises(FrozenInstanceError):
+            dag.tasks = ()
+
+    def test_cycle_reachable_only_through_a_diamond_is_rejected(self):
+        # A cycle that is not on the first edge explored from the entry
+        # node, but only becomes visible after fanning out through a
+        # diamond (start -> b1, start -> b2 -> both merge back into
+        # `merge`, which depends on `start` again). Detection must not
+        # depend on which branch of the diamond happens to be visited
+        # first.
+        with self.assertRaises(Blocked) as ctx:
+            TaskDag.from_list([
+                {"task_id": "start", "role": "root", "depends_on": ["merge"]},
+                {"task_id": "b1", "role": "worker", "depends_on": ["start"]},
+                {"task_id": "b2", "role": "worker", "depends_on": ["start"]},
+                {"task_id": "merge", "role": "worker", "depends_on": ["b1", "b2"]},
+            ])
+        self.assertIn("cycle", ctx.exception.detail.lower())
+
+    def test_long_linear_chain_constructs_without_recursion_error(self):
+        # Regression for unbounded Python recursion in cycle detection: a
+        # mostly-linear pipeline (exactly what a DAG generator emits) must
+        # not depend on sys.getrecursionlimit() to construct successfully.
+        # 5000 nodes comfortably exceeds the default recursion limit
+        # (1000), so this fails loudly with RecursionError under a
+        # recursive visit() and must pass under an iterative one.
+        node_count = 5000
+        data = [{"task_id": "task-0", "role": "root", "depends_on": []}]
+        for index in range(1, node_count):
+            data.append({
+                "task_id": f"task-{index}",
+                "role": "worker",
+                "depends_on": [f"task-{index - 1}"],
+            })
+        dag = TaskDag.from_list(data)
+        self.assertEqual(len(dag.tasks), node_count)
+
+    def test_long_chain_with_back_edge_raises_blocked_not_recursion_error(self):
+        node_count = 5000
+        data = [{"task_id": "task-0", "role": "root", "depends_on": [f"task-{node_count - 1}"]}]
+        for index in range(1, node_count):
+            data.append({
+                "task_id": f"task-{index}",
+                "role": "worker",
+                "depends_on": [f"task-{index - 1}"],
+            })
+        with self.assertRaises(Blocked) as ctx:
+            TaskDag.from_list(data)
+        self.assertIn("cycle", ctx.exception.detail.lower())
 
 
 if __name__ == "__main__":

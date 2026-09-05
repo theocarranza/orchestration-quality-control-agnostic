@@ -5,7 +5,7 @@ from types import MappingProxyType
 from kernel_specs import Envelope
 from qc_lib import Blocked
 
-from run_state import PHASES, RunState, initial_state, reduce
+from run_state import PHASES, RunState, initial_state, reduce, status_of
 
 
 def _status(phase, *, envelope_id="env-status", run_id="run-0001", extra=None):
@@ -136,6 +136,7 @@ class ReducePurityTest(unittest.TestCase):
     # these tests go red (see the implementer report).
 
     SEQUENCE = None
+    TASK_SEQUENCE = None
 
     @classmethod
     def setUpClass(cls):
@@ -149,11 +150,42 @@ class ReducePurityTest(unittest.TestCase):
             _status("verification", envelope_id="env-7"),
             _status("completed", envelope_id="env-8"),
         ]
+        # Sequence with task status updates
+        cls.TASK_SEQUENCE = [
+            Envelope.from_dict({
+                "schema_version": 1,
+                "envelope_id": "env-1",
+                "run_id": "run-1",
+                "sender": "orchestrator",
+                "recipient": "agent:worker-1",
+                "kind": "request",
+                "payload": {"task_id": "task-1"},
+                "created_at": "2026-09-04T12:00:00Z",
+            }),
+            Envelope.from_dict({
+                "schema_version": 1,
+                "envelope_id": "env-2",
+                "run_id": "run-1",
+                "sender": "agent:worker-1",
+                "recipient": "orchestrator",
+                "kind": "result",
+                "payload": {"task_id": "task-1", "outcome": "passed"},
+                "created_at": "2026-09-04T12:00:01Z",
+            }),
+        ]
 
     def test_reducing_the_same_sequence_twice_yields_equal_states(self):
         first = reduce(self.SEQUENCE)
         second = reduce(self.SEQUENCE)
         self.assertEqual(first, second)
+        self.assertIsNot(first, second)
+
+    def test_reducing_task_sequence_twice_yields_equal_task_status(self):
+        # Verify purity still holds when task_status is involved
+        first = reduce(self.TASK_SEQUENCE)
+        second = reduce(self.TASK_SEQUENCE)
+        self.assertEqual(first, second)
+        self.assertEqual(first.task_status, second.task_status)
         self.assertIsNot(first, second)
 
     def test_reducing_does_not_mutate_its_input_sequence(self):
@@ -236,6 +268,7 @@ class RunStateImmutabilityTest(unittest.TestCase):
             envelope_count=1,
             context={"nested": {"inner": "value"}, "targets": ["a.md"]},
             history=["discovery", "planning"],
+            task_status={},
         )
         with self.assertRaises(FrozenInstanceError):
             state.phase = "blocked"
@@ -248,6 +281,7 @@ class RunStateImmutabilityTest(unittest.TestCase):
             envelope_count=1,
             context={},
             history=mutable_history,
+            task_status={},
         )
         mutable_history.append("tampered-after-construction")
         self.assertEqual(state.history, ("discovery", "planning"))
@@ -261,6 +295,7 @@ class RunStateImmutabilityTest(unittest.TestCase):
             envelope_count=1,
             context={"nested": {"inner": "value"}, "targets": ["a.md", "b.md"]},
             history=["discovery", "planning"],
+            task_status={},
         )
         with self.assertRaises(TypeError):
             state.context["nested"]["inner"] = "tampered"
@@ -280,6 +315,7 @@ class RunStateImmutabilityTest(unittest.TestCase):
             envelope_count=1,
             context=context,
             history=("discovery", "planning"),
+            task_status={},
         )
         with self.assertRaises(TypeError):
             state.context["nested"]["inner"] = "tampered"
@@ -290,6 +326,232 @@ class RunStateImmutabilityTest(unittest.TestCase):
         state = initial_state()
         with self.assertRaises(FrozenInstanceError):
             state.phase = "blocked"
+
+
+class TaskStatusTest(unittest.TestCase):
+    def test_task_status_contains_only_mentioned_tasks(self):
+        # task_status only contains tasks that have been mentioned in envelopes
+        request = Envelope.from_dict({
+            "schema_version": 1,
+            "envelope_id": "env-1",
+            "run_id": "run-1",
+            "sender": "orchestrator",
+            "recipient": "agent:worker-1",
+            "kind": "request",
+            "payload": {"task_id": "task-1"},
+            "created_at": "2026-09-04T12:00:00Z",
+        })
+        state = reduce([request])
+        self.assertIn("task-1", state.task_status)
+        self.assertNotIn("task-2", state.task_status)
+
+    def test_task_status_get_with_absent_key_returns_none(self):
+        # The mapping contract must hold: get(key, None) returns None for missing keys
+        state = reduce([])
+        self.assertIsNone(state.task_status.get("absent", None))
+        self.assertEqual(state.task_status.get("absent", "default"), "default")
+
+    def test_status_of_returns_pending_for_absent_tasks(self):
+        # status_of() provides the default "pending" explicitly
+        state = reduce([])
+        self.assertEqual(status_of(state, "task-1"), "pending")
+        self.assertEqual(status_of(state, "unknown"), "pending")
+
+    def test_request_envelope_marks_task_running(self):
+        request = Envelope.from_dict({
+            "schema_version": 1,
+            "envelope_id": "env-1",
+            "run_id": "run-1",
+            "sender": "orchestrator",
+            "recipient": "agent:worker-1",
+            "kind": "request",
+            "payload": {"task_id": "analyze"},
+            "created_at": "2026-09-04T12:00:00Z",
+        })
+        state = reduce([request])
+        self.assertEqual(state.task_status["analyze"], "running")
+
+    def test_result_envelope_with_passed_marks_passed(self):
+        result = Envelope.from_dict({
+            "schema_version": 1,
+            "envelope_id": "env-1",
+            "run_id": "run-1",
+            "sender": "agent:worker-1",
+            "recipient": "orchestrator",
+            "kind": "result",
+            "payload": {"task_id": "analyze", "outcome": "passed"},
+            "created_at": "2026-09-04T12:00:00Z",
+        })
+        state = reduce([result])
+        self.assertEqual(state.task_status["analyze"], "passed")
+
+    def test_result_envelope_with_failed_marks_failed(self):
+        result = Envelope.from_dict({
+            "schema_version": 1,
+            "envelope_id": "env-1",
+            "run_id": "run-1",
+            "sender": "agent:worker-1",
+            "recipient": "orchestrator",
+            "kind": "result",
+            "payload": {"task_id": "analyze", "outcome": "failed"},
+            "created_at": "2026-09-04T12:00:00Z",
+        })
+        state = reduce([result])
+        self.assertEqual(state.task_status["analyze"], "failed")
+
+    def test_unknown_outcome_is_rejected(self):
+        result = Envelope.from_dict({
+            "schema_version": 1,
+            "envelope_id": "env-1",
+            "run_id": "run-1",
+            "sender": "agent:worker-1",
+            "recipient": "orchestrator",
+            "kind": "result",
+            "payload": {"task_id": "analyze", "outcome": "unknown"},
+            "created_at": "2026-09-04T12:00:00Z",
+        })
+        with self.assertRaises(Blocked) as ctx:
+            reduce([result])
+        self.assertIn("outcome", ctx.exception.detail)
+
+    def test_empty_string_outcome_is_rejected_not_silently_stranded(self):
+        # Regression for the truthiness-guard deadlock: a present-but-falsy
+        # outcome ("") used to short-circuit the `if task_id and outcome`
+        # guard before the VALID_OUTCOMES check ever ran, silently leaving
+        # the task "running" forever. Presence, not truthiness, must gate
+        # validation.
+        result = Envelope.from_dict({
+            "schema_version": 1,
+            "envelope_id": "env-1",
+            "run_id": "run-1",
+            "sender": "agent:worker-1",
+            "recipient": "orchestrator",
+            "kind": "result",
+            "payload": {"task_id": "analyze", "outcome": ""},
+            "created_at": "2026-09-04T12:00:00Z",
+        })
+        with self.assertRaises(Blocked) as ctx:
+            reduce([result])
+        self.assertIn("outcome", ctx.exception.detail)
+
+    def test_none_outcome_is_rejected(self):
+        result = Envelope.from_dict({
+            "schema_version": 1,
+            "envelope_id": "env-1",
+            "run_id": "run-1",
+            "sender": "agent:worker-1",
+            "recipient": "orchestrator",
+            "kind": "result",
+            "payload": {"task_id": "analyze", "outcome": None},
+            "created_at": "2026-09-04T12:00:00Z",
+        })
+        with self.assertRaises(Blocked) as ctx:
+            reduce([result])
+        self.assertIn("outcome", ctx.exception.detail)
+
+    def test_empty_string_task_id_in_result_is_rejected(self):
+        result = Envelope.from_dict({
+            "schema_version": 1,
+            "envelope_id": "env-1",
+            "run_id": "run-1",
+            "sender": "agent:worker-1",
+            "recipient": "orchestrator",
+            "kind": "result",
+            "payload": {"task_id": "", "outcome": "passed"},
+            "created_at": "2026-09-04T12:00:00Z",
+        })
+        with self.assertRaises(Blocked) as ctx:
+            reduce([result])
+        self.assertIn("task_id", ctx.exception.detail)
+
+    def test_request_then_falsy_outcome_result_raises_instead_of_deadlocking(self):
+        # The exact deadlock sequence from the defect report: reducing
+        # [request(t1), result(t1, outcome="")] must raise Blocked rather
+        # than leave t1 stranded at "running" forever (which used to make
+        # next_tasks return () for anything depending on t1, permanently).
+        request = Envelope.from_dict({
+            "schema_version": 1,
+            "envelope_id": "env-1",
+            "run_id": "run-1",
+            "sender": "orchestrator",
+            "recipient": "agent:worker-1",
+            "kind": "request",
+            "payload": {"task_id": "t1"},
+            "created_at": "2026-09-04T12:00:00Z",
+        })
+        result = Envelope.from_dict({
+            "schema_version": 1,
+            "envelope_id": "env-2",
+            "run_id": "run-1",
+            "sender": "agent:worker-1",
+            "recipient": "orchestrator",
+            "kind": "result",
+            "payload": {"task_id": "t1", "outcome": ""},
+            "created_at": "2026-09-04T12:00:01Z",
+        })
+        with self.assertRaises(Blocked):
+            reduce([request, result])
+
+    def test_task_status_progression_through_workflow(self):
+        envelopes = [
+            Envelope.from_dict({
+                "schema_version": 1,
+                "envelope_id": "env-1",
+                "run_id": "run-1",
+                "sender": "orchestrator",
+                "recipient": "agent:worker-1",
+                "kind": "request",
+                "payload": {"task_id": "discover"},
+                "created_at": "2026-09-04T12:00:00Z",
+            }),
+            Envelope.from_dict({
+                "schema_version": 1,
+                "envelope_id": "env-2",
+                "run_id": "run-1",
+                "sender": "agent:worker-1",
+                "recipient": "orchestrator",
+                "kind": "result",
+                "payload": {"task_id": "discover", "outcome": "passed"},
+                "created_at": "2026-09-04T12:00:01Z",
+            }),
+            Envelope.from_dict({
+                "schema_version": 1,
+                "envelope_id": "env-3",
+                "run_id": "run-1",
+                "sender": "orchestrator",
+                "recipient": "agent:worker-2",
+                "kind": "request",
+                "payload": {"task_id": "analyze"},
+                "created_at": "2026-09-04T12:00:02Z",
+            }),
+        ]
+        state = reduce(envelopes)
+        # Both tasks were mentioned in envelopes, so they're in task_status
+        self.assertEqual(status_of(state, "discover"), "passed")
+        self.assertEqual(status_of(state, "analyze"), "running")
+        # Verify they're actually stored (not using default)
+        self.assertIn("discover", state.task_status)
+        self.assertIn("analyze", state.task_status)
+
+    def test_task_status_immutable(self):
+        state = reduce([])
+        with self.assertRaises(TypeError):
+            state.task_status["task-1"] = "running"
+
+    def test_task_status_not_in_phase_progression(self):
+        # Envelopes without task_id don't affect task_status
+        request = Envelope.from_dict({
+            "schema_version": 1,
+            "envelope_id": "env-1",
+            "run_id": "run-1",
+            "sender": "orchestrator",
+            "recipient": "agent:worker-1",
+            "kind": "question",
+            "payload": {"text": "what is the target?"},
+            "created_at": "2026-09-04T12:00:00Z",
+        })
+        state = reduce([request])
+        self.assertNotIn("task-1", state.task_status)
 
 
 class RunStateDerivationIsNeverStoredTest(unittest.TestCase):

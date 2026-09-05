@@ -200,3 +200,88 @@ Root's ruling: make `thaw` symmetric rather than document a precondition. A
 shared public helper with a footnote requires five later tasks to remember it,
 and the penalty for forgetting is a silent wrong result surfacing at
 serialisation. Removing the precondition removes the class.
+
+## Checkpoint — Outcome 2 Task 3 — 2026-09-05T05:00:26-03:00
+
+```text
+time: 2026-09-05T05:00:26-03:00
+task: Outcome 2 Task 3 — scheduling and routing checks
+attempt: 3 of 3 on claude-haiku-4-5, then 1 of 3 at escalated tier
+worker model: claude-haiku-4-5 for attempts 1-3; claude-sonnet-5 for the
+  quality fix round, escalated with recorded evidence
+worker effort: not settable on this host
+spec validator: claude-sonnet-5, read-only, FINDINGS (4) then resolved
+quality reviewer: claude-sonnet-5, fresh agent, FINDINGS (4) then resolved
+commands:
+  command: PYTHONPATH=... python3.12 -m unittest discover -s .../scripts/tests
+  counts: 246 tests, OK
+  command: root drill — neuter the root->worker routing branch
+  counts: 3 failures, restore byte-identical
+  command: quality drill — disable _check_dag_acyclic
+  counts: 3 failures, exactly the cycle tests, restore clean
+  command: root verification — falsy outcome, deep chains, routing matrix
+  counts: all four defects confirmed fixed by execution
+  command: other five suites
+  counts: not run — nothing outside scripts/ changed; Task 7 owns the sweep
+commit hash: pending
+next: Outcome 2 Task 4 — adapter port, fake adapter, model-free DAG replay
+```
+
+Delivered `scripts/router.py` with `next_tasks` and `validate_pair`, `TaskNode`
+and `TaskDag` records with iterative cycle detection in `kernel_specs`, and
+derived per-task status in `run_state`. The suite went 191 → 246.
+
+### The escalation rule, applied honestly in both directions
+
+Attempts 1-3 ran on `claude-haiku-4-5` and resolved every finding put to them.
+Root then escalated one tier for the quality fix round, with the evidence the
+plan requires: asked to wire an unused constant in meaningfully, haiku added two
+runtime checks that could never fire — a judgment miss rather than a mechanical
+one — and the remaining work was algorithmic. That is recorded as a tier change
+with cause, not as a fourth failure. Haiku had converged; the task had grown.
+
+### What each layer caught, and what nobody caught until the end
+
+Root found the first serious defect directly: `_FrozenDefaultDict`, a bespoke
+container where `d[k]` returned a value for any key while `k in d` was False,
+and `d.get(k, None)` returned `"pending"` instead of `None`. It was a second
+hand-rolled immutability mechanism one task after Task 2b consolidated to one.
+Replaced by a plain frozen mapping plus an explicit `status_of`.
+
+Spec compliance found something subtler: two illegal-pair tests that the
+**catch-all branch already satisfied**. `validate_pair`'s fallback echoes the
+identities into its message, so a test asserting on "root" and "worker" passed
+whether or not the dedicated branch existed. Only worker-to-worker was genuinely
+proven, because "isolation" appeared nowhere else. It also found that no test
+ever passed an unrecognised identity, leaving the catch-all's own guarantee
+untested, that `TaskDag.from_dict` rejected dicts while every sibling accepted
+them, and that `TaskNode` labelled the offending index by counting occurrences
+rather than position — reporting `depends_on[0]` for an item at index 1.
+
+Quality then found the two that mattered most, both reproduced by root:
+
+**A silent deadlock.** `_apply` gated on truthiness, not presence. A `result`
+envelope carrying `outcome=""` short-circuited before the `VALID_OUTCOMES` check,
+raised nothing, and pinned its task at `running` forever — after which
+`next_tasks` returned `()` permanently for everything downstream. `"unknown"`
+was rejected while `""` was not: strictest where it mattered least.
+
+**Unbounded recursion in cycle detection.** A 995-node chain constructed; 1000
+raised bare `RecursionError` instead of `Blocked`, with the threshold depending
+on the host's recursion limit and on input ordering. Task 6 generates DAGs and a
+long linear pipeline is exactly its output. Now an iterative three-colour DFS:
+5000 nodes construct in 232ms and a back edge raises `Blocked`.
+
+Quality also proved the `TaskDag` mutation test vacuous by setting
+`frozen=False` and watching it still pass, and supplied the better remedy for
+the dead-code finding — make `VALID_OUTCOMES ⊆ TASK_STATUSES` structural, once,
+where it can be violated, rather than re-derived per envelope.
+
+### A drill that proved nothing, recorded as such
+
+Root's first attempt to drill cycle detection broke module import: the suite
+fell from 235 to 128 with collection errors rather than producing clean
+behavioural failures. That is not evidence, and root did not report it as such.
+The quality validator ran the drill properly and got the real answer — exactly
+three cycle tests fail when the check is disabled, so detection is genuinely
+proven while its recursion depth was not.
