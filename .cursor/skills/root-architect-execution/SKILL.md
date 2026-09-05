@@ -53,12 +53,16 @@ flowchart LR
   Root -->|"commit"| Next[Next]
 ```
 
-1. Brief with an explicit cheaper model. Never `inherit`. Escalate one tier
-   only after a failed attempt with evidence.
+1. Brief with an explicit cheaper model. Never `inherit` — every host defaults
+   to it, so an unset model silently makes a cheap worker as expensive as root.
+   Start at the cheapest tier the task could plausibly pass and escalate one
+   tier only after a failed attempt with recorded evidence. Role definitions,
+   the host capability matrix, and what each host can and cannot express live in
+   [references/agents/README.md](references/agents/README.md).
 2. Implementer follows TDD. Must not commit, widen scope, spawn agents, or
    ask the owner.
-3. Fresh plan-compliance review, then a different fresh agent for the diff
-   and named commands.
+3. Fresh `spec-validator` (read-only, no shell), then a different fresh
+   `quality-validator` for the diff and named commands.
 4. Same worker until three failures, then `blocked`.
 5. Checkpoint model and effort; stage brief-owned paths plus the ledger;
    `git diff --cached --check`; one narrow commit.

@@ -10,7 +10,7 @@ Root writes this before dispatching an implementer.
 task:
 attempt: N of 3
 model: <explicit id; never inherit>
-effort:
+effort: <level, or "not settable on this host">
 read paths:
 write paths:
 interfaces:
@@ -89,7 +89,8 @@ time:
 task:
 attempt:
 worker model:
-worker effort:
+worker effort:   # a level only where the host can set one; otherwise
+                 # "not settable on this host" — never name a level nothing applied
 spec validator:
 quality reviewer:
 commands:
@@ -125,7 +126,9 @@ governing plan or instance handoff.
 | Excuse | Reality |
 | --- | --- |
 | "I'll write this small file in root" | Re-brief the worker. Root writing product code is a failed delegation. |
-| "`inherit` is fine" | Name the model. |
+| "`inherit` is fine" | Name the model. Every host defaults to inherit. |
+| "Record effort: medium" | Only if the host can set it. Claude Code cannot — say so instead. |
+| "Sonnet is safer than haiku" | Start cheapest; escalate one tier on recorded evidence of failure, not on a hunch. |
 | "One reviewer for spec and quality" | Two fresh agents, spec first. |
 | "Worker can commit" | Root commits brief-owned paths only. |
 | "The prior gate is close enough" | Do not start the next outcome until the prior gate is executable and checkpointed. |

@@ -16,3 +16,9 @@ AI_Codex/.obsidian/
 # Python bytecode cache
 __pycache__/
 *.pyc
+
+# The user global gitignore excludes **/.claude/ and **/.cursor/, but this
+# repo ships its skills, agents and adapters there. Re-include them so new
+# files are tracked normally instead of needing git add -f.
+!.claude/
+!.cursor/
