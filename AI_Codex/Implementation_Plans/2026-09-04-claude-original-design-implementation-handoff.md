@@ -276,11 +276,24 @@ Tests must prove, as tables: a dependent task is not offered before its
 dependency completes; legal pairs are accepted; illegal pairs are rejected with
 a named reason; and no routing path mutates state.
 
-### Task 4: adapter port, fake adapter, and the model-free DAG replay
+### Task 4: adapter port, fake adapter, result gate, retry, and the replay
 
-Create `scripts/adapter_port.py`, `scripts/fake_adapter.py` and their tests. The
-port is narrow: spawn, status emission, question relay, and the hooks/policy
-boundary. Nothing host-specific enters the kernel.
+**Scope revised by root on 2026-09-05, before starting.** As first written, this
+task owed the outcome's load-bearing proof — a classified failure carrying its
+critique into a passing retry — while `gate_result` and `retry_or_block` sat in
+Task 5. Task 4 would have had to invent throwaway retry logic for Task 5 to
+replace. `gate_result` and `retry_or_block` therefore move here, where their
+evidence lives. Task 5 keeps brief compilation, replay/verify and the CLI.
+
+Create `scripts/adapter_port.py`, `scripts/fake_adapter.py`, `scripts/gate.py`
+and their tests. The port is narrow: spawn, status emission, question relay, and
+the hooks/policy boundary. Nothing host-specific enters the kernel.
+
+`gate.py` provides `gate_result`, classifying a worker result as passed or
+failed with a critique, and `retry_or_block`, which carries that critique into
+the next attempt and moves the run to `blocked` or `awaiting-user-input` when the
+attempt budget is exhausted. Per ADR 0014 decision 4, only the engine sets those
+states and only root may answer them.
 
 This task carries the outcome's load-bearing evidence. A model-free replay of a
 two-task dependent DAG in which a classified failure carries its critique into a
@@ -288,16 +301,18 @@ passing retry, the dependent task then runs, and state reaches `completed`. A
 separate fixture must exhaust retries and reach `blocked` or
 `awaiting-user-input`. Both run entirely through the fake adapter.
 
-### Task 5: brief compilation, result gate, retry/block, replay, CLI boundary
+### Task 5: brief compilation, replay/verify, CLI boundary
 
-Create `scripts/compile_prompt.py`, `scripts/gate.py`, `scripts/oqc.py` and
-their tests, adding `compile_brief`, `gate_result`, `retry_or_block` and
-replay/verify. `oqc.py` is the single CLI/library boundary; the kernel stays
-importable without it.
+`gate_result` and `retry_or_block` moved to Task 4 with the evidence that
+exercises them; this task is correspondingly narrower.
 
-Tests must prove: a compiled brief is deterministic for identical input; the
-gate classifies pass and failure distinctly; retry carries critique forward;
-exhaustion blocks rather than looping; and verify detects a tampered event log.
+Create `scripts/compile_prompt.py`, `scripts/oqc.py` and their tests, adding
+`compile_brief` and replay/verify. `oqc.py` is the single CLI/library boundary;
+the kernel stays importable without it.
+
+Tests must prove: a compiled brief is deterministic for identical input; replay
+of a mailbox reproduces the same derived state; and verify detects a tampered
+event log.
 
 ### Task 6: the deterministic validation and compilation boundary
 
