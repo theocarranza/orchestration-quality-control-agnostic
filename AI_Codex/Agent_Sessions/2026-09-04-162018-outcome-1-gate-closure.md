@@ -221,3 +221,82 @@ this is no longer urgent, but the packet's acceptance commands still say
 `python3` and therefore still exercise an interpreter the plan does not claim.
 Recommendation, pending owner decision: pin the Outcome 2 acceptance commands to
 `python3.12` so the stated stack and the executed stack agree.
+
+## Checkpoint — Outcome 2 Task 2 — 2026-09-04T21:10:27-03:00
+
+```text
+time: 2026-09-04T21:10:27-03:00
+task: Outcome 2 Task 2 — append-only mailbox and derived run state
+attempt: 1 of 3
+worker model: claude-sonnet-5
+worker effort: medium
+spec validator: claude-sonnet-5, read-only, PASS, no findings
+quality reviewer: claude-sonnet-5, read-only, fresh agent, PASS, no findings
+commands:
+  command: PYTHONPATH=... python3.12 -m unittest discover -s .../scripts/tests
+  counts: 165 tests, OK (127 + 38 new), verified at root
+  command: focused test_mailbox test_run_state
+  counts: 38 tests, OK
+  command: other five suites
+  counts: not run — nothing outside scripts/ changed; they belong to the Task 7 gate
+commit hash: pending
+next: Task 2b — consolidate the freeze helper — then Task 3
+```
+
+Delivered `scripts/mailbox.py`, `scripts/run_state.py` and their tests. The
+mailbox is an append-only log of `Envelope` records with deterministic JSONL
+round-trip; `RunState` is derived by a pure `reduce` and never stored or mutated.
+
+### Clean on the first attempt, and why
+
+Task 1 needed three attempts. Task 2 needed one. The difference was pre-loading
+Task 1's two failure modes into the brief as named prohibitions — a proof that
+is implemented but never tested, and a guarantee that holds on one construction
+path but not another — and requiring a break-it-and-watch-it-fail drill for
+every immutability and purity claim.
+
+That drill paid for itself immediately. Disabling `RunState`'s own freeze failed
+**only** the three direct-construction tests; the six reduce-path tests stayed
+green, because `Envelope` already freezes payloads before they reach
+`RunState.context`. So the reduce-path tests alone would have proven nothing
+about `RunState`'s own guard. That is Task 1's unguarded-path lesson recurring,
+caught by design rather than by review.
+
+### Reviews
+
+Plan-compliance PASS: nine phases proved as a table, `reduce` pure with prefix
+and continuation equalling whole-sequence reduction at every split point,
+immutability on both construction paths, mailbox append-only with no public API
+permitting rewrite, byte-stable non-ASCII round-trip, stdlib-only and
+vendor-neutral.
+
+Quality PASS: empty sequences, unknown and missing phases, cross-run envelopes,
+malformed and blank-line JSONL all raise `Blocked` naming the offending field
+rather than leaking a bare `KeyError`. No caller-mutable structure is aliased
+into derived state. No vacuous tests.
+
+Three root concerns were put to plan-compliance and all resolved: the
+stdlib-`mailbox` filename shadowing is inert (nothing in the tree imports it
+while `scripts/` is on the path); the `status`-envelope phase mechanism
+introduces no fixed role, DAG or enum and so respects ADR 0014's
+generated-workflow principle; and the `_freeze` duplication is scope-compliant
+but a genuine drift vector, now recorded as Task 2b.
+
+A workspace-level ruleset at `.agent/rules/rules-coding-subagents.md` was read
+by a subagent unprompted. It mandates `fpdart` `Either`/`TaskEither`/`Option`
+and warns of `async void` — Dart guidance with no application to a stdlib-only
+Python project. Plan-compliance confirmed no Dart idiom leaked into the
+delivered code. Future briefs should name the applicable governance explicitly
+so agents neither hunt for it nor misapply it.
+
+### Quota
+
+Owner reported the five-hour window at **66% consumed** at roughly 21:00. The
+skill's guard fires below 5%, so no stop was triggered. Observed cost: Task 1
+about 620k subagent tokens across three implementer attempts and two reviews;
+Task 2 about 340k across one attempt and two reviews. Rework, not review, is the
+expensive part — which is the argument for pre-loading failure modes into briefs.
+
+Root stopped after this task rather than starting Task 3, on the judgement that
+the remaining window could not finish another task and that a half-done task
+left uncommitted across a quota boundary is the worst outcome.

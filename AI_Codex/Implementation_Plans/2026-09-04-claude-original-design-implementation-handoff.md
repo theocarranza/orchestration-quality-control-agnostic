@@ -250,6 +250,22 @@ Tests must prove: the observable phases (`discovery`, `interview`, `planning`,
 the same events yields an equal state; and any attempt to mutate state directly
 fails rather than silently succeeding.
 
+### Task 2b (preparatory): consolidate the freeze helper
+
+Do this BEFORE Task 3. `_freeze` now exists twice — in `scripts/kernel_specs.py`
+and `scripts/run_state.py` — with byte-identical logic. Task 2 could not avoid
+this: `kernel_specs.py` was read-only for it and the helper is private. Both
+copies currently carry the `MappingProxyType` recursion fix from Task 1, so
+there is no live bug, but that helper was patched precisely because of a
+mutability hole and only one copy carries the comment explaining why.
+
+Promote `_freeze` and `_thaw` into `scripts/qc_lib.py`, which is already the
+shared-helpers module and is already imported by both. Have both modules import
+them. Land it before Task 3 adds a third copy.
+
+Acceptance: the full `scripts` suite under `python3.12` at its then-current
+count, with no behaviour change — this is a move, not a redesign.
+
 ### Task 3: scheduling and routing checks
 
 Create `scripts/router.py` and its tests. `next` selects runnable tasks from the
