@@ -351,19 +351,24 @@ replay through a critiqued retry to `completed`, the separate exhausted-retry
 fixture, and the routing and no-direct-mutation cases. Outcome 3 may start only
 on PASS.
 
-## Resumption state — 2026-09-06T06:39, written under quota pressure
+## Resumption state — updated 2026-09-06T07:30, before Task 7
 
 A fresh session can resume from this section alone. Everything below is
 verified, not remembered.
 
 ### Where the work is
 
-Branch `feature/original-design-realignment`, pushed, in sync with `origin` at
-`2c7ecc3`. The scripts suite is **412 tests, green under `python3.12`**. The
-only untracked path is `.superpowers/`, which stays excluded.
+Branch `feature/original-design-realignment`, pushed, at `3754798` plus the
+Task 6 docstring fix described below. The scripts suite is **442 tests, green
+under `python3.12`**. The only untracked path is `.superpowers/`, excluded.
 
-Outcome 1 is closed (gate PASS). Outcome 2 Tasks 1, 2, 2b, 3, 4 and 5 are
-committed and pushed. **Task 6 and Task 7 remain.**
+Outcome 1 is closed (gate PASS). Outcome 2 Tasks 1 through 6 are committed and
+pushed. **Only Task 7, the gate, remains.**
+
+The active session note is
+[[../Agent_Sessions/2026-09-06-065747-outcome-2-completion]]. Its predecessor
+was rotated when it crossed the eight-hour gate boundary and began blocking Bash
+writes, including a subagent's writes to the scratchpad.
 
 | Task | State | Commit |
 | --- | --- | --- |
@@ -373,8 +378,78 @@ committed and pushed. **Task 6 and Task 7 remain.**
 | 3 router, DAG, routing checks | done | `fd7e473` |
 | 4 adapter port, fake adapter, gate, replay | done | `677cc4c` |
 | 5 brief compiler, drive loop, replay/verify, CLI | done | `2c7ecc3` |
-| 6 validation/compilation boundary | **next** | — |
-| 7 Outcome 2 gate | pending | — |
+| 6 validation/compilation boundary | done, reviews noted below | `3754798` |
+| 7 Outcome 2 gate | **next** | — |
+
+### Task 6's review status — read this before the gate
+
+Task 6 was **committed before its reviews ran**. A rate limit killed the
+plan-compliance validator mid-run while both quotas were near their guards, and
+leaving verified work uncommitted across that boundary is the risk this section
+exists to prevent. Root committed on its own execution evidence and disclosed
+the gap in the commit message and the ledger rather than letting it pass
+silently. That deviation from the per-task loop is closed as follows:
+
+- **Plan-compliance: re-run, PASS**, after two findings. Both were claims that
+  outran the code, not defects. The module docstring quoted ADR 0014 decision 1
+  — which names DAG, roles, capabilities, tools, output schemas and tiers as
+  generated — while only DAG topology and capabilities actually vary; `tools`,
+  `output_schema`, `model_tier` and `reasoning_effort` are constants. Root ruled
+  against extending generation, because no decision field exists to drive them
+  and inventing one would manufacture a decision nobody made. The docstring now
+  names all four. The second finding: `gate_defaults` and `plan_interview` are
+  reused only in the test fixture, never imported by the module. Not a defect —
+  nothing was reimplemented, which is what that instruction protected — and the
+  runtime wiring belongs to Outcome 5. Now stated in the docstring.
+- **Quality: dispatched, verdict pending at the time of writing.** If it is not
+  recorded in the session ledger, it did not complete, and the gate must not
+  treat Task 6 as fully reviewed until it has run.
+
+### What Task 7 must do
+
+Task 7 is the Outcome 2 gate. It is root verification plus one validator; it
+writes no product code.
+
+Root reruns, from the Outcome 2 base:
+
+1. All six baseline suites under `python3.12` — the scripts suite plus Claude
+   hooks, the three adapters, and the eval harness. Only the scripts suite has
+   been exercised since Outcome 1; the other five have not run since the
+   interpreter was pinned, so this sweep is the first honest full check.
+2. `python3.12 eval-harness/check_documentation_truth.py .`
+3. `git diff --check`.
+
+Then a validator confirms every exit condition the master plan names for
+Outcome 2, quoting the code rather than the reports:
+
+- table-tested observable phases: discovery, interview, planning, orchestration,
+  execution, verification, completed, blocked, awaiting-user-input
+- a model-free replay of the **emitted** two-task dependent DAG in which a
+  classified failure carries its critique into a passing retry, the dependent
+  task then runs, and state reaches `completed`
+- a separate exhausted-retry fixture reaching `blocked` or `awaiting-user-input`
+- replay plus legal and illegal routing and no-direct-mutation cases through the
+  fake adapter
+- the contract fixture showing a relevant input change alters the emitted DAG or
+  agent manifest
+
+Outcome 3 may start only on PASS. If any condition fails, say so plainly and do
+not declare the outcome complete.
+
+### Open architectural question for Outcome 3
+
+`oqc.drive` halts the entire run on any task's terminal decision rather than
+continuing independent runnable branches. This was theoretical until Task 6,
+which emits `isolated-workers` DAGs with genuinely independent tasks. It was
+then demonstrated concretely: two independent tasks, only one scripted to
+exhaust its budget, the other left with no script entry at all so the fake
+adapter would have raised had `drive` touched it. `drive` halted the whole run;
+the healthy sibling stayed `pending` and never reached the mailbox.
+
+This does not violate Outcome 2's exit evidence, which names only the dependent
+two-task DAG and a separate exhausted-retry fixture. It becomes real the moment
+a generated multi-branch workflow is scheduled for actual work. Root escalated
+it rather than judging it unilaterally; it belongs in Outcome 3's planning.
 
 ### Environment traps, each already paid for once
 

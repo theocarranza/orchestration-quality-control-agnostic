@@ -4,9 +4,31 @@ This is the Outcome 2 Task 6 slice of
 AI_Codex/Architecture/ADR/0014-generated-workflow-deterministic-kernel.md,
 decision 1: "What is generated from discovery and the interview is the task
 DAG, the roles, their capabilities, their tools, their output schemas, and
-their model/reasoning tiers." `compile_workflow(decisions)` is that
-generator: a pure function from accepted discovery/interview decisions to
-three sibling artifacts --
+their model/reasoning tiers." `compile_workflow(decisions)` implements only
+part of that list, and this docstring says exactly which part so a reader
+never has to diff this module against the ADR to find out. What actually
+varies with `decisions` is:
+
+  * DAG topology -- which tasks exist and how they depend on one another,
+    from `decisions["shape"]`, `decisions["named_inputs"]`, and
+    `decisions["outcome_involves_test_tree"]`
+  * task and role names, derived from that same topology
+  * `capabilities`, from `decisions["profile"]`
+
+The remaining four fields decision 1 names on every generated `AgentSpec`
+-- `tools`, `output_schema`, `model_tier`, and `reasoning_effort` -- are
+fixed module constants applied identically to every role in every compiled
+workflow, not generated from `decisions` at all: `tools` is always `[]`,
+`output_schema` is always `_OUTPUT_SCHEMA`
+("schemas/worker-result.schema.json"), `model_tier` is always
+`_MODEL_TIER` ("medium"), and `reasoning_effort` is always
+`_REASONING_EFFORT` ("medium"). Nothing in the current decision surface
+could drive any of the four, and none is invented here to close that gap
+-- doing so would mean building a decision nobody has made. These four
+stay fixed placeholders until a decision surface that can actually drive
+them exists.
+
+`compile_workflow` returns three sibling artifacts --
 
   * a `kernel_specs.RunSpec` (run identity and objective)
   * a generated `kernel_specs.TaskDag`
@@ -17,26 +39,40 @@ another (ADR 0014's diagram and Outcome 2 Task 1 both treat RunSpec, the
 DAG and the AgentSpec roster as parallel inputs to the Orchestrator, not a
 tree with one root).
 
-Where `decisions` comes from. `plan_interview.plan(brief)` and
-`gate_defaults.author_fields(brief, overrides)` decide which interview
-fields to ask, skip, or default (see those modules) -- that decision-making
-is explicitly out of scope here and is reused, not reimplemented.
-`decisions` is what root/interviewer has *after* that interview
-concludes: the packaged-default fields `gate_defaults.author_fields`
-returns (`output_root`, `profile`, `language`, `shape`, `approval`,
-`state`, `stop`, `named_inputs`, `outcome_involves_test_tree`, `intent`),
-plus the one field `plan_interview.plan` always asks a human for
-(`outcome`, `plan()`'s `always_ask`), plus this run's identity
-(`run_id`, `created_at`) -- both of which are a live run's own concern
-(assigned once, by whatever session starts the run), not an interview
-decision, and so are never derived from a clock or any other source of
-variation *inside* this module. `compile_workflow` only ever consumes
-these fields; the ones it does not consume (`output_root`, `language`,
-`state`, `stop`, `approval`, `intent`) belong to a later authoring gate
-and are ignored here rather than rejected, so this module never has to
-mirror gate_defaults's own field list to stay in sync with it. See
-tests/test_compile_workflow.py for fixtures built by literally calling
-`gate_defaults.author_fields` rather than hand-rolling an equivalent shape.
+Where `decisions` comes from, and what is not wired up yet.
+`plan_interview.plan(brief)` and `gate_defaults.author_fields(brief,
+overrides)` decide which interview fields to ask, skip, or default (see
+those modules) -- that decision-making is out of scope here, and this
+module reuses it by consuming the shape it produces rather than by
+importing either module: `compile_workflow.py` imports neither
+`plan_interview` nor `gate_defaults`, and no runtime caller wires an actual
+interview session's answers into a `decisions` mapping yet. That
+integration -- install -> discover -> short interview -> build/run -- is
+Outcome 5's, not this task's; Task 6 builds the compilation boundary the
+interview will eventually feed. `decisions` is what root/interviewer will
+have *after* that interview concludes: the packaged-default fields
+`gate_defaults.author_fields` returns (`output_root`, `profile`,
+`language`, `shape`, `approval`, `state`, `stop`, `named_inputs`,
+`outcome_involves_test_tree`, `intent`), plus the one field
+`plan_interview.plan` always asks a human for (`outcome`, `plan()`'s
+`always_ask`), plus this run's identity (`run_id`, `created_at`) -- both of
+which are a live run's own concern (assigned once, by whatever session
+starts the run), not an interview decision, and so are never derived from
+a clock or any other source of variation *inside* this module.
+`compile_workflow` only ever consumes the fields it needs (`run_id`,
+`created_at`, `outcome`, `shape`, `named_inputs`,
+`outcome_involves_test_tree`, `profile`); the ones it does not consume
+(`output_root`, `language`, `state`, `stop`, `approval`, `intent`) belong
+to a later authoring gate and are ignored here rather than rejected, so
+this module never has to mirror gate_defaults's own field list to stay in
+sync with it. tests/test_compile_workflow.py's fixture builder calls
+`gate_defaults.author_fields` directly to build realistic `decisions`
+mappings rather than hand-rolling an equivalent shape -- today that test
+fixture builder is the only place either salvaged module is actually
+invoked; reusing their *logic* (not reimplementing which fields to ask,
+skip, or default) is what "reuse plan_interview.py and gate_defaults.py"
+means for this task, and is satisfied without either import existing in
+this module's own runtime path.
 
 Two workflow shapes, generated deterministically from `decisions["shape"]`:
 
