@@ -412,7 +412,7 @@ class TaskStatusTest(unittest.TestCase):
             "sender": "agent:worker-1",
             "recipient": "orchestrator",
             "kind": "result",
-            "payload": {"task_id": "analyze", "outcome": "passed"},
+            "payload": {"task_id": "analyze", "attempt": 1, "outcome": "passed"},
             "created_at": "2026-09-04T12:00:00Z",
         })
         state = reduce([result])
@@ -426,7 +426,7 @@ class TaskStatusTest(unittest.TestCase):
             "sender": "agent:worker-1",
             "recipient": "orchestrator",
             "kind": "result",
-            "payload": {"task_id": "analyze", "outcome": "failed"},
+            "payload": {"task_id": "analyze", "attempt": 1, "outcome": "failed"},
             "created_at": "2026-09-04T12:00:00Z",
         })
         state = reduce([result])
@@ -440,7 +440,10 @@ class TaskStatusTest(unittest.TestCase):
             "sender": "agent:worker-1",
             "recipient": "orchestrator",
             "kind": "result",
-            "payload": {"task_id": "analyze", "outcome": "unknown"},
+            # attempt is included (valid) so this isolates the outcome
+            # check itself; ResultAttemptMandatoryTest covers a missing
+            # attempt on its own.
+            "payload": {"task_id": "analyze", "attempt": 1, "outcome": "unknown"},
             "created_at": "2026-09-04T12:00:00Z",
         })
         with self.assertRaises(Blocked) as ctx:
@@ -452,7 +455,8 @@ class TaskStatusTest(unittest.TestCase):
         # outcome ("") used to short-circuit the `if task_id and outcome`
         # guard before the VALID_OUTCOMES check ever ran, silently leaving
         # the task "running" forever. Presence, not truthiness, must gate
-        # validation.
+        # validation. attempt is included (valid) so this test still
+        # isolates the outcome check now that attempt is also mandatory.
         result = Envelope.from_dict({
             "schema_version": 1,
             "envelope_id": "env-1",
@@ -460,7 +464,7 @@ class TaskStatusTest(unittest.TestCase):
             "sender": "agent:worker-1",
             "recipient": "orchestrator",
             "kind": "result",
-            "payload": {"task_id": "analyze", "outcome": ""},
+            "payload": {"task_id": "analyze", "attempt": 1, "outcome": ""},
             "created_at": "2026-09-04T12:00:00Z",
         })
         with self.assertRaises(Blocked) as ctx:
@@ -475,7 +479,7 @@ class TaskStatusTest(unittest.TestCase):
             "sender": "agent:worker-1",
             "recipient": "orchestrator",
             "kind": "result",
-            "payload": {"task_id": "analyze", "outcome": None},
+            "payload": {"task_id": "analyze", "attempt": 1, "outcome": None},
             "created_at": "2026-09-04T12:00:00Z",
         })
         with self.assertRaises(Blocked) as ctx:
@@ -502,6 +506,9 @@ class TaskStatusTest(unittest.TestCase):
         # [request(t1), result(t1, outcome="")] must raise Blocked rather
         # than leave t1 stranded at "running" forever (which used to make
         # next_tasks return () for anything depending on t1, permanently).
+        # attempt is included (valid) on the result so this keeps isolating
+        # the original outcome-truthiness regression now that a result's
+        # own attempt is separately mandatory (ResultAttemptMandatoryTest).
         request = Envelope.from_dict({
             "schema_version": 1,
             "envelope_id": "env-1",
@@ -519,11 +526,12 @@ class TaskStatusTest(unittest.TestCase):
             "sender": "agent:worker-1",
             "recipient": "orchestrator",
             "kind": "result",
-            "payload": {"task_id": "t1", "outcome": ""},
+            "payload": {"task_id": "t1", "attempt": 1, "outcome": ""},
             "created_at": "2026-09-04T12:00:01Z",
         })
-        with self.assertRaises(Blocked):
+        with self.assertRaises(Blocked) as ctx:
             reduce([request, result])
+        self.assertIn("outcome", ctx.exception.detail)
 
     def test_task_status_progression_through_workflow(self):
         envelopes = [
@@ -544,7 +552,7 @@ class TaskStatusTest(unittest.TestCase):
                 "sender": "agent:worker-1",
                 "recipient": "orchestrator",
                 "kind": "result",
-                "payload": {"task_id": "discover", "outcome": "passed"},
+                "payload": {"task_id": "discover", "attempt": 1, "outcome": "passed"},
                 "created_at": "2026-09-04T12:00:01Z",
             }),
             Envelope.from_dict({
@@ -731,26 +739,16 @@ class RequestAttemptValidationTest(unittest.TestCase):
 
 
 class ResultAttemptValidationTest(unittest.TestCase):
-    # FIX 4(a)'s other half: type validation on 'result' payloads too, but
-    # (per the module docstring) no sequencing rule -- that lives only on
-    # 'request', which is what actually claims a new attempt.
+    # FIX 4(a)'s other half: type validation on 'result' payloads, plus
+    # (Outcome 2 Task 5 quality-review FINDING 2) mandatory presence too,
+    # exactly like 'request' -- but still no sequencing rule, since a
+    # result never claims a *new* attempt the way a request does; see
+    # ResultAttemptMandatoryTest below for the presence guarantee itself
+    # and the module docstring for why root reversed the original
+    # presence-gated design.
 
     def test_valid_attempt_on_result_is_accepted(self):
         state = reduce([_result_with_attempt("task-1", 1, "passed", envelope_id="env-1")])
-        self.assertEqual(status_of(state, "task-1"), "passed")
-
-    def test_missing_attempt_on_result_is_still_valid(self):
-        result = Envelope.from_dict({
-            "schema_version": 1,
-            "envelope_id": "env-1",
-            "run_id": "run-1",
-            "sender": "agent:worker-1",
-            "recipient": "orchestrator",
-            "kind": "result",
-            "payload": {"task_id": "task-1", "outcome": "passed"},
-            "created_at": "2026-09-04T12:00:00Z",
-        })
-        state = reduce([result])
         self.assertEqual(status_of(state, "task-1"), "passed")
 
     def test_non_integer_attempt_on_result_is_blocked(self):
@@ -772,6 +770,100 @@ class ResultAttemptValidationTest(unittest.TestCase):
         with self.assertRaises(Blocked) as ctx:
             reduce([_result_with_attempt("task-1", -1, "passed", envelope_id="env-1")])
         self.assertIn("attempt", ctx.exception.detail)
+
+
+class ResultAttemptMandatoryTest(unittest.TestCase):
+    # Outcome 2 Task 5 quality-review FINDING 2: `attempt` is now
+    # MANDATORY on a task-resolving 'result' envelope (one carrying both
+    # `task_id` and `outcome`), mirroring RequestAttemptValidationTest's
+    # coverage of the same guarantee on 'request'. Root reproduced the
+    # exact gap this closes: an attempt-less result let oqc.verify's
+    # (task_id, attempt) pairing fall back to a weaker task_id-only match,
+    # so a forged result with no attempt at all could resolve a task no
+    # specific attempt of ever actually corresponded to.
+
+    def test_missing_attempt_on_a_task_resolving_result_is_blocked(self):
+        result = Envelope.from_dict({
+            "schema_version": 1,
+            "envelope_id": "env-1",
+            "run_id": "run-1",
+            "sender": "agent:worker-1",
+            "recipient": "orchestrator",
+            "kind": "result",
+            "payload": {"task_id": "task-1", "outcome": "passed"},
+            "created_at": "2026-09-04T12:00:00Z",
+        })
+        with self.assertRaises(Blocked) as ctx:
+            reduce([result])
+        self.assertIn("attempt", ctx.exception.detail)
+
+    def test_missing_attempt_is_blocked_even_after_a_genuine_request(self):
+        # Root's exact reproduction: a genuine request for task-b, then a
+        # result reporting on it with no attempt at all. Must be rejected
+        # here regardless of any 'request' that came before it -- a
+        # result's own attempt field is never inferred from context.
+        request = Envelope.from_dict({
+            "schema_version": 1,
+            "envelope_id": "env-1",
+            "run_id": "run-1",
+            "sender": "orchestrator",
+            "recipient": "agent:worker-1",
+            "kind": "request",
+            "payload": {"task_id": "task-b", "attempt": 1},
+            "created_at": "2026-09-04T12:00:00Z",
+        })
+        result = Envelope.from_dict({
+            "schema_version": 1,
+            "envelope_id": "env-2",
+            "run_id": "run-1",
+            "sender": "agent:worker-1",
+            "recipient": "orchestrator",
+            "kind": "result",
+            "payload": {"task_id": "task-b", "outcome": "passed"},
+            "created_at": "2026-09-04T12:00:01Z",
+        })
+        with self.assertRaises(Blocked) as ctx:
+            reduce([request, result])
+        self.assertIn("attempt", ctx.exception.detail)
+
+    def test_a_result_with_only_attempt_and_no_outcome_does_not_require_it(self):
+        # attempt is mandatory on a *task-resolving* result specifically
+        # (task_id and outcome both present) -- a result payload missing
+        # outcome never reaches the task_status/attempt-mandatory branch
+        # at all, exactly like a 'request' payload with no task_id is
+        # simply not a task-dispatching request and carries no
+        # requirement either. This does not weaken the guarantee: such a
+        # 'result' resolves nothing (task_status is left untouched).
+        result = Envelope.from_dict({
+            "schema_version": 1,
+            "envelope_id": "env-1",
+            "run_id": "run-1",
+            "sender": "agent:worker-1",
+            "recipient": "orchestrator",
+            "kind": "result",
+            "payload": {"task_id": "task-1"},
+            "created_at": "2026-09-04T12:00:00Z",
+        })
+        state = reduce([result])
+        self.assertEqual(status_of(state, "task-1"), "pending")
+
+    def test_a_request_in_flight_with_no_result_yet_still_reduces_cleanly(self):
+        # Guard against over-rejection: mandatory attempt applies to
+        # 'result' envelopes, not to a task that simply has no result
+        # envelope at all yet. A lone in-flight request must still reduce
+        # to 'running' without raising.
+        request = Envelope.from_dict({
+            "schema_version": 1,
+            "envelope_id": "env-1",
+            "run_id": "run-1",
+            "sender": "orchestrator",
+            "recipient": "agent:worker-1",
+            "kind": "request",
+            "payload": {"task_id": "task-1", "attempt": 1},
+            "created_at": "2026-09-04T12:00:00Z",
+        })
+        state = reduce([request])
+        self.assertEqual(status_of(state, "task-1"), "running")
 
 
 class DuplicateAttemptRejectionTest(unittest.TestCase):

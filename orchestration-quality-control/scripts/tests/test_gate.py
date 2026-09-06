@@ -43,7 +43,7 @@ def _worker_result(task_id, outcome, *, envelope_id, run_id="run-1"):
         "sender": "agent:worker-1",
         "recipient": "orchestrator",
         "kind": "result",
-        "payload": {"task_id": task_id, "outcome": outcome},
+        "payload": {"task_id": task_id, "attempt": 1, "outcome": outcome},
         "created_at": "2026-09-05T12:00:01Z",
     })
 

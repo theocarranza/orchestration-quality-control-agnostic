@@ -46,12 +46,27 @@ or one that skips ahead, is rejected here, in the reducer, rather than by
 the mailbox (which stays a dumb append-only log with no opinion about
 payload shape). `attempts` (the derived mapping this validation feeds) is
 exact only because both the mandatory-presence check and the sequencing
-rejection hold. `result` envelopes get type validation on `attempt` when
-present (still presence-gated: a missing `attempt` there is not the same
-defect, since a result is reporting on an attempt a request already
-claimed and counted, not claiming a new one itself) but no mandatory
-requirement and no sequencing rule -- (b)/(c) in the fix, and this
-follow-up, are request-only.
+rejection hold.
+
+`result` envelopes (Outcome 2 Task 5 quality-review FINDING 2, a second
+reversal of the same shape as the one above). `attempt` is now MANDATORY
+on a task-resolving `result` too -- one carrying both `task_id` and
+`outcome` -- present and a non-negative integer, Blocked naming the field
+when missing, with no sequencing rule (a result never claims a *new*
+attempt number the way a request does, so there is nothing to check it
+against; `attempts` above is still built only from `request` envelopes).
+This module previously left `result`'s `attempt` presence-gated, on the
+reasoning that a result merely echoes an attempt a request already
+claimed and counted, not claiming a new one itself -- true of *counting*,
+but root reproduced why it was wrong about *pairing*: the mailbox
+structural-integrity check (Outcome 2 Task 5, a separate module this
+module must stay importable without -- see that module's own tests)
+identifies which attempt a `result` resolves by `(task_id, attempt)`, and
+an attempt-less result let a second, forged result silently resolve a
+task with nothing to pair against, overriding a real prior outcome with
+no trace of the mismatch anywhere. Closing this here, not only in that
+higher-layer check, means a `result` cannot be reduced into any
+`RunState` at all without declaring which attempt it resolves.
 """
 
 from dataclasses import dataclass
@@ -279,26 +294,6 @@ def _apply(state, envelope):
             attempts[task_id] = attempt
     elif envelope.kind == "result":
         payload = envelope.payload
-        # attempt on a result gets the same type validation as on a
-        # request (presence-gated), but no sequencing rule: a result is
-        # reporting on an attempt a request already claimed and validated,
-        # not claiming a new one itself.
-        if hasattr(payload, "get") and "attempt" in payload:
-            attempt = payload.get("attempt")
-            if (
-                not isinstance(attempt, int)
-                or isinstance(attempt, bool)
-                or attempt < 0
-            ):
-                raise Blocked(
-                    stage=STAGE,
-                    reason_code="malformed_checkpoint",
-                    detail=(
-                        f"'result' envelope payload['attempt'] must be a "
-                        f"non-negative integer, got {attempt!r}"
-                    ),
-                    recovery_action="set payload['attempt'] to a non-negative integer",
-                )
         # Presence, not truthiness: `if task_id and outcome:` used to let a
         # present-but-falsy outcome (e.g. "") short-circuit before the
         # VALID_OUTCOMES check ever ran, silently leaving the task stranded
@@ -322,6 +317,67 @@ def _apply(state, envelope):
                     ),
                     recovery_action="set payload['task_id'] to a non-empty string",
                 )
+
+            # attempt is now MANDATORY on a task-resolving 'result'
+            # envelope (Outcome 2 Task 5 quality-review FINDING 2),
+            # exactly as it already is on a task-dispatching 'request'
+            # above -- present, a non-negative int, Blocked naming the
+            # field when missing. Root's Task 4 reasoning for presence-
+            # gating this instead ("a result echoes an attempt a request
+            # already claimed and counted, not claiming a new one
+            # itself") was right about *counting* -- `attempts` below is
+            # still built only from 'request' envelopes, and this
+            # mandatory check adds no sequencing rule, unlike request's
+            # own expected-next check -- but wrong about *pairing*: the
+            # mailbox structural-integrity check (Outcome 2 Task 5, a
+            # separate higher-layer module this one must stay importable
+            # without) identifies which attempt a 'result' resolves by
+            # (task_id, attempt), and an attempt-less result let a second,
+            # forged result silently resolve a task with no attempt of
+            # its own to pair against, overriding whatever the real
+            # attempt actually reported. Root reproduced this directly:
+            #     request(task-a, attempt=1)
+            #     result(task-a, attempt=1, outcome=failed, critique=...)
+            #     result(task-a, attempt=1, outcome=passed)   # 2nd id
+            # and separately:
+            #     request(task-b, attempt=1)
+            #     result(task-b, outcome=passed)               # no attempt
+            # both of which that higher-layer check's task_id-only
+            # fallback let through as if they paired cleanly. Closing this
+            # at the source (here) rather than only up there means a
+            # 'result' simply cannot be reduced into any RunState at all
+            # without declaring which attempt it resolves, so that
+            # (task_id, attempt) pairing check is never handed a result
+            # it cannot pair unambiguously.
+            if "attempt" not in payload:
+                raise Blocked(
+                    stage=STAGE,
+                    reason_code="malformed_checkpoint",
+                    detail=(
+                        "'result' envelope payload is missing required "
+                        "field 'attempt'"
+                    ),
+                    recovery_action=(
+                        "set payload['attempt'] to the attempt number this "
+                        "result is resolving"
+                    ),
+                )
+            attempt = payload.get("attempt")
+            if (
+                not isinstance(attempt, int)
+                or isinstance(attempt, bool)
+                or attempt < 0
+            ):
+                raise Blocked(
+                    stage=STAGE,
+                    reason_code="malformed_checkpoint",
+                    detail=(
+                        f"'result' envelope payload['attempt'] must be a "
+                        f"non-negative integer, got {attempt!r}"
+                    ),
+                    recovery_action="set payload['attempt'] to a non-negative integer",
+                )
+
             if outcome not in VALID_OUTCOMES:
                 raise Blocked(
                     stage=STAGE,

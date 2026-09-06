@@ -66,7 +66,7 @@ class NextTasksTest(unittest.TestCase):
             "sender": "agent:worker-1",
             "recipient": "orchestrator",
             "kind": "result",
-            "payload": {"task_id": "task-1", "outcome": "failed"},
+            "payload": {"task_id": "task-1", "attempt": 1, "outcome": "failed"},
             "created_at": "2026-09-04T12:00:00Z",
         })
         state = reduce([result_failed])
@@ -85,7 +85,7 @@ class NextTasksTest(unittest.TestCase):
             "sender": "agent:worker-1",
             "recipient": "orchestrator",
             "kind": "result",
-            "payload": {"task_id": "task-1", "outcome": "passed"},
+            "payload": {"task_id": "task-1", "attempt": 1, "outcome": "passed"},
             "created_at": "2026-09-04T12:00:00Z",
         })
         state = reduce([result_passed])
@@ -112,7 +112,7 @@ class NextTasksTest(unittest.TestCase):
             "sender": "agent:worker-1",
             "recipient": "orchestrator",
             "kind": "result",
-            "payload": {"task_id": "root", "outcome": "passed"},
+            "payload": {"task_id": "root", "attempt": 1, "outcome": "passed"},
             "created_at": "2026-09-04T12:00:00Z",
         })
         state = reduce([root_passes])
@@ -127,7 +127,7 @@ class NextTasksTest(unittest.TestCase):
             "sender": "agent:worker-1",
             "recipient": "orchestrator",
             "kind": "result",
-            "payload": {"task_id": "left", "outcome": "passed"},
+            "payload": {"task_id": "left", "attempt": 1, "outcome": "passed"},
             "created_at": "2026-09-04T12:00:01Z",
         })
         state = reduce([root_passes, left_passes])
@@ -142,7 +142,7 @@ class NextTasksTest(unittest.TestCase):
             "sender": "agent:worker-1",
             "recipient": "orchestrator",
             "kind": "result",
-            "payload": {"task_id": "right", "outcome": "passed"},
+            "payload": {"task_id": "right", "attempt": 1, "outcome": "passed"},
             "created_at": "2026-09-04T12:00:02Z",
         })
         state = reduce([root_passes, left_passes, right_passes])

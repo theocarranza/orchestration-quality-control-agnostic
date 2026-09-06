@@ -310,9 +310,27 @@ Create `scripts/compile_prompt.py`, `scripts/oqc.py` and their tests, adding
 `compile_brief` and replay/verify. `oqc.py` is the single CLI/library boundary;
 the kernel stays importable without it.
 
+**Scope clarified by root on 2026-09-05, before starting.** `oqc.py` cannot be a
+CLI boundary with nothing to drive, and replay needs a real run to replay, so
+this task also owns the orchestrator `drive` loop that Task 4 kept inside its
+test fixtures. Two findings carried from Task 4 land here: the loop must record
+a RETRY decision durably when it makes it, and it must compose `relay_question`
+and `enforce_policy` with the gate rather than leaving two of the port's four
+operations proven only in isolation.
+
+`verify` checks structural invariants — unique envelope ids, one consistent
+`run_id`, legal sender/recipient pairs, sequential attempts, and no result
+without its request. It is **not** cryptographic. ADR 0014 decision 2 names
+"artifact and brief hashes", but `Envelope` carries no hash field and
+`envelope.schema.json` is frozen for this outcome, so a tampered payload that
+violates no invariant is out of reach here. That gap is deliberate and belongs
+to Outcome 3, where real adapters make artifact hashing meaningful; it must not
+be described as covered.
+
 Tests must prove: a compiled brief is deterministic for identical input; replay
-of a mailbox reproduces the same derived state; and verify detects a tampered
-event log.
+of a mailbox reproduces the same derived state; and verify detects tampering
+that violates a structural invariant — reordering, deletion, a duplicated id, a
+forged result with no request, and a broken attempt sequence.
 
 ### Task 6: the deterministic validation and compilation boundary
 

@@ -374,3 +374,99 @@ either state, so the outcome is satisfied.
 
 Both are real; neither is a Task 4 defect. Folding them in would have blurred
 what this task's evidence actually proves.
+
+## Checkpoint — Outcome 2 Task 5 — 2026-09-06T06:39:12-03:00
+
+```text
+time: 2026-09-06T06:39:12-03:00
+task: Outcome 2 Task 5 — brief compilation, orchestrator loop, replay/verify, CLI
+attempt: 3 of 3
+worker model: claude-sonnet-5
+worker effort: not settable on this host
+spec validator: claude-sonnet-5, read-only, PASS with three decisions to record
+quality reviewer: claude-sonnet-5, fresh agent, FINDINGS (4), all fixed
+commands:
+  command: PYTHONPATH=... python3.12 -m unittest discover -s .../scripts/tests
+  counts: 412 tests, OK (341 entering the task)
+  command: root verification — duplicate result, attempt-less forgery, in-flight request
+  counts: both forgeries blocked; a healthy in-flight request still verifies clean
+  command: other five suites
+  counts: not run — nothing outside scripts/ changed; Task 7 owns the sweep
+commit hash: pending
+next: Outcome 2 Task 6 — the deterministic validation and compilation boundary
+```
+
+Delivered `compile_prompt.py` and `oqc.py` with the orchestrator `drive` loop,
+`replay`, `verify` and a thin CLI. The kernel stays importable without `oqc`,
+asserted by a test that scans every kernel module's source.
+
+### Both Task 4 findings closed
+
+A RETRY decision now writes a durable status envelope the instant
+`retry_or_block` returns it, before compiling or spawning. The test truncates a
+mailbox immediately after that envelope and confirms replay shows a retry was
+decided rather than a bare `failed` indistinguishable from abandonment.
+`enforce_policy` composes pre-spawn, `relay_question` on the terminal path.
+
+The implementer declined to make `awaiting-user-input` reachable, and was right
+to. `gate.retry_or_block` is the sole authority over that decision per ADR 0014
+decision 4; having `drive` fabricate the phase would have moved a state
+transition outside the engine to satisfy a checklist item. It asserted the phase
+stays unreachable instead.
+
+### The defect that mattered, and root's own error behind it
+
+Quality found that a **duplicate result silently overrides a real failure**.
+Reproduced through plain `Mailbox.append`: a genuine `failed` result followed by
+a `passed` result for the same `(task_id, attempt)` left the task `passed`, with
+`verify` raising nothing. Not tampering — the ordinary public API. An Outcome 3
+adapter that double-reports on a flaky transport would flip a failure into a
+pass with nothing recorded.
+
+It also found that an **attempt-less result could forge a resolution**, because
+`verify` fell back to task_id-only matching when `attempt` was absent, so any
+prior request satisfied it.
+
+That second one is root's error. In Task 4 root explicitly instructed that
+`attempt` stay presence-gated on results, reasoning that a result echoes an
+attempt rather than being counted. Correct about counting, wrong about pairing:
+`verify` pairs on attempt, so an absent attempt is a forgery path. Root reversed
+it and fixed it at the source rather than patching around it in `verify`.
+
+### A pattern worth naming before the gate
+
+This is the second time a root freeze instruction produced the gap the next
+review found. Task 4 round 2 presence-gated `attempt` on requests to avoid
+touching a frozen `test_router.py`; Task 5 inherited the same shape on results.
+Both times a guarantee was quietly weakened to fit the freeze, and both times
+the weakening looked like a design choice rather than an artifact of scope.
+
+Freezing files remains the right default — it is what kept every task's diff
+reviewable. But the failure mode is real, and the mitigation is cheap: when a
+worker narrows a guarantee to respect a freeze, that narrowing must be reported
+as a scope consequence, not folded into the design rationale.
+
+### Scope discipline worth recording
+
+Making `attempt` mandatory on results broke 18 fixtures in two frozen files. The
+implementer implemented the instruction, hit the wall, refused to widen its own
+scope, named the exact blast radius, and cited Task 4's identical precedent
+without acting on it. Root verified the radius independently — 15 in
+`test_gate.py`, 3 in `test_router.py`, nothing else — and widened scope.
+
+A mandatory field eighteen fixtures can opt out of is not mandatory. The fix was
+one shared helper plus five literals.
+
+### Recorded decisions, not defects
+
+- `drive` takes an explicit `run_id`. `RunSpec` already carries one, so Task 6
+  wires `drive(..., run_id=run_spec.run_id)` rather than inventing identity.
+- `drive` halts the whole run on any terminal decision rather than continuing
+  independent branches. It matches this outcome's two-task fixtures; Task 6 can
+  emit parallel branches, so the boundary is disclosed in the docstring and
+  recorded here.
+- `verify` is structural, not cryptographic, and its docstring says so and why.
+  ADR 0014 decision 2's artifact and brief hashes need an envelope field the
+  frozen schema does not have. That belongs to Outcome 3.
+- `drive`'s loop is provably bounded: outer by task count, inner by
+  `max_attempts`, both validated positive integers.
