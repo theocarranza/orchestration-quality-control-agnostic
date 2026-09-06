@@ -299,3 +299,76 @@ than invents:
   persisted mailbox exists outside tests, so no migration path is owed.
 - `AdapterPort._append` computes the chain. It is already the single choke point
   every envelope passes through, so producers stay unaware of hashing.
+
+## Checkpoint — Outcome 3 Task 1 — 2026-09-06T15:31:57-03:00
+
+```text
+time: 2026-09-06T15:31:57-03:00
+task: Outcome 3 Task 1 — envelope hash chain and cryptographic verify
+attempt: 2 of 3
+worker model: claude-sonnet-5
+worker effort: not settable on this host
+spec validator: not yet dispatched
+quality reviewer: not yet dispatched
+commands:
+  command: PYTHONPATH=... python3.12 -m unittest discover -s .../scripts/tests
+  counts: 472 tests, OK (443 entering the task)
+  command: root verification — payload tamper, chain, unconstructable fields
+  counts: all confirmed by execution, below
+commit hash: pending
+next: both reviews on Task 1, then Task 2 — the branch-halting decision
+```
+
+`Envelope` gains `previous_hash`, chaining each entry to its predecessor.
+`schema_version` bumps to 2. `oqc.verify` walks the chain and is no longer
+structural-only.
+
+### The case Outcome 2 could not reach
+
+Root reproduced it: altering a request envelope's `payload` — breaking no
+structural invariant, no duplicate id, no forged pairing, no broken sequence —
+is now caught, `envelope 'env-2' has previous_hash ...`. That single case is why
+this task existed and why it went first.
+
+### The honest limit, stated rather than implied
+
+The last envelope is unpinned by construction: nothing follows it to carry its
+hash. `verify` returns the head hash for external anchoring and says so in its
+docstring, and a test asserts the gap explicitly rather than leaving it for a
+reader to discover. This file has already produced two docstrings claiming
+mechanisms the code lacked; an implied "the chain protects the whole log" would
+have been the third.
+
+### Root's scoping error, and what the worker did with it
+
+Attempt 1 returned `NEEDS_CONTEXT`. Root had designed `AdapterPort._append` as
+the single choke point every envelope passes through, then wrote a write-path
+list omitting `fake_adapter.py` — the one module that builds complete envelopes
+*upstream* of that choke point. 38 errors, every one carrying `previous_hash`.
+The design was right; the scoping was wrong.
+
+**This is the third time a root freeze list has caused the problem the next round
+had to fix** — `test_router` in Outcome 2 Task 4, `test_gate`/`test_router` in
+Task 5, `fake_adapter` here. The earlier two narrowed a guarantee to fit the
+freeze; this one blocked the work outright, which is the better failure of the
+two because it is loud. Freezing by module name does not track data flow, and a
+wire-format change touches everything that constructs the record.
+
+Given the widening, the worker made the fix stronger than asked. Rather than
+having the fake adapter merely supply the new field, it removed `previous_hash`
+and `schema_version` from `_append`'s signature entirely, so neither is
+expressible by any adapter. Root verified: `inspect.signature` contains neither.
+That is the same principle that made illegal sender/recipient pairs
+unconstructable in Outcome 2 — make the correct thing the only expressible
+thing — applied to the wire contract. Root endorses it, including the extension
+to `schema_version`, which was beyond the literal brief and correctly flagged.
+
+Task 4 builds the first real host adapter by copying this shape, so an adapter
+that *could* hand-build a fully-formed envelope would eventually hand-build one
+wrong. Now none can.
+
+### Unrelated stray, untouched
+
+An untracked `AI_Codex/Implementation_Plans/2026-09-02-handoff-implementation-orchestration (copy).md`
+appeared in the vault. Not root's, not in any brief's write paths, so it is
+neither committed nor deleted. Flagged for the owner.

@@ -12,7 +12,7 @@ from gate import (
     gate_result,
     retry_or_block,
 )
-from kernel_specs import Envelope
+from kernel_specs import Envelope, GENESIS_HASH
 from qc_lib import Blocked
 from run_state import PHASES, reduce
 
@@ -24,7 +24,8 @@ def _request(task_id, *, envelope_id, run_id="run-1", attempt=1):
     # request for a given task_id in an otherwise-empty reduce, so 1 is
     # always the correct next attempt.
     return Envelope.from_dict({
-        "schema_version": 1,
+        "schema_version": 2,
+        "previous_hash": GENESIS_HASH,
         "envelope_id": envelope_id,
         "run_id": run_id,
         "sender": "orchestrator",
@@ -37,7 +38,8 @@ def _request(task_id, *, envelope_id, run_id="run-1", attempt=1):
 
 def _worker_result(task_id, outcome, *, envelope_id, run_id="run-1"):
     return Envelope.from_dict({
-        "schema_version": 1,
+        "schema_version": 2,
+        "previous_hash": GENESIS_HASH,
         "envelope_id": envelope_id,
         "run_id": run_id,
         "sender": "agent:worker-1",

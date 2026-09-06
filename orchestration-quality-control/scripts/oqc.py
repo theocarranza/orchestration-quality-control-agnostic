@@ -26,10 +26,12 @@ No judgment leaks into the adapter, per ADR 0014 decision 0.
 """
 
 import argparse
+from dataclasses import dataclass
 
 from adapter_port import AdapterPort
 from compile_prompt import compile_brief
 from gate import PASSED, RETRY, gate_result, retry_or_block
+from kernel_specs import GENESIS_HASH
 from mailbox import Mailbox
 from qc_lib import Blocked, run_main, thaw
 from router import next_tasks, validate_pair
@@ -352,27 +354,55 @@ def replay(mailbox):
 
 
 # ---------------------------------------------------------------------------
-# verify(): structural integrity only.
+# verify(): structural integrity, plus the cryptographic hash chain.
 # ---------------------------------------------------------------------------
 
 
+@dataclass(frozen=True)
+class VerifyResult:
+    """What `verify` returns: derived state, plus the mailbox's head hash.
+
+    `state` is exactly what `replay` would have returned for the same
+    mailbox. `head_hash` is `kernel_specs.Envelope.hash()` of the last
+    envelope in the mailbox (`kernel_specs.GENESIS_HASH` for an empty
+    mailbox) -- see `verify`'s own docstring for why a caller needs this
+    value and cannot get it any other way.
+    """
+
+    state: object
+    head_hash: str
+
+
 def verify(mailbox):
-    """Check a mailbox's structural invariants; raise `qc_lib.Blocked`
-    naming the first violation found.
+    """Check a mailbox's structural invariants and its hash chain; raise
+    `qc_lib.Blocked` naming the first violation found.
 
-    This is **not** cryptographic. `kernel_specs.Envelope` carries no
-    hash field, and `schemas/envelope.schema.json` is frozen for this
-    outcome, so a tampered *payload* that violates none of the checks
-    below is out of reach here -- e.g. an attacker who edits a result's
-    `outcome` from 'failed' to 'passed' without disturbing ids, pairing,
-    or attempt sequencing leaves nothing for this function to notice.
-    ADR 0014 decision 2 names "artifact and brief hashes" as part of the
-    eventual verifiability story; that gap is deliberate, belongs to
-    Outcome 3 (where real adapters make content hashing meaningful), and
-    must not be read as covered by this function.
+    Structural checks (1-4 below) and the hash chain (5) together cover
+    every named tampering class: a hand-edited payload that changes an
+    outcome, id, or ordering, whether or not it also breaks the chain.
+    Before Outcome 3, `kernel_specs.Envelope` carried no hash field at
+    all, so a tampered *payload* that disturbed none of checks 1-4 (e.g.
+    editing a result's `outcome` from 'failed' to 'passed' without
+    touching any id, pairing, or attempt sequencing) was out of this
+    function's reach. Check 5 closes exactly that gap: any edit to any
+    envelope's canonical JSON -- including a payload edit that disturbs
+    nothing else -- changes that envelope's hash, which the *next*
+    envelope's `previous_hash` no longer matches.
 
-    What *is* checked, in this order, each raising `qc_lib.Blocked` on
-    the first violation found:
+    The one entry this still cannot protect is the last envelope in the
+    mailbox: nothing follows it to carry its hash forward, so a tamper
+    confined to that one entry changes nothing check 5 can compare against
+    -- there is no next `previous_hash` to disagree with it. That is why
+    this function returns `head_hash` (see `VerifyResult`): a caller that
+    records that value somewhere outside the mailbox itself (an external
+    log, a second run's first envelope, a signature) closes the gap for
+    everything except whatever is later appended after that recording; a
+    caller that never anchors it leaves the last entry unprotected
+    indefinitely. This function cannot anchor `head_hash` itself -- it has
+    no notion of "outside the mailbox" -- it can only hand the value back.
+
+    What is checked, in this order, each raising `qc_lib.Blocked` on the
+    first violation found:
 
     1. Every `envelope_id` is unique within the mailbox. `mailbox.Mailbox`
        already enforces this on every envelope that arrives through its
@@ -409,15 +439,21 @@ def verify(mailbox):
 
     4. No second 'result' answers a `(task_id, attempt)` pair already
        resolved (FINDING 1). A duplicated result -- a flaky transport's
-       retried callback in a real Outcome 3 adapter, or an outright
-       forgery -- must not be allowed to silently override a genuine
-       outcome (e.g. flip a recorded failure to a pass) just because its
-       `envelope_id` differs from the first. The *first* result for a
-       given `(task_id, attempt)` is accepted (and is what check 3 above
-       matches future results against); a second is rejected here, naming
-       the task and attempt, before this function ever gets to check 5.
+       retried callback in a real adapter, or an outright forgery -- must
+       not be allowed to silently override a genuine outcome (e.g. flip a
+       recorded failure to a pass) just because its `envelope_id` differs
+       from the first. The *first* result for a given `(task_id, attempt)`
+       is accepted (and is what check 3 above matches future results
+       against); a second is rejected here, naming the task and attempt,
+       before this function ever gets to check 5.
 
-    5. Run continuity and sequential per-task attempt numbering, by
+    5. The hash chain (Outcome 3 Task 1): for every envelope in order,
+       its `previous_hash` must equal `kernel_specs.GENESIS_HASH` if it is
+       the first envelope in the mailbox, or `kernel_specs.Envelope.hash()`
+       of the envelope immediately before it otherwise. `Blocked` names
+       the first envelope_id whose `previous_hash` does not match.
+
+    6. Run continuity and sequential per-task attempt numbering, by
        delegating to `run_state.reduce` -- both are already enforced
        there (`run_state._apply` rejects a second run_id mixed into one
        mailbox, and rejects a repeated or out-of-order attempt number
@@ -426,9 +462,10 @@ def verify(mailbox):
        function instead reuses it and lets whatever `qc_lib.Blocked`
        `reduce` raises propagate unchanged.
 
-    Returns the `run_state.RunState` `reduce` derived while performing
-    check 5, so a caller that already wants derived state does not need
-    a second pass over the mailbox.
+    Returns a `VerifyResult` carrying the `run_state.RunState` `reduce`
+    derived while performing check 6 (so a caller that already wants
+    derived state does not need a second pass over the mailbox) and the
+    mailbox's head hash (see above).
     """
     envelopes = mailbox.read_all()
 
@@ -490,7 +527,41 @@ def verify(mailbox):
                     )
                 answered_pairs.add(pair)
 
-    return reduce(envelopes)
+    # CHECK 5: the hash chain. A plain linear walk: each envelope's
+    # previous_hash must match the hash of whatever came immediately
+    # before it (or GENESIS_HASH, for the first). This is the check that
+    # makes a payload-only tamper -- one that disturbs none of checks 1-4
+    # above -- visible: editing anything in an envelope's canonical JSON
+    # (including its own previous_hash) changes that envelope's hash,
+    # which the following envelope's previous_hash then no longer equals.
+    expected_previous_hash = GENESIS_HASH
+    for envelope in envelopes:
+        if envelope.previous_hash != expected_previous_hash:
+            raise Blocked(
+                stage=STAGE,
+                reason_code="malformed_checkpoint",
+                detail=(
+                    f"envelope {envelope.envelope_id!r} has previous_hash "
+                    f"{envelope.previous_hash!r}, but the entry before it in "
+                    f"this mailbox hashes to {expected_previous_hash!r} -- "
+                    "the hash chain is broken"
+                ),
+                recovery_action=(
+                    "this mailbox has been tampered with, or was built "
+                    "without routing every envelope through "
+                    "adapter_port.AdapterPort._append; do not trust its "
+                    "history"
+                ),
+            )
+        expected_previous_hash = envelope.hash()
+
+    # expected_previous_hash now holds the hash of the mailbox's last
+    # envelope (or GENESIS_HASH, for an empty mailbox) -- the head hash a
+    # caller must anchor externally, since nothing in the mailbox itself
+    # protects this one entry. See this function's own docstring.
+    head_hash = expected_previous_hash
+
+    return VerifyResult(state=reduce(envelopes), head_hash=head_hash)
 
 
 # ---------------------------------------------------------------------------
@@ -558,8 +629,12 @@ def main():
 
     def body():
         mailbox = _load_mailbox_file(args.mailbox_path)
-        state = replay(mailbox) if args.command == "replay" else verify(mailbox)
-        return _state_to_dict(state)
+        if args.command == "replay":
+            return _state_to_dict(replay(mailbox))
+        result = verify(mailbox)
+        printed = _state_to_dict(result.state)
+        printed["head_hash"] = result.head_hash
+        return printed
 
     run_main(STAGE, body)
 

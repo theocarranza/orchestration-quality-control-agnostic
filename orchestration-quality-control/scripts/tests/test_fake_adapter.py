@@ -3,7 +3,7 @@ import unittest
 
 from adapter_port import AdapterPort
 from fake_adapter import FakeAdapter
-from kernel_specs import Envelope
+from kernel_specs import Envelope, GENESIS_HASH
 from mailbox import Mailbox
 from qc_lib import Blocked
 
@@ -161,7 +161,7 @@ class ResumeSeedingTest(unittest.TestCase):
                       agent_id="worker-1", brief={})
         # mailbox now has env-1, env-2 -- add a differently-schemed id too.
         mailbox.append(Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
             "envelope_id": "custom-id-abc",
             "run_id": "run-1",
             "sender": "orchestrator",
@@ -169,6 +169,7 @@ class ResumeSeedingTest(unittest.TestCase):
             "kind": "status",
             "payload": {"phase": "execution"},
             "created_at": "2026-01-01T00:00:03Z",
+            "previous_hash": GENESIS_HASH,
         }))
         seeded = FakeAdapter({("task-2", 1): {"outcome": "passed"}}, mailbox=mailbox)
         request, result = seeded.spawn(

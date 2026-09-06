@@ -2,7 +2,7 @@ import unittest
 from dataclasses import FrozenInstanceError
 from types import MappingProxyType
 
-from kernel_specs import Envelope
+from kernel_specs import Envelope, GENESIS_HASH
 from qc_lib import Blocked
 
 from run_state import PHASES, RunState, attempts_of, initial_state, reduce, status_of
@@ -13,7 +13,8 @@ def _status(phase, *, envelope_id="env-status", run_id="run-0001", extra=None):
     if extra:
         payload.update(extra)
     return Envelope.from_dict({
-        "schema_version": 1,
+        "schema_version": 2,
+        "previous_hash": GENESIS_HASH,
         "envelope_id": envelope_id,
         "run_id": run_id,
         "sender": "orchestrator",
@@ -26,7 +27,8 @@ def _status(phase, *, envelope_id="env-status", run_id="run-0001", extra=None):
 
 def _non_status(kind, *, envelope_id="env-other", run_id="run-0001"):
     return Envelope.from_dict({
-        "schema_version": 1,
+        "schema_version": 2,
+        "previous_hash": GENESIS_HASH,
         "envelope_id": envelope_id,
         "run_id": run_id,
         "sender": "orchestrator",
@@ -101,7 +103,8 @@ class ObservablePhasesTableTest(unittest.TestCase):
 
     def test_status_envelope_missing_phase_is_blocked(self):
         bad = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-bad",
             "run_id": "run-0001",
             "sender": "orchestrator",
@@ -155,7 +158,8 @@ class ReducePurityTest(unittest.TestCase):
         # `attempts` mapping for free, not just `task_status`.
         cls.TASK_SEQUENCE = [
             Envelope.from_dict({
-                "schema_version": 1,
+                "schema_version": 2,
+                "previous_hash": GENESIS_HASH,
                 "envelope_id": "env-1",
                 "run_id": "run-1",
                 "sender": "orchestrator",
@@ -165,7 +169,8 @@ class ReducePurityTest(unittest.TestCase):
                 "created_at": "2026-09-04T12:00:00Z",
             }),
             Envelope.from_dict({
-                "schema_version": 1,
+                "schema_version": 2,
+                "previous_hash": GENESIS_HASH,
                 "envelope_id": "env-2",
                 "run_id": "run-1",
                 "sender": "agent:worker-1",
@@ -365,7 +370,8 @@ class TaskStatusTest(unittest.TestCase):
     def test_task_status_contains_only_mentioned_tasks(self):
         # task_status only contains tasks that have been mentioned in envelopes
         request = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-1",
             "run_id": "run-1",
             "sender": "orchestrator",
@@ -392,7 +398,8 @@ class TaskStatusTest(unittest.TestCase):
 
     def test_request_envelope_marks_task_running(self):
         request = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-1",
             "run_id": "run-1",
             "sender": "orchestrator",
@@ -406,7 +413,8 @@ class TaskStatusTest(unittest.TestCase):
 
     def test_result_envelope_with_passed_marks_passed(self):
         result = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-1",
             "run_id": "run-1",
             "sender": "agent:worker-1",
@@ -420,7 +428,8 @@ class TaskStatusTest(unittest.TestCase):
 
     def test_result_envelope_with_failed_marks_failed(self):
         result = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-1",
             "run_id": "run-1",
             "sender": "agent:worker-1",
@@ -434,7 +443,8 @@ class TaskStatusTest(unittest.TestCase):
 
     def test_unknown_outcome_is_rejected(self):
         result = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-1",
             "run_id": "run-1",
             "sender": "agent:worker-1",
@@ -458,7 +468,8 @@ class TaskStatusTest(unittest.TestCase):
         # validation. attempt is included (valid) so this test still
         # isolates the outcome check now that attempt is also mandatory.
         result = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-1",
             "run_id": "run-1",
             "sender": "agent:worker-1",
@@ -473,7 +484,8 @@ class TaskStatusTest(unittest.TestCase):
 
     def test_none_outcome_is_rejected(self):
         result = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-1",
             "run_id": "run-1",
             "sender": "agent:worker-1",
@@ -488,7 +500,8 @@ class TaskStatusTest(unittest.TestCase):
 
     def test_empty_string_task_id_in_result_is_rejected(self):
         result = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-1",
             "run_id": "run-1",
             "sender": "agent:worker-1",
@@ -510,7 +523,8 @@ class TaskStatusTest(unittest.TestCase):
         # the original outcome-truthiness regression now that a result's
         # own attempt is separately mandatory (ResultAttemptMandatoryTest).
         request = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-1",
             "run_id": "run-1",
             "sender": "orchestrator",
@@ -520,7 +534,8 @@ class TaskStatusTest(unittest.TestCase):
             "created_at": "2026-09-04T12:00:00Z",
         })
         result = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-2",
             "run_id": "run-1",
             "sender": "agent:worker-1",
@@ -536,7 +551,8 @@ class TaskStatusTest(unittest.TestCase):
     def test_task_status_progression_through_workflow(self):
         envelopes = [
             Envelope.from_dict({
-                "schema_version": 1,
+                "schema_version": 2,
+                "previous_hash": GENESIS_HASH,
                 "envelope_id": "env-1",
                 "run_id": "run-1",
                 "sender": "orchestrator",
@@ -546,7 +562,8 @@ class TaskStatusTest(unittest.TestCase):
                 "created_at": "2026-09-04T12:00:00Z",
             }),
             Envelope.from_dict({
-                "schema_version": 1,
+                "schema_version": 2,
+                "previous_hash": GENESIS_HASH,
                 "envelope_id": "env-2",
                 "run_id": "run-1",
                 "sender": "agent:worker-1",
@@ -556,7 +573,8 @@ class TaskStatusTest(unittest.TestCase):
                 "created_at": "2026-09-04T12:00:01Z",
             }),
             Envelope.from_dict({
-                "schema_version": 1,
+                "schema_version": 2,
+                "previous_hash": GENESIS_HASH,
                 "envelope_id": "env-3",
                 "run_id": "run-1",
                 "sender": "orchestrator",
@@ -582,7 +600,8 @@ class TaskStatusTest(unittest.TestCase):
     def test_task_status_not_in_phase_progression(self):
         # Envelopes without task_id don't affect task_status
         request = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-1",
             "run_id": "run-1",
             "sender": "orchestrator",
@@ -597,7 +616,8 @@ class TaskStatusTest(unittest.TestCase):
 
 def _request_with_attempt(task_id, attempt, *, envelope_id, run_id="run-1"):
     return Envelope.from_dict({
-        "schema_version": 1,
+        "schema_version": 2,
+        "previous_hash": GENESIS_HASH,
         "envelope_id": envelope_id,
         "run_id": run_id,
         "sender": "orchestrator",
@@ -610,7 +630,8 @@ def _request_with_attempt(task_id, attempt, *, envelope_id, run_id="run-1"):
 
 def _result_with_attempt(task_id, attempt, outcome, *, envelope_id, run_id="run-1"):
     return Envelope.from_dict({
-        "schema_version": 1,
+        "schema_version": 2,
+        "previous_hash": GENESIS_HASH,
         "envelope_id": envelope_id,
         "run_id": run_id,
         "sender": "agent:worker-1",
@@ -639,7 +660,8 @@ class RequestAttemptValidationTest(unittest.TestCase):
 
     def test_missing_attempt_on_request_is_blocked(self):
         request = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-1",
             "run_id": "run-1",
             "sender": "orchestrator",
@@ -664,7 +686,8 @@ class RequestAttemptValidationTest(unittest.TestCase):
         # for that single-envelope case in isolation).
         def _request_without_attempt(envelope_id):
             return Envelope.from_dict({
-                "schema_version": 1,
+                "schema_version": 2,
+                "previous_hash": GENESIS_HASH,
                 "envelope_id": envelope_id,
                 "run_id": "run-1",
                 "sender": "orchestrator",
@@ -684,7 +707,8 @@ class RequestAttemptValidationTest(unittest.TestCase):
 
     def test_non_integer_attempt_on_request_is_blocked(self):
         request = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-1",
             "run_id": "run-1",
             "sender": "orchestrator",
@@ -706,7 +730,8 @@ class RequestAttemptValidationTest(unittest.TestCase):
         # bool is a subclass of int; True/False must not silently pass as
         # 1/0 (mirrors kernel_specs._require_const_int's guard).
         request = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-1",
             "run_id": "run-1",
             "sender": "orchestrator",
@@ -724,7 +749,8 @@ class RequestAttemptValidationTest(unittest.TestCase):
         # but invalid, and must be rejected exactly like a missing-but-
         # required task_id already is.
         request = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-1",
             "run_id": "run-1",
             "sender": "orchestrator",
@@ -753,7 +779,8 @@ class ResultAttemptValidationTest(unittest.TestCase):
 
     def test_non_integer_attempt_on_result_is_blocked(self):
         result = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-1",
             "run_id": "run-1",
             "sender": "agent:worker-1",
@@ -784,7 +811,8 @@ class ResultAttemptMandatoryTest(unittest.TestCase):
 
     def test_missing_attempt_on_a_task_resolving_result_is_blocked(self):
         result = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-1",
             "run_id": "run-1",
             "sender": "agent:worker-1",
@@ -803,7 +831,8 @@ class ResultAttemptMandatoryTest(unittest.TestCase):
         # here regardless of any 'request' that came before it -- a
         # result's own attempt field is never inferred from context.
         request = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-1",
             "run_id": "run-1",
             "sender": "orchestrator",
@@ -813,7 +842,8 @@ class ResultAttemptMandatoryTest(unittest.TestCase):
             "created_at": "2026-09-04T12:00:00Z",
         })
         result = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-2",
             "run_id": "run-1",
             "sender": "agent:worker-1",
@@ -835,7 +865,8 @@ class ResultAttemptMandatoryTest(unittest.TestCase):
         # requirement either. This does not weaken the guarantee: such a
         # 'result' resolves nothing (task_status is left untouched).
         result = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-1",
             "run_id": "run-1",
             "sender": "agent:worker-1",
@@ -853,7 +884,8 @@ class ResultAttemptMandatoryTest(unittest.TestCase):
         # envelope at all yet. A lone in-flight request must still reduce
         # to 'running' without raising.
         request = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-1",
             "run_id": "run-1",
             "sender": "orchestrator",

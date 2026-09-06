@@ -1,6 +1,6 @@
 import unittest
 
-from kernel_specs import Envelope, TaskDag
+from kernel_specs import Envelope, GENESIS_HASH, TaskDag
 from qc_lib import Blocked
 from router import next_tasks, validate_pair
 from run_state import reduce
@@ -37,7 +37,8 @@ class NextTasksTest(unittest.TestCase):
             {"task_id": "task-2", "role": "worker", "depends_on": ["task-1"]},
         ])
         request = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-1",
             "run_id": "run-1",
             "sender": "orchestrator",
@@ -60,7 +61,8 @@ class NextTasksTest(unittest.TestCase):
             {"task_id": "task-2", "role": "worker", "depends_on": ["task-1"]},
         ])
         result_failed = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-1",
             "run_id": "run-1",
             "sender": "agent:worker-1",
@@ -79,7 +81,8 @@ class NextTasksTest(unittest.TestCase):
             {"task_id": "task-2", "role": "worker", "depends_on": ["task-1"]},
         ])
         result_passed = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-1",
             "run_id": "run-1",
             "sender": "agent:worker-1",
@@ -106,7 +109,8 @@ class NextTasksTest(unittest.TestCase):
 
         # After root passes, both left and right are runnable
         root_passes = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-1",
             "run_id": "run-1",
             "sender": "agent:worker-1",
@@ -121,7 +125,8 @@ class NextTasksTest(unittest.TestCase):
 
         # After one passes, merge is not yet runnable
         left_passes = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-2",
             "run_id": "run-1",
             "sender": "agent:worker-1",
@@ -136,7 +141,8 @@ class NextTasksTest(unittest.TestCase):
 
         # After both pass, merge is runnable
         right_passes = Envelope.from_dict({
-            "schema_version": 1,
+            "schema_version": 2,
+            "previous_hash": GENESIS_HASH,
             "envelope_id": "env-3",
             "run_id": "run-1",
             "sender": "agent:worker-1",

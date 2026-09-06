@@ -1,7 +1,7 @@
 import unittest
 from types import MappingProxyType
 
-from kernel_specs import Envelope
+from kernel_specs import Envelope, GENESIS_HASH
 from qc_lib import Blocked
 
 from mailbox import Mailbox
@@ -9,7 +9,7 @@ from mailbox import Mailbox
 
 def _envelope(**overrides):
     data = {
-        "schema_version": 1,
+        "schema_version": 2,
         "envelope_id": "env-0001",
         "run_id": "run-0001",
         "sender": "root",
@@ -17,6 +17,7 @@ def _envelope(**overrides):
         "kind": "request",
         "payload": {"note": "begin"},
         "created_at": "2026-09-04T12:00:00Z",
+        "previous_hash": GENESIS_HASH,
     }
     data.update(overrides)
     return Envelope.from_dict(data)

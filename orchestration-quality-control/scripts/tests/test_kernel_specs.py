@@ -1,4 +1,7 @@
 import json
+import os
+import subprocess
+import sys
 import unittest
 from dataclasses import FrozenInstanceError
 from types import MappingProxyType
@@ -6,7 +9,7 @@ from types import MappingProxyType
 from tests import SCRIPTS_DIR
 
 from qc_lib import Blocked
-from kernel_specs import AgentSpec, Envelope, RunSpec, TaskNode, TaskDag
+from kernel_specs import AgentSpec, Envelope, GENESIS_HASH, RunSpec, TaskNode, TaskDag
 
 
 def _agent_dict(**overrides):
@@ -37,7 +40,7 @@ def _run_dict(**overrides):
 
 def _envelope_dict(**overrides):
     data = {
-        "schema_version": 1,
+        "schema_version": 2,
         "envelope_id": "env-0001",
         "run_id": "run-0001",
         "sender": "root",
@@ -45,6 +48,7 @@ def _envelope_dict(**overrides):
         "kind": "request",
         "payload": {"note": "begin"},
         "created_at": "2026-09-04T12:00:00+00:00",
+        "previous_hash": GENESIS_HASH,
     }
     data.update(overrides)
     return data
@@ -243,7 +247,7 @@ class EnvelopeTest(unittest.TestCase):
             "items": ["a", "b"],
         })
         envelope = Envelope(
-            schema_version=1,
+            schema_version=2,
             envelope_id="env-0002",
             run_id="run-0001",
             sender="root",
@@ -251,6 +255,7 @@ class EnvelopeTest(unittest.TestCase):
             kind="request",
             payload=payload,
             created_at="2026-09-04T12:00:00+00:00",
+            previous_hash=GENESIS_HASH,
         )
         with self.assertRaises(TypeError):
             envelope.payload["nested"]["inner"] = "MUTATED"
@@ -280,6 +285,133 @@ class EnvelopeTest(unittest.TestCase):
         second = restored.to_json()
         self.assertEqual(first, second)
         self.assertEqual(envelope.to_dict(), restored.to_dict())
+
+    def test_schema_version_1_is_now_rejected(self):
+        # schema_version bumped from 1 to 2 (Outcome 3 Task 1): the old
+        # value must now fail exactly like any other wrong const, not be
+        # silently accepted as a still-valid prior version. No migration
+        # path is owed -- no persisted mailbox exists outside tests.
+        with self.assertRaises(Blocked) as ctx:
+            Envelope.from_dict(_envelope_dict(schema_version=1))
+        self.assertIn("schema_version", ctx.exception.detail)
+
+    def test_previous_hash_field_round_trips_through_json(self):
+        envelope = Envelope.from_dict(_envelope_dict(previous_hash="a" * 64))
+        self.assertEqual(envelope.previous_hash, "a" * 64)
+        restored = Envelope.from_json(envelope.to_json())
+        self.assertEqual(restored.previous_hash, "a" * 64)
+
+    def test_previous_hash_must_match_the_64_hex_character_pattern(self):
+        with self.assertRaises(Blocked) as ctx:
+            Envelope.from_dict(_envelope_dict(previous_hash="not-a-hash"))
+        self.assertIn("previous_hash", ctx.exception.detail)
+
+    def test_previous_hash_rejects_uppercase_hex(self):
+        # The pattern is deliberately lowercase-only, matching
+        # hashlib.sha256(...).hexdigest()'s own output exactly -- accepting
+        # uppercase too would let two textually-different previous_hash
+        # values be treated as "the same hash" by string comparison
+        # elsewhere, which they must never be.
+        with self.assertRaises(Blocked):
+            Envelope.from_dict(_envelope_dict(previous_hash="A" * 64))
+
+    def test_genesis_hash_is_64_lowercase_hex_characters(self):
+        # GENESIS_HASH must itself satisfy the same pattern every other
+        # previous_hash value does -- schemas/envelope.schema.json has no
+        # separate carve-out for it.
+        self.assertEqual(len(GENESIS_HASH), 64)
+        self.assertTrue(all(c in "0123456789abcdef" for c in GENESIS_HASH))
+        Envelope.from_dict(_envelope_dict(previous_hash=GENESIS_HASH))  # does not raise
+
+
+class EnvelopeHashChainTest(unittest.TestCase):
+    # Outcome 3 Task 1: Envelope.hash() is what the *next* envelope in a
+    # mailbox records as its own previous_hash (via
+    # adapter_port.AdapterPort._append) -- these tests pin the properties
+    # that make that chaining meaningful: the same content always hashes
+    # identically, and different content never accidentally collides.
+
+    def test_hash_is_a_64_character_lowercase_hex_string(self):
+        envelope = Envelope.from_dict(_envelope_dict())
+        digest = envelope.hash()
+        self.assertEqual(len(digest), 64)
+        self.assertTrue(all(c in "0123456789abcdef" for c in digest))
+
+    def test_hash_is_deterministic_for_identical_content(self):
+        first = Envelope.from_dict(_envelope_dict())
+        second = Envelope.from_dict(_envelope_dict())
+        self.assertEqual(first.hash(), second.hash())
+
+    def test_hash_is_deterministic_regardless_of_source_dict_key_order(self):
+        # to_json() is already proven key-order-independent
+        # (test_serialisation_round_trips_byte_stably's reordering check on
+        # the sibling record types); hash() must inherit that property
+        # rather than reintroduce order-sensitivity via a second,
+        # divergent serialisation.
+        forward = Envelope.from_dict(_envelope_dict())
+        reordered_source = dict(reversed(list(_envelope_dict().items())))
+        reordered = Envelope.from_dict(reordered_source)
+        self.assertEqual(forward.hash(), reordered.hash())
+
+    def test_hash_changes_when_the_payload_changes(self):
+        base = Envelope.from_dict(_envelope_dict())
+        changed = Envelope.from_dict(_envelope_dict(payload={"note": "different"}))
+        self.assertNotEqual(base.hash(), changed.hash())
+
+    def test_hash_changes_when_only_previous_hash_changes(self):
+        # An envelope's own hash covers its own previous_hash field too
+        # (it is computed over the *whole* canonical JSON) -- this is what
+        # makes the chain transitive: tampering an earlier entry changes
+        # its hash, which changes every later envelope's previous_hash
+        # requirement, not just the one immediately following it.
+        first = Envelope.from_dict(_envelope_dict(previous_hash=GENESIS_HASH))
+        second = Envelope.from_dict(_envelope_dict(previous_hash="b" * 64))
+        self.assertNotEqual(first.hash(), second.hash())
+
+    def test_hash_is_not_a_stored_field_on_the_envelope_itself(self):
+        # "An envelope's own hash is derived, never stored on itself" --
+        # to_dict()/to_json() must not carry a 'hash' key, and computing it
+        # is a method call, not attribute access.
+        envelope = Envelope.from_dict(_envelope_dict())
+        self.assertNotIn("hash", envelope.to_dict())
+        self.assertFalse(hasattr(envelope, "hash_"))
+        self.assertTrue(callable(envelope.hash))
+
+    def test_hash_is_identical_across_two_interpreter_processes_with_different_pythonhashseed(self):
+        # The brief's explicit determinism requirement: the same envelope
+        # content must hash identically in any process, under any
+        # PYTHONHASHSEED. hashlib.sha256 itself is unaffected by
+        # PYTHONHASHSEED (that only perturbs Python's built-in hash(), used
+        # by dict/set iteration order before Python's dicts guaranteed
+        # insertion order) -- but the *content* fed to it comes from
+        # to_json()'s sort_keys=True canonical serialisation, which must
+        # never depend on it either. Proven directly, in two real
+        # subprocesses with two different PYTHONHASHSEED values, rather
+        # than merely asserted from reading the implementation.
+        script = (
+            "import sys; sys.path.insert(0, {scripts_dir!r}); "
+            "from kernel_specs import Envelope; "
+            "data = {data!r}; "
+            "print(Envelope.from_dict(data).hash())"
+        ).format(scripts_dir=str(SCRIPTS_DIR), data=_envelope_dict(
+            payload={"nested": {"b": 2, "a": 1}, "items": [1, 2, 3]},
+        ))
+
+        def _hash_in_subprocess(pythonhashseed):
+            env = dict(os.environ)
+            env["PYTHONHASHSEED"] = pythonhashseed
+            completed = subprocess.run(
+                [sys.executable, "-c", script],
+                env=env, capture_output=True, text=True, check=True,
+            )
+            return completed.stdout.strip()
+
+        first = _hash_in_subprocess("0")
+        second = _hash_in_subprocess("1")
+        third = _hash_in_subprocess("random")
+        self.assertEqual(first, second)
+        self.assertEqual(first, third)
+        self.assertEqual(len(first), 64)
 
 
 class TaskNodeTest(unittest.TestCase):

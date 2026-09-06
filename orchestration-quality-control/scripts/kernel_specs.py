@@ -17,6 +17,7 @@ the Python validation cannot drift apart the way two hand-maintained field
 lists could.
 """
 
+import hashlib
 import json
 import re
 from dataclasses import dataclass
@@ -31,6 +32,24 @@ SCHEMA_DIR = SCRIPTS_DIR.parent / "schemas"
 ENVELOPE_SCHEMA_PATH = SCHEMA_DIR / "envelope.schema.json"
 
 SCHEMA_VERSION = 1
+
+# Outcome 3 Task 1: the sentinel `previous_hash` for the first envelope in a
+# run's mailbox, since nothing precedes it to hash. Shaped exactly like a
+# real sha256 hex digest (64 lowercase hex characters) so
+# schemas/envelope.schema.json needs one pattern for `previous_hash`, not a
+# real-hash-or-this-one-sentinel special case. All zeros is simply a fixed,
+# unmistakable value no genuine sha256 digest could plausibly collide with
+# by accident.
+GENESIS_HASH = "0" * 64
+
+# Envelope's own contract version (schemas/envelope.schema.json's
+# schema_version "const"), tracked separately from SCHEMA_VERSION above
+# (RunSpec/AgentSpec's version): each record's wire contract evolves on its
+# own schedule -- Envelope bumped to 2 for the hash chain (Outcome 3 Task 1)
+# while RunSpec/AgentSpec stayed at 1. adapter_port.AdapterPort._append is
+# the only place this is used to construct an envelope, so a producer never
+# names a schema_version itself, the same way it never names a previous_hash.
+ENVELOPE_SCHEMA_VERSION = 2
 
 MODEL_TIERS = ("low", "medium", "high")
 REASONING_EFFORTS = ("low", "medium", "high")
@@ -621,6 +640,19 @@ class Envelope:
     this record and that file cannot silently drift apart. Legal
     sender/recipient pairing is a router concern (a later task), not
     enforced here.
+
+    `previous_hash` (schema_version 2, Outcome 3 Task 1) is the sha256 hex
+    digest of the canonical JSON of the envelope immediately before this one
+    in its run's mailbox (GENESIS_HASH for the first envelope in a run),
+    chaining this entry to it. `AdapterPort._append` is the single place
+    that computes and sets it -- see adapter_port.py -- so nothing else in
+    this module derives or checks it. An envelope's own hash is never a
+    field on itself; it is always derived on demand by `hash()` below from
+    this envelope's own canonical JSON, and it is the *next* envelope's
+    `previous_hash` that pins it. The one envelope this can never protect is
+    whichever is last in a mailbox: nothing follows it to carry its hash
+    forward. See the mailbox-verification function's own docstring (a
+    later outcome, layered above this module) for that consequence in full.
     """
 
     schema_version: int
@@ -631,6 +663,7 @@ class Envelope:
     kind: str
     payload: object
     created_at: str
+    previous_hash: str
 
     def __post_init__(self):
         object.__setattr__(self, "payload", freeze(self.payload))
@@ -655,6 +688,7 @@ class Envelope:
             kind=data["kind"],
             payload=data["payload"],
             created_at=data["created_at"],
+            previous_hash=data["previous_hash"],
         )
 
     @classmethod
@@ -671,7 +705,21 @@ class Envelope:
             "kind": self.kind,
             "payload": thaw(self.payload),
             "created_at": self.created_at,
+            "previous_hash": self.previous_hash,
         }
 
     def to_json(self):
         return _canonical_json(self.to_dict())
+
+    def hash(self):
+        """This envelope's own content hash: sha256 over its canonical JSON.
+
+        Never stored on the envelope itself -- always recomputed from
+        `to_json()` (already sorted-keys, compact, ensure_ascii, so this is
+        stable across processes and PYTHONHASHSEED values without a second,
+        divergent serialisation). This is what the *next* envelope in the
+        mailbox records as its own `previous_hash`; nothing records this
+        envelope's own hash anywhere if it happens to be the last one in the
+        mailbox -- see the class docstring.
+        """
+        return hashlib.sha256(self.to_json().encode("ascii")).hexdigest()

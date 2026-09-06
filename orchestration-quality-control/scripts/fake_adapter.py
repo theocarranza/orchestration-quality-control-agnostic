@@ -29,13 +29,20 @@ colliding with ids the reloaded log already holds (now caught loudly by
 that mailbox in via the `mailbox=` constructor keyword seeds the counter
 from its highest existing `env-<N>` id instead, so a resumed run
 continues the sequence rather than restarting it.
+
+Outcome 3 Task 1: this module names no `schema_version` and no
+`previous_hash` anywhere below -- not because those values happen to be
+easy to get right here, but because `adapter_port.AdapterPort._append`'s
+signature has no parameter for either. Every envelope this adapter
+produces goes through `_append` with only content (ids, pairing, kind,
+payload, timestamp); `_append` alone constructs and chains it. This
+module is exactly the shape a real host adapter (Task 4) should copy.
 """
 
 import re
 from datetime import datetime, timedelta, timezone
 
 from adapter_port import AdapterPort
-from kernel_specs import Envelope
 from qc_lib import Blocked, require_enum
 from run_state import PHASES
 
@@ -114,31 +121,29 @@ class FakeAdapter(AdapterPort):
             result_payload["critique"] = scripted.get("critique")
 
         request_id, request_created_at = self._next_meta("env")
-        request = Envelope.from_dict({
-            "schema_version": 1,
-            "envelope_id": request_id,
-            "run_id": run_id,
-            "sender": "orchestrator",
-            "recipient": f"agent:{agent_id}",
-            "kind": "request",
-            "payload": {"task_id": task_id, "attempt": attempt, "brief": brief},
-            "created_at": request_created_at,
-        })
+        request = self._append(
+            mailbox,
+            envelope_id=request_id,
+            run_id=run_id,
+            sender="orchestrator",
+            recipient=f"agent:{agent_id}",
+            kind="request",
+            payload={"task_id": task_id, "attempt": attempt, "brief": brief},
+            created_at=request_created_at,
+        )
 
         result_id, result_created_at = self._next_meta("env")
-        result = Envelope.from_dict({
-            "schema_version": 1,
-            "envelope_id": result_id,
-            "run_id": run_id,
-            "sender": f"agent:{agent_id}",
-            "recipient": "orchestrator",
-            "kind": "result",
-            "payload": result_payload,
-            "created_at": result_created_at,
-        })
+        result = self._append(
+            mailbox,
+            envelope_id=result_id,
+            run_id=run_id,
+            sender=f"agent:{agent_id}",
+            recipient="orchestrator",
+            kind="result",
+            payload=result_payload,
+            created_at=result_created_at,
+        )
 
-        self._append(mailbox, request)
-        self._append(mailbox, result)
         return (request, result)
 
     def emit_status(self, mailbox, *, run_id, phase, context=None):
@@ -146,17 +151,16 @@ class FakeAdapter(AdapterPort):
         payload = dict(context or {})
         payload["phase"] = phase
         envelope_id, created_at = self._next_meta("env")
-        envelope = Envelope.from_dict({
-            "schema_version": 1,
-            "envelope_id": envelope_id,
-            "run_id": run_id,
-            "sender": "orchestrator",
-            "recipient": "root",
-            "kind": "status",
-            "payload": payload,
-            "created_at": created_at,
-        })
-        return self._append(mailbox, envelope)
+        return self._append(
+            mailbox,
+            envelope_id=envelope_id,
+            run_id=run_id,
+            sender="orchestrator",
+            recipient="root",
+            kind="status",
+            payload=payload,
+            created_at=created_at,
+        )
 
     def relay_question(self, mailbox, *, run_id, question):
         if not isinstance(question, str) or not question.strip():
@@ -167,17 +171,16 @@ class FakeAdapter(AdapterPort):
                 recovery_action="pass a non-empty question string",
             )
         envelope_id, created_at = self._next_meta("env")
-        envelope = Envelope.from_dict({
-            "schema_version": 1,
-            "envelope_id": envelope_id,
-            "run_id": run_id,
-            "sender": "orchestrator",
-            "recipient": "root",
-            "kind": "question",
-            "payload": {"question": question},
-            "created_at": created_at,
-        })
-        return self._append(mailbox, envelope)
+        return self._append(
+            mailbox,
+            envelope_id=envelope_id,
+            run_id=run_id,
+            sender="orchestrator",
+            recipient="root",
+            kind="question",
+            payload={"question": question},
+            created_at=created_at,
+        )
 
     def enforce_policy(self, *, run_id, hook_name, context=None):
         # The fake adapter enforces no host-specific policy of its own: it

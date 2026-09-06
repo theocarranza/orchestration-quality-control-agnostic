@@ -2,16 +2,16 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://orchestration-quality-control/schemas/envelope.schema.json",
   "title": "Envelope",
-  "description": "One hand-off appended to a run's append-only mailbox. Envelopes are the only channel between root and the Orchestrator, and between the Orchestrator and a generated execution agent; a run's state is a pure reduction over the ordered sequence of these envelopes and is never mutated directly. See AI_Codex/Architecture/ADR/0014-generated-workflow-deterministic-kernel.md, decision 2. This is the authoritative Envelope contract; scripts/kernel_specs.py validates every constructed Envelope against this file rather than against a hand-duplicated field list.",
+  "description": "One hand-off appended to a run's append-only mailbox. Envelopes are the only channel between root and the Orchestrator, and between the Orchestrator and a generated execution agent; a run's state is a pure reduction over the ordered sequence of these envelopes and is never mutated directly. See AI_Codex/Architecture/ADR/0014-generated-workflow-deterministic-kernel.md, decision 2. This is the authoritative Envelope contract; scripts/kernel_specs.py validates every constructed Envelope against this file rather than against a hand-duplicated field list. schema_version 2 (Outcome 3 Task 1) adds `previous_hash`, chaining each envelope to the one before it in its run's mailbox so the log is tamper-evident; see scripts/kernel_specs.py's GENESIS_HASH and Envelope.hash(), and scripts/oqc.py's verify().",
   "type": "object",
   "required": [
     "schema_version", "envelope_id", "run_id", "sender", "recipient",
-    "kind", "payload", "created_at"
+    "kind", "payload", "created_at", "previous_hash"
   ],
   "additionalProperties": false,
   "properties": {
     "schema_version": {
-      "const": 1,
+      "const": 2,
       "description": "Envelope contract version. Never inferred; always checked explicitly."
     },
     "envelope_id": {
@@ -47,6 +47,11 @@
       "type": "string",
       "format": "date-time",
       "description": "When the envelope was appended to the mailbox."
+    },
+    "previous_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "The sha256 hex digest (scripts/kernel_specs.py's Envelope.hash()) of the canonical JSON of the envelope immediately before this one in its run's mailbox, chaining this entry to it so tampering with an earlier entry breaks this field's match. The first envelope in a run's mailbox uses scripts/kernel_specs.py's fixed GENESIS_HASH constant (64 hex zeros) instead of a real predecessor's hash. An envelope's own hash is always derived from its canonical JSON, never stored as a field on itself; only the *next* envelope's previous_hash pins it. This is set by scripts/adapter_port.py's AdapterPort._append, the single choke point every envelope passes through, so producers never compute it themselves."
     }
   }
 }
