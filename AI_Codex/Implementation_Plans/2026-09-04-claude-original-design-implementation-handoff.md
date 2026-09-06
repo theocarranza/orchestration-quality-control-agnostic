@@ -351,6 +351,99 @@ replay through a critiqued retry to `completed`, the separate exhausted-retry
 fixture, and the routing and no-direct-mutation cases. Outcome 3 may start only
 on PASS.
 
+## Resumption state — 2026-09-06T06:39, written under quota pressure
+
+A fresh session can resume from this section alone. Everything below is
+verified, not remembered.
+
+### Where the work is
+
+Branch `feature/original-design-realignment`, pushed, in sync with `origin` at
+`2c7ecc3`. The scripts suite is **412 tests, green under `python3.12`**. The
+only untracked path is `.superpowers/`, which stays excluded.
+
+Outcome 1 is closed (gate PASS). Outcome 2 Tasks 1, 2, 2b, 3, 4 and 5 are
+committed and pushed. **Task 6 and Task 7 remain.**
+
+| Task | State | Commit |
+| --- | --- | --- |
+| 1 records + envelope schema | done | `658ee7e` |
+| 2 mailbox + derived state | done | `0ed1e39` |
+| 2b consolidate freeze/thaw | done | `583e2ee` |
+| 3 router, DAG, routing checks | done | `fd7e473` |
+| 4 adapter port, fake adapter, gate, replay | done | `677cc4c` |
+| 5 brief compiler, drive loop, replay/verify, CLI | done | `2c7ecc3` |
+| 6 validation/compilation boundary | **next** | — |
+| 7 Outcome 2 gate | pending | — |
+
+### Environment traps, each already paid for once
+
+- **Interpreter.** Bare `python3` is 3.10.12; the stack is `python3.12`
+  (3.12.13). They are not interchangeable — a `datetime.fromisoformat` divergence
+  produced opposite validation verdicts. Every command names `python3.12`.
+- **Checkout ownership.** The tree was owned by `monolith`; sessions run as
+  `bhave`. If writes fail, check `[ -w .git ]`. The owner fixed it with
+  `chgrp -R ricks` plus `chmod -R g+rwX`. `sudo` cannot help from inside a
+  session — no TTY.
+- **Session gate.** The `codex-workflows-plugin` gate blocks every write when
+  the newest session note carrying `next: null` is over eight hours old, and the
+  remedy it prints is itself a blocked write. The escape is in
+  `scripts/policy/engine.py`: the gate is bypassed when the event's `file_path`
+  contains `Agent_Sessions`. A Bash `sed -i` does not populate that field; the
+  Write/Edit tools do. Close the stale note and open a new one with the file
+  tools. Never `/skip-ledger` — that disables the policy rather than satisfying it.
+- **Markdown allowlist.** `.claude/agent-continuity.config.json` exists because
+  the allowlist hook blocked subagents from reading their own role definitions.
+  Its patterns REPLACE the hook defaults, so the defaults are repeated verbatim
+  before `.claude/*` and `.cursor/*`. Do not trim it.
+- **Gitignore.** The user's global gitignore excludes `**/.claude/`. Repo-level
+  negations exist in `.gitignore`; without them `git add` silently skips new
+  files there and commits land incomplete. Always check `git show --stat` after
+  committing anything under `.claude/` or `.cursor/`.
+
+### Decisions Task 6 must honour
+
+- Wire `drive(..., run_id=run_spec.run_id)`. `RunSpec` already carries run
+  identity; do not invent a second source.
+- `drive` halts the whole run on any terminal decision rather than continuing
+  independent branches. Task 6 can emit parallel branches, so this stops being
+  theoretical. It is disclosed in `drive`'s docstring. Either accept it for this
+  outcome or raise it as an architectural question — do not silently rely on
+  sibling continuation.
+- `TaskDag.from_list`/`to_list` take and return a JSON array, unlike every
+  sibling record's `from_dict`. Generated DAGs use those names.
+- `attempt` is mandatory on both `request` and `result` envelopes. Anything Task
+  6 emits must carry it.
+- `awaiting-user-input` is unreachable by design: `gate.retry_or_block` is its
+  sole authority and never returns it. Do not fabricate the phase to make a
+  fixture green.
+- `verify` is structural, not cryptographic. ADR 0014's artifact and brief
+  hashes need an envelope field the frozen schema lacks; that is Outcome 3.
+
+### Process learnings that changed outcomes
+
+- **Vacuous proofs are this workstream's signature defect.** Every task but one
+  shipped a test that would still pass with its guarantee removed. Require a
+  break-it-and-watch-it-fail drill for every immutability, purity, determinism
+  or integrity claim, and demand the RED counts.
+- **Root freezes have produced two real gaps.** Twice a worker narrowed a
+  guarantee to respect a frozen file, and the narrowing arrived looking like
+  design rather than scope artifact. When a worker narrows a guarantee to
+  respect a freeze, that must be reported as a scope consequence.
+- **Escalate on evidence, not on nerves.** Haiku carried Tasks 2b and 3 at
+  roughly half sonnet's cost. It was escalated once, with a recorded reason.
+- **Root verifies by executing.** Every serious finding this outcome was
+  reproduced at root before being acted on, and one root drill was reported as
+  inconclusive rather than dressed up as a pass.
+
+### Quota at the time of writing
+
+Owner reported the five-hour session at 82% used and the weekly at 86% used
+(weekly resets Monday 13:00; a temporary 50% boost runs through 2026-09-13).
+The plan's guard fires below 10% weekly or 5% session, so neither had fired, but
+the weekly margin was thin enough to justify writing this section before
+starting Task 6.
+
 ## Serious stop conditions
 
 Stop and ask the owner only for an architectural conflict not resolved by the
