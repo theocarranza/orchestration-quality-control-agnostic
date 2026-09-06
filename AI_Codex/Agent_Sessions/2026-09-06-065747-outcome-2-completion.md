@@ -278,3 +278,24 @@ representable but never decided, because no question-triggered transition existe
 and fabricating one would have moved a state transition outside the engine. The
 answer-relay evidence requires it, so it gets built in `gate.py` — the sole
 authority — not in an adapter or a loop.
+
+### Progress — Outcome 3 Task 1 dispatched — 2026-09-06T11:42:00-03:00
+
+Dispatching the envelope hash chain to `claude-sonnet-5`. Sonnet rather than
+haiku: this is a wire-format change with chaining semantics, the class of
+judgement-heavy work haiku demonstrably struggled with in Outcome 2 Task 3.
+
+Root's design decisions, made before dispatch so the worker implements rather
+than invents:
+
+- `previous_hash` on `Envelope`, chaining each entry to its predecessor, with a
+  fixed genesis value for the first. An envelope's own hash is derived from its
+  canonical JSON, never stored on itself — the *next* envelope's `previous_hash`
+  is what pins it. Tampering entry N breaks entry N+1's check.
+- The last envelope is therefore unpinned by construction. `verify` returns the
+  head hash so a caller can anchor it externally, and must say plainly that the
+  final entry is unprotected until something records that value.
+- `schema_version` bumps to 2. Adding a required field is breaking, and no
+  persisted mailbox exists outside tests, so no migration path is owed.
+- `AdapterPort._append` computes the chain. It is already the single choke point
+  every envelope passes through, so producers stay unaware of hashing.
