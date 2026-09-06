@@ -67,6 +67,12 @@ flowchart LR
 5. Checkpoint model and effort; stage brief-owned paths plus the ledger;
    `git diff --cached --check`; one narrow commit.
 
+Write a short progress note to the ledger at every dispatch, every returned
+verdict, every reproduction and every ruling — not only at step 5. A rate
+limit can end the turn at any point, and an unrecorded finding is paid for
+twice. See the checkpoint contract in
+[references/contracts.md](references/contracts.md).
+
 ## Validation scope
 
 Run what the change can reach: the touched module's tests, plus any suite a

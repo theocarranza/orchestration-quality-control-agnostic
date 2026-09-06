@@ -220,3 +220,26 @@ caught all of them. That is the argument for keeping both reviewers.
 Root's own drill was reported as inconclusive once, when a patch broke module
 import rather than cleanly disabling the check under test. An inconclusive
 experiment is not evidence, and was not recorded as one.
+
+### Progress — incremental checkpointing added — 2026-09-06T11:20:00-03:00
+
+Owner instruction: tighten ledger checkpoint frequency so an abrupt quota
+interruption loses less. Encoded in both host copies of the skill rather than
+practised only in this session.
+
+The checkpoint contract now requires a short `### Progress` note at five points
+that previously produced no record until a task passed: dispatching a worker or
+reviewer, a verdict returning, root reproducing a finding, root making a design
+ruling, and scope being widened or frozen. The full checkpoint block still lands
+at `PASS`; the progress notes are the trail that survives losing the turn before
+reaching it.
+
+This session is the argument for it. Three rate limits killed agents mid-run —
+one implementer twice and one validator once. Each time the work was recoverable
+only because root had verified state on disk and could reconstruct it. A
+reviewer's findings returned but not yet acted on would have been lost outright,
+and re-earning them costs a full review round.
+
+Negative results matter most here: root's inconclusive cycle-detection drill and
+the rejected design options are exactly what a resumed session would otherwise
+repeat at full cost.

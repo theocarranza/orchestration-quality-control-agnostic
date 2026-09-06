@@ -77,6 +77,25 @@ Append this to the open session ledger after a `PASS` pair of verdicts,
 with `commit hash: pending` because a commit cannot contain its own hash.
 Mark any command whose counts carry over from an earlier run at the same
 `HEAD` as `reused`, so skipped repetition is visible rather than silent.
+
+**Checkpoint incrementally, not only at task completion.** A run can be
+killed mid-task by a rate limit at any moment, and everything not written
+down is re-derived by the next session at full cost. Append a short
+`### Progress` note to the open ledger at each of these points, without
+waiting for a commit:
+
+| When | What to record, in two or three lines |
+| --- | --- |
+| Dispatching a worker or reviewer | task, role, model, and what it was asked to prove |
+| A worker or reviewer returns | its verdict, and the findings root accepted or rejected |
+| Root reproduces a finding | the reproduction and its result, especially a negative one |
+| Root makes a design ruling | the ruling and the reason, before acting on it |
+| Scope is widened or frozen | which paths, and why |
+
+These are cheap — a few lines each — and they are what makes an
+interrupted task resumable rather than repeatable. The full checkpoint
+block above still goes in at `PASS`; the progress notes are the trail
+that survives losing the turn before you get there.
 Stage only brief-owned paths plus this ledger, run `git diff --cached --check`,
 and make one narrow commit; do not edit/amend it or create a bookkeeping-only
 second commit afterward. At the next substantive checkpoint, backfill the
