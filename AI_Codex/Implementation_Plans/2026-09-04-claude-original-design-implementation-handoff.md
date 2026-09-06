@@ -362,8 +362,10 @@ Branch `feature/original-design-realignment`, pushed, at `3754798` plus the
 Task 6 docstring fix described below. The scripts suite is **442 tests, green
 under `python3.12`**. The only untracked path is `.superpowers/`, excluded.
 
-Outcome 1 is closed (gate PASS). Outcome 2 Tasks 1 through 6 are committed and
-pushed. **Only Task 7, the gate, remains.**
+Outcome 1 is closed (gate PASS). **Outcome 2 is closed (gate PASS,
+2026-09-06).** The kernel is 443 tests in its own suite, 561 across the tree,
+all six suites green under `python3.12`. **Outcome 3, the real orchestration
+slice, is cleared to start.**
 
 The active session note is
 [[../Agent_Sessions/2026-09-06-065747-outcome-2-completion]]. Its predecessor
@@ -379,7 +381,7 @@ writes, including a subagent's writes to the scratchpad.
 | 4 adapter port, fake adapter, gate, replay | done | `677cc4c` |
 | 5 brief compiler, drive loop, replay/verify, CLI | done | `2c7ecc3` |
 | 6 validation/compilation boundary | done, reviews noted below | `3754798` |
-| 7 Outcome 2 gate | **next** | — |
+| 7 Outcome 2 gate | **PASS — Outcome 2 complete** | see ledger |
 
 ### Task 6's review status — read this before the gate
 

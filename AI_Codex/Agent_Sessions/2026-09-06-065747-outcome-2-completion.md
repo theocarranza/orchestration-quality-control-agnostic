@@ -113,3 +113,110 @@ rather than judged unilaterally by the implementer.
    compile a workflow with no branches rather than raising.
 2. Run quality on Task 6.
 3. Then Task 7, the gate.
+
+## Checkpoint — Outcome 2 gate PASS — 2026-09-06T11:05:57-03:00
+
+```text
+time: 2026-09-06T11:05:57-03:00
+task: Outcome 2 Task 7 — the Outcome 2 gate
+attempt: 1 of 3
+worker model: none; Task 7 is root verification, not a code task
+worker effort: not settable on this host
+spec validator: claude-sonnet-5, read-only, PASS, no findings
+quality reviewer: not dispatched; no product-code diff, and root holds the
+  command evidence at this exact HEAD
+commands:
+  command: six baseline suites under python3.12
+  counts: 443 + 8 + 6 + 36 + 19 + 49 = 561 tests, OK, zero failures
+  command: python3.12 eval-harness/check_documentation_truth.py .
+  counts: exit 0, no findings
+  command: git diff --check over 0c056c2..HEAD and the worktree
+  counts: exit 0 both; working tree clean
+  command: existence check on the five formerly quarantined targets
+  counts: all five present
+commit hash: pending
+next: Outcome 3 — the real orchestration slice
+```
+
+**Outcome 2 is complete.** Eighteen commits since the Outcome 1 gate. The kernel
+went from nothing executable to 443 tests in its own suite, 561 across the tree.
+
+### The first honest full sweep
+
+Five of the six suites had not run since the interpreter was pinned to
+`python3.12` in `23fe8c0`. Every task after that point verified only the scripts
+suite, under the Validation scope rule. This gate is therefore the first
+execution of the Claude hooks, the three adapters and the eval harness on the
+interpreter the plan actually mandates. All five pass unchanged. The pin caused
+no damage, which was not knowable before this sweep and is now evidence rather
+than assumption.
+
+### The quarantined claims are retired
+
+ADR 0014 quarantined five components as named in prose but absent from the tree:
+`scripts/oqc.py`, `scripts/mailbox.py`, `scripts/compile_prompt.py`,
+`scripts/gate.py` and `schemas/envelope.schema.json`. All five now exist as
+working code with tests. Outcome 1 made documentation truth executable so that
+prose could not lead implementation; Outcome 2 made the implementation catch up
+to the prose. The checker that would have failed on those names now passes
+because the targets are real, not because the names were removed.
+
+### Exit evidence, confirmed against code
+
+The validator was told explicitly that six tasks' reports say this passes and
+its job was to find out whether the code agrees — reports, commit messages,
+docstrings and ledger checkpoints all excluded as evidence. It confirmed each
+condition with citations:
+
+- all nine observable phases table-tested, one `subTest` per phase, including
+  `awaiting-user-input`
+- the model-free replay running on a DAG **emitted by `compile_workflow`**, not
+  hand-written, with the critique asserted on the second attempt's own request
+  envelope and `completed` asserted on `reduce`-derived state
+- a separate exhausted-retry fixture reaching a terminal state with the
+  dependent task proven never to have run, including on an emitted DAG where the
+  sibling had no script entry at all, so the fake adapter would have raised had
+  `drive` touched it
+- replay, legal and illegal routing, and no-direct-mutation cases through the
+  fake adapter
+- the compilation boundary with both halves of the contract fixture
+- table tests rejecting direct state mutation and illegal sender/recipient pairs
+
+It found no prose claiming a capability the tree lacks, and no vacuous test in
+the load-bearing evidence.
+
+### Four limits, disclosed rather than discovered
+
+Each is recorded in the code that carries it, and the gate confirmed the
+descriptions are accurate rather than merely present:
+
+1. `verify` is structural, not cryptographic. ADR 0014 decision 2's artifact and
+   brief hashes need an envelope field the frozen schema lacks. Outcome 3.
+2. `drive` halts the whole run on any terminal decision rather than continuing
+   independent branches. Demonstrated concretely on an emitted multi-branch DAG.
+   This is the open architectural question for Outcome 3.
+3. `compile_workflow` generates DAG topology and capabilities; `tools`,
+   `output_schema`, `model_tier` and `reasoning_effort` are fixed placeholders,
+   because no decision field exists to drive them and inventing one would
+   manufacture a decision nobody made.
+4. `gate_defaults` and `plan_interview` are reused only in tests. Runtime wiring
+   is Outcome 5's product surface.
+
+### What this outcome cost, and what caught what
+
+Six implementation tasks, eleven implementer rounds, twelve reviews. Every
+quality review found something real; three found defects that would have reached
+Outcome 3. The pattern across all of them was the same shape: **a guarantee that
+held only for well-formed input.** A falsy outcome pinning a task at `running`
+forever. Recursion failing past 1000 nodes with a host-dependent threshold. An
+attempt count defeatable by omitting a field. A duplicate result silently
+overriding a real failure. A bare `KeyError` escaping a function that promised a
+named error.
+
+Two of those gaps trace to root's own freeze instructions, and one to a root
+ruling that was right about counting and wrong about pairing. The layered review
+caught all of them. That is the argument for keeping both reviewers.
+
+Root's own drill was reported as inconclusive once, when a patch broke module
+import rather than cleanly disabling the check under test. An inconclusive
+experiment is not evidence, and was not recorded as one.
