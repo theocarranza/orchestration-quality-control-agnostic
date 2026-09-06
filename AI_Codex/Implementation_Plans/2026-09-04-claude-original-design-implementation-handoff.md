@@ -401,9 +401,9 @@ silently. That deviation from the per-task loop is closed as follows:
   reused only in the test fixture, never imported by the module. Not a defect —
   nothing was reimplemented, which is what that instruction protected — and the
   runtime wiring belongs to Outcome 5. Now stated in the docstring.
-- **Quality: run, returned FINDINGS (2).** Both reproduced by root; fixes are in
-  flight at the time of writing. The gate must not treat Task 6 as reviewed
-  until they land and the suite is green.
+- **Quality: run, returned FINDINGS (2), both now fixed and verified.** Task 6's
+  review gap is closed; both reviews have run and their findings are resolved.
+  The suite is at **443 tests, green**.
   1. *A bare `KeyError` escaped instead of `Blocked`.* `_require_mapping`
      duck-typed on `get` and `__getitem__`, but `require_fields` then evaluates
      `field not in obj`, which falls back to the legacy sequence protocol and
@@ -426,6 +426,22 @@ silently. That deviation from the per-task loop is closed as follows:
   docstring right about three claims and inventing a fourth is still one a
   reader cannot trust. Future documentation fixes should grep for every
   identifier the prose names and confirm each exists.
+
+  That instruction was given to the implementer and it worked: on the fixing
+  round it grepped every backtick-quoted identifier in the docstring against the
+  source and caught a stale test-class name **in its own new comment**, before
+  that became a third round's finding. Root verified the outcome — `fromkeys`
+  now has zero occurrences in the file, a non-dict mapping-like object raises
+  `Blocked("decisions must be a dict, got WeirdMapping")` rather than leaking
+  `KeyError: 0`, and a duplicate `named_input` still raises
+  `Blocked("duplicate task_id: 'task-docs'")` from `TaskDag.from_list`.
+
+  Root's broader observation for the gate: Outcome 1 made documentation truth
+  executable because prose was claiming capabilities the tree lacked. That check
+  scans only the three product-facing documents. Task 6 produced two independent
+  instances of the same defect class in a **module docstring**, where nothing
+  checks. Extending the checker to module docstrings is not Outcome 2's work,
+  but it is a real gap and belongs in a later outcome's planning.
 
 ### What Task 7 must do
 

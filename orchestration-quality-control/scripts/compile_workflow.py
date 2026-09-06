@@ -123,10 +123,15 @@ read, no random source anywhere in this module -- run identity
 (`run_id`/`created_at`) is threaded through from `decisions` exactly as
 given, never generated here. Iteration order is always the caller-supplied
 `named_inputs` list order (never a `set`, whose iteration order is not a
-language guarantee), and duplicate roles collapse via `dict.fromkeys`,
-whose insertion-order-preserving behaviour is itself a language guarantee
-(CPython 3.7+/the language spec since 3.7), not an implementation detail
-this module happens to rely on. Two calls to `compile_workflow` with equal
+language guarantee): `_build_topology` assigns into `role_kind_by_role` in
+that order, and the `agent_specs` loop iterates that plain dict directly,
+relying on ordinary dict insertion-order preservation -- itself a language
+guarantee (the language spec since 3.7), not an implementation detail this
+module happens to rely on. (A duplicate role name can never reach that
+loop: a duplicate `named_input` already raises inside
+`kernel_specs.TaskDag.from_list`'s own duplicate-task_id check, one step
+earlier -- there is no collapsing left for the `agent_specs` loop to do.)
+Two calls to `compile_workflow` with equal
 `decisions` therefore always produce byte-identical
 `RunSpec.to_json()`/`TaskDag.to_json()`/`AgentSpec.to_json()` output --
 see tests/test_compile_workflow.py's `DeterminismTest` and its paired
@@ -216,11 +221,23 @@ class CompiledWorkflow:
 
 
 def _require_mapping(decisions):
-    if not hasattr(decisions, "get") or not hasattr(decisions, "__getitem__"):
+    # isinstance(decisions, dict), matching every from_dict/from_list in
+    # kernel_specs.py, not a duck-typed hasattr(..., "get")/hasattr(...,
+    # "__getitem__") check. That duck-typed check let a mapping-like object
+    # lacking __contains__/__iter__ through; qc_lib.require_fields's own
+    # `field not in obj` then fell back to the legacy sequence protocol
+    # (probing obj[0], obj[1], ...), and a string-keyed __getitem__ raises
+    # KeyError there instead of the IndexError that fallback expects -- a
+    # bare KeyError escaping instead of the Blocked this module's docstring
+    # promises. See tests/test_compile_workflow.py's
+    # ValidationTest.test_rejects_a_non_dict_mapping_like_object_instead_of_leaking_a_keyerror
+    # (and the _MappingLikeWithoutDunderContains helper it uses) for the
+    # reproduction.
+    if not isinstance(decisions, dict):
         raise Blocked(
             stage=STAGE,
             reason_code="malformed_checkpoint",
-            detail=f"decisions must be a mapping, got {type(decisions).__name__}",
+            detail=f"decisions must be a dict, got {type(decisions).__name__}",
             recovery_action="pass a mapping of accepted discovery/interview decisions",
         )
 
@@ -381,10 +398,14 @@ def compile_workflow(decisions):
     task_dag = TaskDag.from_list(task_dicts)
 
     agent_specs = {}
-    # dict.fromkeys over role_kind_by_role preserves the insertion order
-    # _build_topology produced (itself the deterministic order named_inputs
-    # was given in), so this loop's output order never depends on a set or
-    # on dict-hash iteration order.
+    # Iterating role_kind_by_role directly relies on plain dict
+    # insertion-order preservation, keeping this loop's output order the
+    # deterministic order _build_topology assigned roles in (itself the
+    # order named_inputs was given in) -- never a set, whose iteration
+    # order is not a language guarantee. A duplicate role name cannot reach
+    # this loop: a duplicate named_input already raised inside
+    # TaskDag.from_list's duplicate-task_id check above, before agent_specs
+    # is ever built, so there is nothing here for this loop to collapse.
     for role in role_kind_by_role:
         role_kind = role_kind_by_role[role]
         agent_specs[role] = AgentSpec.from_dict({

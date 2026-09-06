@@ -59,6 +59,28 @@ def _decisions(*, outcome="ship the widget", run_id=RUN_ID, created_at=CREATED_A
     return {**fields, "outcome": outcome, "run_id": run_id, "created_at": created_at}
 
 
+class _MappingLikeWithoutDunderContains:
+    """A read-only mapping-like object with `get` and `__getitem__` but no
+    `__contains__`/`__iter__` -- the exact shape that used to slip past
+    `compile_workflow`'s old duck-typed check
+    (`hasattr(decisions, "get")`/`hasattr(decisions, "__getitem__")`).
+    `qc_lib.require_fields`'s own `field not in obj` then fell back to the
+    legacy sequence protocol (probing `obj[0]`, `obj[1]`, ...), and this
+    object's string-keyed `__getitem__` raises `KeyError` there instead of
+    the `IndexError` that fallback expects -- a bare `KeyError` escaping
+    `compile_workflow` instead of the `Blocked` its docstring promises.
+    """
+
+    def __init__(self, data):
+        self._data = data
+
+    def get(self, key, default=None):
+        return self._data.get(key, default)
+
+    def __getitem__(self, key):
+        return self._data[key]
+
+
 def _latest_payload(mailbox, *, kind, task_id, attempt=None):
     matches = [
         envelope.payload
@@ -104,6 +126,15 @@ class ValidationTest(unittest.TestCase):
     def test_rejects_a_non_mapping(self):
         with self.assertRaises(Blocked):
             compile_workflow(["not", "a", "mapping"])
+
+    def test_rejects_a_non_dict_mapping_like_object_instead_of_leaking_a_keyerror(self):
+        # A mapping-like object with every required field individually
+        # valid, but not a `dict` -- see _MappingLikeWithoutDunderContains's
+        # own docstring for exactly which duck-typed check this used to
+        # slip past, and what it leaked instead of Blocked.
+        decisions = _MappingLikeWithoutDunderContains(dict(_decisions()))
+        with self.assertRaises(Blocked):
+            compile_workflow(decisions)
 
     def test_rejects_each_missing_required_field(self):
         base = _decisions()
