@@ -559,6 +559,104 @@ The plan's guard fires below 10% weekly or 5% session, so neither had fired, but
 the weekly margin was thin enough to justify writing this section before
 starting Task 6.
 
+## Third implementation packet — Outcome 3
+
+Authored by root on 2026-09-06 after the Outcome 2 gate passed.
+
+Outcome 3's exit evidence, verbatim from the master plan, is the standard:
+one real end-to-end spawn through the first host adapter consuming the emitted
+`RunSpec`/DAG/`AgentSpec`; a captured run with distinct agent identities, valid
+mailbox sequence and **artifact hashes**; and root idle until the engine emits
+an allowed blocked or awaiting-user-input state, then relaying a schema-valid
+answer through the adapter so the reducer resumes or stays terminally blocked.
+
+Three things Outcome 2 deferred land here, and the task order follows from them.
+
+**Hashes are exit evidence, not optional.** Outcome 2's `verify` is structural
+because `Envelope` carries no hash field and the schema was frozen. Outcome 3's
+exit evidence names artifact hashes explicitly, so the schema changes here.
+That is a wire-format change and it comes first, before anything is built on
+the old shape.
+
+**`awaiting-user-input` becomes reachable.** Outcome 2 left it representable but
+never decided, because no question-triggered transition existed and fabricating
+one would have moved a state transition outside the engine. The answer-relay
+evidence requires it, so this outcome builds that transition properly — in
+`gate.py`, the sole authority, not in an adapter or a loop.
+
+**The branch-halting question must be answered before a real host runs.**
+`drive` halts the whole run on any terminal decision. On a generated
+multi-branch DAG one doomed branch silently starves healthy siblings. Decide it
+deliberately; do not discover it against a real adapter.
+
+### Task 1: envelope hashes and cryptographic verify
+
+Add a hash field to `schemas/envelope.schema.json` and to `Envelope`, chaining
+each envelope to its predecessor so the mailbox is tamper-evident, and extend
+`oqc.verify` to check the chain. Remove the docstring's disclaimer only when it
+stops being true.
+
+Tests must prove: a tampered payload that violates no structural invariant is
+now caught; the chain is deterministic and survives a JSONL round trip; and
+every existing structural check still holds. This is the one task that changes a
+frozen wire format, so it lands alone.
+
+### Task 2: resolve the branch-halting decision
+
+Root decides, with the implementer supplying evidence rather than judgement:
+does `drive` continue independent runnable branches after one branch reaches a
+terminal state, or does halting remain correct?
+
+Whichever way it goes, the behaviour must be tested on an emitted multi-branch
+DAG and stated in `drive`'s docstring. If continuation is chosen, the run's
+final phase must distinguish "some branch blocked" from "everything completed",
+and the existing exhausted-retry evidence must keep passing unchanged.
+
+### Task 3: the vendor-neutral Orchestrator contract
+
+The Orchestrator is the single agent root spawns. Define its contract against
+the kernel-facing port: what it receives, what it may emit, and what it may
+never do. Root observes after the spawn and is contacted only for results,
+blockers, or engine-declared user input, per ADR 0014 decision 1.
+
+Vendor-neutral: no host names, model identifiers or vendor vocabulary. The
+contract is what a host adapter compiles to, not what any host provides.
+
+### Task 4: the smallest real host adapter
+
+Implement the kernel-facing port against one real host. Claude is the first
+host: `adapters/claude/` already exists with a builder, hooks and tests.
+
+Smallest means smallest. Spawn one Orchestrator, emit status, relay a question,
+enforce the hooks and policy boundary — nothing else. Every host-specific detail
+stays in the adapter; nothing host-shaped enters the kernel.
+
+Disclose every unenforceable constraint rather than asserting it, per ADR 0014
+decision 3: isolation is host-enforced where the host can enforce it and
+disclosed where it cannot.
+
+### Task 5: the captured real run
+
+One small workflow end to end: root interviews once, `compile_workflow` emits
+the specs, the adapter spawns one Orchestrator, root stays passive.
+
+Capture the run and assert on the captured mailbox: distinct agent identities,
+a valid event sequence, valid artifact hashes, root idle throughout, and a
+schema-valid answer relayed through the adapter after the engine emits
+`awaiting-user-input`, with the reducer then resuming or staying terminally
+blocked.
+
+This is the outcome's load-bearing evidence and the first time anything in this
+workstream is not model-free. Budget accordingly: capture the run once, commit
+the capture, and assert against the captured artifact so the evidence is
+replayable without re-spawning.
+
+### Task 6: close the Outcome 3 gate
+
+Root reruns the six suites, the documentation-truth check and `git diff --check`.
+A validator confirms every exit condition above against code and against the
+captured run. Outcome 4 may start only on PASS.
+
 ## Serious stop conditions
 
 Stop and ask the owner only for an architectural conflict not resolved by the

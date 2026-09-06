@@ -243,3 +243,38 @@ and re-earning them costs a full review round.
 Negative results matter most here: root's inconclusive cycle-detection drill and
 the rejected design options are exactly what a resumed session would otherwise
 repeat at full cost.
+
+### Progress — Outcome 3 opened, packet authored — 2026-09-06T11:35:00-03:00
+
+Owner directed starting Outcome 3 with the weekly quota at 94% used. Root
+flagged that the plan's guard had fired; the owner acknowledged and directed the
+work regardless, which is the owner's call and is recorded as such rather than
+argued twice.
+
+Root began with planning rather than dispatch. A packet survives an abrupt stop;
+an implementer round killed mid-run at this quota level loses its work and the
+next session pays for it twice. No subagent was dispatched.
+
+Six tasks authored, ordered by what Outcome 2 deferred rather than by
+convenience:
+
+1. **Envelope hashes and cryptographic verify.** Outcome 3's exit evidence names
+   artifact hashes explicitly, so `verify` stops being structural-only. This
+   changes a frozen wire format, so it lands alone and first, before anything is
+   built on the old shape.
+2. **The branch-halting decision.** `drive` halts the whole run on any terminal
+   decision; on a generated multi-branch DAG one doomed branch starves healthy
+   siblings. Decide it deliberately rather than discover it against a real host.
+3. **The vendor-neutral Orchestrator contract.**
+4. **The smallest real host adapter**, Claude first, since `adapters/claude/`
+   already carries a builder, hooks and tests.
+5. **The captured real run** — the load-bearing evidence, and the first thing in
+   this workstream that is not model-free. Capture once, commit the capture,
+   assert against the artifact so the evidence is replayable without re-spawning.
+6. **The gate.**
+
+`awaiting-user-input` becomes reachable in this outcome. Outcome 2 left it
+representable but never decided, because no question-triggered transition existed
+and fabricating one would have moved a state transition outside the engine. The
+answer-relay evidence requires it, so it gets built in `gate.py` — the sole
+authority — not in an adapter or a loop.
