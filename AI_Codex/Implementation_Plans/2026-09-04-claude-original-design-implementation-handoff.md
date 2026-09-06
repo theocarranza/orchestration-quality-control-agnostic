@@ -401,9 +401,31 @@ silently. That deviation from the per-task loop is closed as follows:
   reused only in the test fixture, never imported by the module. Not a defect —
   nothing was reimplemented, which is what that instruction protected — and the
   runtime wiring belongs to Outcome 5. Now stated in the docstring.
-- **Quality: dispatched, verdict pending at the time of writing.** If it is not
-  recorded in the session ledger, it did not complete, and the gate must not
-  treat Task 6 as fully reviewed until it has run.
+- **Quality: run, returned FINDINGS (2).** Both reproduced by root; fixes are in
+  flight at the time of writing. The gate must not treat Task 6 as reviewed
+  until they land and the suite is green.
+  1. *A bare `KeyError` escaped instead of `Blocked`.* `_require_mapping`
+     duck-typed on `get` and `__getitem__`, but `require_fields` then evaluates
+     `field not in obj`, which falls back to the legacy sequence protocol and
+     probes `obj[0]`. A string-keyed `__getitem__` raises `KeyError`, not the
+     `IndexError` that fallback expects, so `KeyError: 0` propagated out of
+     `compile_workflow` — against its own docstring's promise of a named
+     `Blocked`. Fix: `isinstance(decisions, dict)`, matching every
+     `from_dict`/`from_list` in `kernel_specs.py`.
+  2. *The docstring named a mechanism the code does not use.* Two passages
+     credited `dict.fromkeys` for the agent_specs loop's determinism; grep finds
+     `fromkeys` only in those two comments. The code relies on ordinary dict
+     insertion order. The duplicate-role collapse they describe cannot occur
+     either — a duplicate `named_input` already raises inside
+     `TaskDag.from_list`'s duplicate-task_id check first.
+
+  The second finding is worth carrying forward as a lesson rather than a defect:
+  **attempt 2 was itself a documentation-accuracy round on this same file, and
+  it left another false mechanism claim standing.** Correcting a docstring means
+  checking every mechanism it names, not only the passage under review. A
+  docstring right about three claims and inventing a fourth is still one a
+  reader cannot trust. Future documentation fixes should grep for every
+  identifier the prose names and confirm each exists.
 
 ### What Task 7 must do
 
