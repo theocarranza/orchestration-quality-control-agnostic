@@ -4,7 +4,8 @@ from dataclasses import replace
 
 from adapter_port import AdapterPort
 from fake_adapter import FakeAdapter
-from gate import AnswerDecision, approve_answer
+from gate import AnswerDecision, RetryDecision, AWAITING_USER_INPUT, approve_answer
+from qc_lib import freeze
 from kernel_specs import Envelope, GENESIS_HASH
 from mailbox import Mailbox
 from qc_lib import Blocked
@@ -64,6 +65,20 @@ class SpawnFailingResultTest(unittest.TestCase):
         )
         self.assertEqual(result.payload["outcome"], "failed")
         self.assertEqual(result.payload["critique"], "wrong shape")
+
+    def test_spawn_preserves_artifact_and_freezes_question_payload(self):
+        mailbox = Mailbox()
+        adapter = FakeAdapter({
+            ("task-1", 1): {"outcome": "failed", "critique": "needs choice",
+                            "artifact": "draft.txt",
+                            "question": {"question_id": "q-1", "prompt": "Retry?"}},
+        })
+        _, result = adapter.spawn(mailbox, run_id="run-1", task_id="task-1", attempt=1,
+                                  agent_id="worker-1", brief={})
+        self.assertEqual(result.payload["artifact"], "draft.txt")
+        self.assertEqual(dict(result.payload["question"]), {"question_id": "q-1", "prompt": "Retry?"})
+        with self.assertRaises(TypeError):
+            result.payload["question"]["prompt"] = "mutate"
 
 
 class SpawnScriptLookupTest(unittest.TestCase):
@@ -192,7 +207,7 @@ class EmitStatusTest(unittest.TestCase):
         envelope = adapter.emit_status(
             mailbox, run_id="run-1", phase="completed", context={"note": "done"},
         )
-        self.assertEqual(mailbox.read_all(), (envelope,))
+        self.assertEqual(mailbox.read_all()[-1:], (envelope,))
         self.assertEqual(envelope.kind, "status")
         self.assertEqual(envelope.sender, "orchestrator")
         self.assertEqual(envelope.recipient, "root")
@@ -217,20 +232,36 @@ class RelayQuestionTest(unittest.TestCase):
     def test_relay_question_appends_orchestrator_to_root(self):
         mailbox = Mailbox()
         adapter = FakeAdapter({})
-        envelope = adapter.relay_question(
-            mailbox, run_id="run-1", question="which target file?",
+        decision = RetryDecision(
+            action=AWAITING_USER_INPUT, task_id="task-1", attempt=1,
+            critique="bad output", attempts_remaining=2,
+            phase=AWAITING_USER_INPUT,
+            question=freeze({"question_id": "q-1", "prompt": "which target file?"}),
         )
-        self.assertEqual(mailbox.read_all(), (envelope,))
+        # Build the approved waiting state through the real adapter methods.
+        adapter = FakeAdapter({("task-1", 1): {"outcome": "failed", "critique": "bad output", "question": {"question_id": "q-1", "prompt": "which target file?"}}})
+        adapter.spawn(mailbox, run_id="run-1", task_id="task-1", attempt=1, agent_id="worker-1", brief={})
+        adapter.emit_status(mailbox, run_id="run-1", phase=AWAITING_USER_INPUT,
+                            context={"task_id": "task-1", "attempt": 1, "critique": "bad output",
+                                     "attempts_remaining": 2, "question_id": "q-1", "prompt": "which target file?"})
+        envelope = adapter.relay_question(
+            mailbox, run_id="run-1", decision=decision,
+        )
+        self.assertEqual(mailbox.read_all()[-1:], (envelope,))
         self.assertEqual(envelope.kind, "question")
         self.assertEqual(envelope.sender, "orchestrator")
         self.assertEqual(envelope.recipient, "root")
-        self.assertEqual(envelope.payload["question"], "which target file?")
+        self.assertEqual(envelope.payload["prompt"], "which target file?")
 
     def test_relay_question_with_an_empty_question_is_blocked_before_appending(self):
         mailbox = Mailbox()
         adapter = FakeAdapter({})
+        decision = RetryDecision(action=AWAITING_USER_INPUT, task_id="task-1", attempt=1,
+                                 critique="bad", attempts_remaining=2,
+                                 phase=AWAITING_USER_INPUT,
+                                 question=freeze({"question_id": "q-1", "prompt": "   "}))
         with self.assertRaises(Blocked):
-            adapter.relay_question(mailbox, run_id="run-1", question="   ")
+            adapter.relay_question(mailbox, run_id="run-1", decision=decision)
         self.assertEqual(mailbox.read_all(), ())
 
 

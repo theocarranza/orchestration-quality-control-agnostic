@@ -7,7 +7,7 @@ Scope was clarified by root on 2026-09-05: `oqc.py` cannot be a CLI
 boundary with nothing to drive, and `replay` needs a real run to replay,
 so this module also owns the orchestrator `drive` loop that Outcome 2
 Task 4 kept inline inside its test fixtures (tests/test_replay.py). This
-module provides exactly three capabilities -- `drive`, `replay`, `verify`
+module provides four capabilities -- `drive`, `resume`, `replay`, `verify`
 -- plus a thin `__main__` CLI over the last two.
 
 The kernel stays importable without this module. Nothing in
@@ -30,7 +30,7 @@ from dataclasses import dataclass
 
 from adapter_port import AdapterPort
 from compile_prompt import compile_brief
-from gate import PASSED, RETRY, gate_result, retry_or_block
+from gate import PASSED, RETRY, AWAITING_USER_INPUT, gate_result, decide_failure, approve_answer, retry_or_block
 from kernel_specs import GENESIS_HASH
 from mailbox import Mailbox
 from qc_lib import Blocked, run_main, thaw
@@ -119,6 +119,50 @@ def _latest_result_payload(mailbox, *, task_id, attempt):
             recovery_action="an AdapterPort.spawn() implementation must append a matching 'result' envelope",
         )
     return matches[-1]
+
+
+def _drive_task(dag, adapter, mailbox, agent_specs, max_attempts, *, run_id,
+                task_id, attempt=1, critique=None, answer_context=None):
+    """Drive one task, preserving its retry context across every attempt."""
+    node = _node_for(dag, task_id)
+    agent_spec = _agent_spec_for(agent_specs, node)
+    while True:
+        brief = compile_brief(node, agent_spec, critique=critique,
+                              attempt=attempt, answer_context=answer_context)
+        adapter.enforce_policy(run_id=run_id, hook_name="pre-spawn",
+                               context={"task_id": task_id, "attempt": attempt})
+        adapter.spawn(mailbox, run_id=run_id, task_id=task_id, attempt=attempt,
+                      agent_id=agent_spec.agent_id, brief=brief)
+        verdict = gate_result(_latest_result_payload(
+            mailbox, task_id=task_id, attempt=attempt))
+        if verdict.outcome == PASSED:
+            return reduce(mailbox.read_all())
+
+        decision = decide_failure(reduce(mailbox.read_all()), verdict, max_attempts)
+        if decision.action == RETRY:
+            adapter.emit_status(
+                mailbox, run_id=run_id, phase=_WORKING_PHASE,
+                context={"decision": RETRY, "task_id": task_id,
+                         "critique": decision.critique, "attempt": attempt,
+                         "attempts_remaining": decision.attempts_remaining},
+            )
+            critique = decision.critique
+            attempt += 1
+            continue
+        if decision.action == AWAITING_USER_INPUT:
+            q = decision.question
+            context = {"task_id": task_id, "attempt": decision.attempt,
+                       "critique": decision.critique,
+                       "attempts_remaining": decision.attempts_remaining,
+                       "question_id": q["question_id"], "prompt": q["prompt"]}
+            adapter.emit_status(mailbox, run_id=run_id,
+                                phase=AWAITING_USER_INPUT, context=context)
+            adapter.relay_question(mailbox, run_id=run_id, decision=decision)
+            return reduce(mailbox.read_all())
+        adapter.emit_status(mailbox, run_id=run_id, phase=decision.phase,
+                            context={"task_id": task_id,
+                                     "critique": decision.critique})
+        return reduce(mailbox.read_all())
 
 
 def drive(dag, adapter, mailbox, agent_specs, max_attempts, *, run_id):
@@ -236,6 +280,13 @@ def drive(dag, adapter, mailbox, agent_specs, max_attempts, *, run_id):
     """
     _require_adapter_port(adapter)
     _require_max_attempts(max_attempts)
+    waiting = reduce(mailbox.read_all())
+    if waiting.run_id is not None and waiting.run_id != run_id:
+        raise Blocked(stage=STAGE, reason_code="malformed_checkpoint",
+                      detail="run_id does not match the mailbox run",
+                      recovery_action="resume the mailbox with its existing run_id")
+    if waiting.phase == AWAITING_USER_INPUT:
+        return waiting
 
     while True:
         state = reduce(mailbox.read_all())
@@ -244,76 +295,10 @@ def drive(dag, adapter, mailbox, agent_specs, max_attempts, *, run_id):
             break
 
         task_id = runnable[0]
-        node = _node_for(dag, task_id)
-        agent_spec = _agent_spec_for(agent_specs, node)
-
-        critique = None
-        attempt = 0
-        while True:
-            attempt += 1
-            brief = compile_brief(node, agent_spec, critique=critique, attempt=attempt)
-
-            adapter.enforce_policy(
-                run_id=run_id,
-                hook_name="pre-spawn",
-                context={"task_id": task_id, "attempt": attempt},
-            )
-            adapter.spawn(
-                mailbox,
-                run_id=run_id,
-                task_id=task_id,
-                attempt=attempt,
-                agent_id=agent_spec.agent_id,
-                brief=brief,
-            )
-
-            result_payload = _latest_result_payload(mailbox, task_id=task_id, attempt=attempt)
-            verdict = gate_result(result_payload)
-
-            if verdict.outcome == PASSED:
-                break  # this task is done; the outer loop re-derives next_tasks
-
-            state = reduce(mailbox.read_all())
-            attempts_remaining = max_attempts - attempt
-            decision = retry_or_block(state, task_id, verdict.critique, attempts_remaining)
-
-            if decision.action == RETRY:
-                # FINDING 1: record the retry decision durably, in the
-                # mailbox, at the moment it is made.
-                adapter.emit_status(
-                    mailbox,
-                    run_id=run_id,
-                    phase=_WORKING_PHASE,
-                    context={
-                        "decision": RETRY,
-                        "task_id": task_id,
-                        "critique": decision.critique,
-                        "attempt": attempt,
-                        "attempts_remaining": attempts_remaining,
-                    },
-                )
-                critique = decision.critique
-                continue  # attempt the same task again
-
-            # Terminal: gate.retry_or_block returned a non-RETRY decision
-            # (BLOCKED_STATE today -- see the docstring above for why
-            # AWAITING_USER_INPUT is not manufactured here).
-            adapter.relay_question(
-                mailbox,
-                run_id=run_id,
-                question=(
-                    f"task '{task_id}' exhausted its attempt budget after "
-                    f"{attempt} attempt(s); final critique: {decision.critique}. "
-                    "how should the run proceed?"
-                ),
-            )
-            adapter.emit_status(
-                mailbox,
-                run_id=run_id,
-                phase=decision.phase,
-                context={"task_id": task_id, "critique": decision.critique},
-            )
-            return reduce(mailbox.read_all())
+        task_state = _drive_task(dag, adapter, mailbox, agent_specs, max_attempts,
+                                 run_id=run_id, task_id=task_id)
+        if task_state.phase in (AWAITING_USER_INPUT, "blocked"):
+            return task_state
 
     # Every runnable task was driven to a PASSED verdict above (any
     # terminal decision returns immediately, before this point), so a
@@ -332,6 +317,34 @@ def drive(dag, adapter, mailbox, agent_specs, max_attempts, *, run_id):
         )
     adapter.emit_status(mailbox, run_id=run_id, phase="completed", context={})
     return reduce(mailbox.read_all())
+
+
+def resume(dag, adapter, mailbox, agent_specs, max_attempts, *, answer):
+    """Approve and apply one answer to the current waiting run."""
+    _require_adapter_port(adapter)
+    _require_max_attempts(max_attempts)
+    state = reduce(mailbox.read_all())
+    approved = approve_answer(state, answer)
+    expected_budget = approved.attempt + approved.attempts_remaining
+    if max_attempts != expected_budget:
+        raise Blocked(
+            stage=STAGE, reason_code="malformed_checkpoint",
+            detail=f"max_attempts {max_attempts} does not match outstanding budget {expected_budget}",
+            recovery_action="resume with the max_attempts value recorded by the waiting state",
+        )
+    adapter.relay_answer(mailbox, answer=approved)
+    if approved.decision == "stop":
+        return reduce(mailbox.read_all())
+    task_state = _drive_task(
+        dag, adapter, mailbox, agent_specs, max_attempts,
+        run_id=approved.run_id, task_id=approved.task_id,
+        attempt=approved.attempt + 1, critique=approved.critique,
+        answer_context=approved.text,
+    )
+    if task_state.phase in (AWAITING_USER_INPUT, "blocked"):
+        return task_state
+    return drive(dag, adapter, mailbox, agent_specs, max_attempts,
+                 run_id=approved.run_id)
 
 
 # ---------------------------------------------------------------------------

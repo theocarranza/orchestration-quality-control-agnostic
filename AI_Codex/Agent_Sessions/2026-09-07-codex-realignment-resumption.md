@@ -445,3 +445,59 @@ validator branches have independent non-vacuous evidence; at the attempt cap it
 is recorded for later cleanup rather than repaired in an unplanned fourth
 round. No product finding remains. Commit hash: pending. Next: Task 3b.2c live
 question binding, answer append boundary and drive resume integration.
+
+### Progress — Task 3b.2b committed; Task 3b.2c dispatched
+
+Task 3b.2b committed as `8e37252` and pushed to the verified origin branch.
+Task 3b.2c must change the scheduler, question relay and brief context together
+to preserve a green intermediate contract. Despite its breadth, the execution
+packet requires every new task to start Luna/low. Dispatch attempt 1 with exact
+pause, resume, budget, JSONL and fail-fast schemas; escalate only if the returned
+evidence demonstrates the need.
+
+### Progress — Task 3b.2c attempt 1 incomplete; attempt 2 escalated
+
+Luna/low changed production first, added no tests, left the 534-test scripts
+suite with two failures and two errors, and explicitly handed its owned test
+integration back to root. Root also found load-bearing defects before executing
+a question path: frozen question mappings fail the adapter's `dict` type check;
+waiting status context contains `phase`, so its exact comparison can never pass;
+stop appends a redundant status after the atomic answer; a resumed failure that
+earns another retry falls back to the router, which correctly cannot schedule a
+failed task; and `resume` does not bind its `max_attempts` argument to the
+outstanding derived budget before append. This is concrete evidence to escalate
+attempt 2 to a fresh Luna/medium logical worker with the full test matrix.
+
+### Progress — Task 3b.2c attempt 2 returned; specification review
+
+Luna/medium repaired the five known production defects and reports 127 focused
+and 540 full scripts tests passing; root reproduced both counts. Only six tests
+were added, however. They prove the primary wait/retry and stop paths but omit
+most named negative, repeated-failure, budget, JSONL reload and verify cases;
+one unrelated empty-mailbox status assertion was also weakened from whole-log
+equality to a last-item slice. Dispatch a fresh Luna/low specification review
+before the final attempt to distinguish production defects from missing proof
+and preserve a bounded repair list.
+
+### Quota guard — safe checkpoint and stand by
+
+The owner reported 7% remaining, resetting at 11:49 AM. This is below the
+`root-architect-execution` 7-day guard of 10%, so root interrupted the fresh
+Task 3b.2c specification reviewer before it returned a verdict. No quality
+review was dispatched and Task 3b.2c remains unchecked and incomplete.
+
+Last accepted and pushed feature checkpoint: `8e37252`. Current Task 3b.2c
+attempt-2 product and tests are green at 127 focused and 540 full scripts tests;
+`git diff --check` is clean. This is not acceptance evidence: the diff still
+needs the fresh specification verdict, likely a final attempt-3 coverage repair
+for invalid answers, repeated post-answer failures, exact budget binding, JSONL
+reload plus replay/verify, relay rejection/counter continuity, and restoration
+of the weakened empty-mailbox status assertion, followed by a separate quality
+review. No Outcome 3 real-host work has started.
+
+Root will preserve this incomplete state on a dedicated remote WIP branch so
+the accepted feature branch stays at `8e37252`. Resume from
+`wip/outcome-3-task-3b2c-quota-checkpoint` in the isolated checkout (or a fresh
+clone), rerun a fresh Luna/low specification review against the Task 3b.2c brief,
+then use the remaining attempt 3 only for accepted load-bearing findings. Do not
+mark 3b.2c complete until fresh specification and quality reviewers both PASS.

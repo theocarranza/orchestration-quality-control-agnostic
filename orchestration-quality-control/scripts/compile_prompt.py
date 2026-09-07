@@ -5,7 +5,7 @@ AI_Codex/Architecture/ADR/0014-generated-workflow-deterministic-kernel.md,
 decision 0: "Deterministic code -- not an agent -- decides what runs next,
 compiles each agent's brief, gates every result, counts attempts...".
 `compile_brief` is that brief compiler: a pure function of
-(task_node, agent_spec, critique, attempt) that returns the plain mapping
+(task_node, agent_spec, critique, attempt, answer_context) that returns the plain mapping
 an `adapter_port.AdapterPort.spawn` call puts on a 'request' envelope's
 `payload['brief']`.
 
@@ -111,7 +111,7 @@ def _require_critique(critique):
         )
 
 
-def compile_brief(task_node, agent_spec, critique=None, attempt=1):
+def compile_brief(task_node, agent_spec, critique=None, attempt=1, answer_context=None):
     """Compile the deterministic brief for one attempt of one task.
 
     `task_node` is the `kernel_specs.TaskNode` being attempted;
@@ -134,6 +134,10 @@ def compile_brief(task_node, agent_spec, critique=None, attempt=1):
     _require_matching_role(task_node, agent_spec)
     _require_attempt(attempt)
     _require_critique(critique)
+    if answer_context is not None and (not isinstance(answer_context, str) or not answer_context.strip()):
+        raise Blocked(stage=STAGE, reason_code="malformed_checkpoint",
+                      detail=f"answer_context must be None or a non-empty string, got {answer_context!r}",
+                      recovery_action="pass None or a non-empty answer string")
 
     return {
         "task_id": task_node.task_id,
@@ -146,4 +150,5 @@ def compile_brief(task_node, agent_spec, critique=None, attempt=1):
         "model_tier": agent_spec.model_tier,
         "reasoning_effort": agent_spec.reasoning_effort,
         "critique": critique,
+        "answer_context": answer_context,
     }

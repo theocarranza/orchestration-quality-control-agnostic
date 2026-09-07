@@ -42,12 +42,13 @@ module is exactly the shape a real host adapter (Task 4) should copy.
 """
 
 import re
+from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 
 from adapter_port import AdapterPort
 from qc_lib import Blocked, require_enum
 from run_state import PHASES
-from gate import AnswerDecision, approve_answer
+from gate import AnswerDecision, RetryDecision, AWAITING_USER_INPUT, approve_answer
 
 STAGE = "fake_adapter"
 
@@ -122,6 +123,9 @@ class FakeAdapter(AdapterPort):
         result_payload = {"task_id": task_id, "attempt": attempt, "outcome": outcome}
         if outcome == "failed":
             result_payload["critique"] = scripted.get("critique")
+        for key in ("artifact", "question"):
+            if key in scripted:
+                result_payload[key] = scripted[key]
 
         request_id, request_created_at = self._next_meta("env")
         request = self._append(
@@ -165,25 +169,41 @@ class FakeAdapter(AdapterPort):
             created_at=created_at,
         )
 
-    def relay_question(self, mailbox, *, run_id, question):
-        if not isinstance(question, str) or not question.strip():
+    def relay_question(self, mailbox, *, run_id, decision):
+        from run_state import reduce
+        if not isinstance(decision, RetryDecision) or decision.action != AWAITING_USER_INPUT or decision.phase != AWAITING_USER_INPUT:
             raise Blocked(
                 stage=STAGE,
                 reason_code="malformed_checkpoint",
-                detail=f"question must be a non-empty string, got {question!r}",
-                recovery_action="pass a non-empty question string",
+                detail="decision must be an awaiting-user-input RetryDecision",
+                recovery_action="pass the decision returned by gate.decide_failure",
             )
+        q = decision.question
+        if not isinstance(q, Mapping) or set(q) != {"question_id", "prompt"} or any(not isinstance(q[k], str) or not q[k].strip() for k in q):
+            raise Blocked(stage=STAGE, reason_code="malformed_checkpoint", detail="question must contain question_id and prompt", recovery_action="pass a complete question")
+        state = reduce(mailbox.read_all())
+        context = state.context
+        expected = {"task_id": decision.task_id, "attempt": decision.attempt, "critique": decision.critique, "attempts_remaining": decision.attempts_remaining, "question_id": q["question_id"], "prompt": q["prompt"]}
+        expected_context = {**expected, "phase": AWAITING_USER_INPUT}
+        if (run_id != state.run_id or state.phase != AWAITING_USER_INPUT
+                or dict(context or {}) != expected_context):
+            raise Blocked(stage=STAGE, reason_code="malformed_checkpoint", detail="decision does not match current waiting context", recovery_action="relay the current approved decision")
+        previous_counter = self._counter
         envelope_id, created_at = self._next_meta("env")
-        return self._append(
-            mailbox,
-            envelope_id=envelope_id,
-            run_id=run_id,
-            sender="orchestrator",
-            recipient="root",
-            kind="question",
-            payload={"question": question},
-            created_at=created_at,
-        )
+        try:
+            return self._append(
+                mailbox,
+                envelope_id=envelope_id,
+                run_id=run_id,
+                sender="orchestrator",
+                recipient="root",
+                kind="question",
+                payload=expected,
+                created_at=created_at,
+            )
+        except Blocked:
+            self._counter = previous_counter
+            raise
 
     def relay_answer(self, mailbox, *, answer):
         if not isinstance(answer, AnswerDecision):

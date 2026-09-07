@@ -125,6 +125,7 @@ class VendorNeutralityTest(unittest.TestCase):
     EXPECTED_KEYS = {
         "task_id", "role", "agent_id", "attempt", "capabilities", "tools",
         "output_schema", "model_tier", "reasoning_effort", "critique",
+        "answer_context",
     }
 
     def test_brief_has_exactly_the_expected_keys(self):
@@ -138,6 +139,14 @@ class VendorNeutralityTest(unittest.TestCase):
         serialised = json.dumps(brief).lower()
         for forbidden in ("claude", "anthropic", "openai", "gpt", "gemini", "sonnet", "opus", "haiku"):
             self.assertNotIn(forbidden, serialised)
+
+    def test_answer_context_is_explicit_and_deterministic(self):
+        first = compile_brief(_task_node(), _agent_spec(), answer_context="retry with artifact")
+        second = compile_brief(_task_node(), _agent_spec(), answer_context="retry with artifact")
+        other = compile_brief(_task_node(), _agent_spec(), answer_context="stop and inspect")
+        self.assertEqual(first["answer_context"], "retry with artifact")
+        self.assertEqual(first, second)
+        self.assertNotEqual(first, other)
 
 
 class ValidationTest(unittest.TestCase):
@@ -181,6 +190,12 @@ class ValidationTest(unittest.TestCase):
     def test_whitespace_only_critique_is_blocked(self):
         with self.assertRaises(Blocked):
             compile_brief(_task_node(), _agent_spec(), critique="   ")
+
+    def test_empty_or_non_string_answer_context_is_blocked(self):
+        for value in ("", "   ", 7, object()):
+            with self.subTest(value=value):
+                with self.assertRaises(Blocked):
+                    compile_brief(_task_node(), _agent_spec(), answer_context=value)
 
     def test_non_string_critique_is_blocked(self):
         with self.assertRaises(Blocked):

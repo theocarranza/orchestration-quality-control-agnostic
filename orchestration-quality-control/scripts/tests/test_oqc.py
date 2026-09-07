@@ -24,7 +24,7 @@ from unittest.mock import patch
 
 import oqc
 from fake_adapter import FakeAdapter
-from gate import gate_result, retry_or_block
+from gate import gate_result, retry_or_block, approve_answer
 from kernel_specs import AgentSpec, Envelope, GENESIS_HASH, TaskDag
 from mailbox import Mailbox
 from oqc import drive, replay, verify
@@ -69,6 +69,14 @@ SCRIPT_B = {
     ("task-a", 1): {"outcome": "failed", "critique": "attempt 1: wrong output shape"},
     ("task-a", 2): {"outcome": "failed", "critique": "attempt 2: still wrong"},
     ("task-a", 3): {"outcome": "failed", "critique": "attempt 3: still wrong"},
+}
+
+SCRIPT_QUESTION = {
+    ("task-a", 1): {"outcome": "failed", "critique": "needs a choice",
+                    "question": {"question_id": "q-a-1", "prompt": "Retry task-a?"},
+                    "artifact": "first"},
+    ("task-a", 2): {"outcome": "passed", "artifact": "second"},
+    ("task-b", 1): {"outcome": "passed"},
 }
 
 
@@ -162,7 +170,7 @@ class DriveCritiqueCarryingRetryTest(unittest.TestCase):
         # now produced by the real loop rather than hand-copied by a test.
         mailbox = Mailbox()
         adapter = FakeAdapter(SCRIPT_A)
-        drive(DAG, adapter, mailbox, AGENT_SPECS, MAX_ATTEMPTS, run_id=RUN_ID)
+        final_state = drive(DAG, adapter, mailbox, AGENT_SPECS, MAX_ATTEMPTS, run_id=RUN_ID)
 
         request_2 = _latest(mailbox, kind="request", task_id="task-a", attempt=2)
         self.assertEqual(request_2["brief"]["critique"], "off-by-one in the boundary check")
@@ -227,7 +235,7 @@ class RetryDecisionRecordedDurablyTest(unittest.TestCase):
     def _drive_and_find_retry_index(self):
         mailbox = Mailbox()
         adapter = FakeAdapter(SCRIPT_A)
-        drive(DAG, adapter, mailbox, AGENT_SPECS, MAX_ATTEMPTS, run_id=RUN_ID)
+        final_state = drive(DAG, adapter, mailbox, AGENT_SPECS, MAX_ATTEMPTS, run_id=RUN_ID)
         envelopes = mailbox.read_all()
         index = next(
             i for i, e in enumerate(envelopes)
@@ -311,16 +319,14 @@ class EnforcePolicyComposedWithSpawnTest(unittest.TestCase):
 
 
 class RelayQuestionComposedWithTheGateTest(unittest.TestCase):
-    def test_relay_question_is_exercised_exactly_once_on_the_terminal_path(self):
+    def test_ordinary_exhaustion_is_blocked_without_a_question_envelope(self):
         mailbox = Mailbox()
         adapter = FakeAdapter(SCRIPT_B)
-        drive(DAG, adapter, mailbox, AGENT_SPECS, MAX_ATTEMPTS, run_id=RUN_ID)
+        final_state = drive(DAG, adapter, mailbox, AGENT_SPECS, MAX_ATTEMPTS, run_id=RUN_ID)
 
         questions = [e for e in mailbox.read_all() if e.kind == "question"]
-        self.assertEqual(len(questions), 1)
-        self.assertEqual(questions[0].sender, "orchestrator")
-        self.assertEqual(questions[0].recipient, "root")
-        self.assertIn("task-a", questions[0].payload["question"])
+        self.assertEqual(questions, [])
+        self.assertEqual(final_state.phase, "blocked")
 
     def test_relay_question_is_not_exercised_on_a_run_that_never_blocks(self):
         mailbox = Mailbox()
@@ -347,6 +353,48 @@ class AwaitingUserInputRemainsUnreachableTest(unittest.TestCase):
         phases = [e.payload.get("phase") for e in mailbox.read_all() if e.kind == "status"]
         self.assertIn("blocked", phases)
         self.assertNotIn("awaiting-user-input", phases)
+
+
+class QuestionFlowTest(unittest.TestCase):
+    def test_passed_result_with_question_is_rejected_by_gate(self):
+        with self.assertRaises(Blocked):
+            gate_result({"task_id": "task-a", "attempt": 1,
+                         "outcome": "passed", "question": {
+                             "question_id": "q-1", "prompt": "Retry?"}})
+
+    def test_question_waits_with_exact_envelopes_and_resume_completes(self):
+        mailbox = Mailbox()
+        adapter = FakeAdapter(SCRIPT_QUESTION)
+        waiting = drive(DAG, adapter, mailbox, AGENT_SPECS, MAX_ATTEMPTS, run_id=RUN_ID)
+        self.assertEqual(waiting.phase, "awaiting-user-input")
+        statuses = [e for e in mailbox.read_all() if e.kind == "status"]
+        questions = [e for e in mailbox.read_all() if e.kind == "question"]
+        self.assertEqual(len(statuses), 1)
+        self.assertEqual(len(questions), 1)
+        self.assertEqual(set(questions[0].payload), {"task_id", "attempt", "critique", "attempts_remaining", "question_id", "prompt"})
+        before = mailbox.to_jsonl()
+        self.assertEqual(drive(DAG, adapter, mailbox, AGENT_SPECS, MAX_ATTEMPTS, run_id=RUN_ID).phase, "awaiting-user-input")
+        self.assertEqual(mailbox.to_jsonl(), before)
+        state = reduce(mailbox.read_all())
+        final = oqc.resume(DAG, adapter, mailbox, AGENT_SPECS, MAX_ATTEMPTS, answer={
+            "run_id": RUN_ID, "task_id": "task-a", "attempt": 1,
+            "question_id": "q-a-1", "decision": "retry", "text": "retry with the artifact",
+        })
+        self.assertEqual(final.phase, "completed")
+        requests = [e for e in mailbox.read_all() if e.kind == "request" and e.payload["task_id"] == "task-a"]
+        self.assertEqual(requests[-1].payload["brief"]["answer_context"], "retry with the artifact")
+        self.assertEqual(requests[-1].payload["brief"]["critique"], "needs a choice")
+
+    def test_stop_answer_is_the_only_terminal_event(self):
+        mailbox = Mailbox()
+        adapter = FakeAdapter(SCRIPT_QUESTION)
+        drive(DAG, adapter, mailbox, AGENT_SPECS, MAX_ATTEMPTS, run_id=RUN_ID)
+        final = oqc.resume(DAG, adapter, mailbox, AGENT_SPECS, MAX_ATTEMPTS, answer={
+            "run_id": RUN_ID, "task_id": "task-a", "attempt": 1,
+            "question_id": "q-a-1", "decision": "stop", "text": "stop",
+        })
+        self.assertEqual(len([e for e in mailbox.read_all() if e.kind == "answer"]), 1)
+        self.assertEqual(len([e for e in mailbox.read_all() if e.kind == "status" and e.payload.get("phase") == "blocked"]), 0)
 
 
 # ---------------------------------------------------------------------------

@@ -137,8 +137,8 @@ class AdapterPort(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def relay_question(self, mailbox, *, run_id, question):
-        """Relay a worker's question up to root, orchestrator -> root.
+    def relay_question(self, mailbox, *, run_id, decision):
+        """Relay one engine-approved RetryDecision question up to root.
 
         Appends a 'question' envelope and returns it. A worker never
         addresses root directly through this port: only the orchestrator
