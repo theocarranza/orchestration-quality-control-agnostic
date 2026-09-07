@@ -53,7 +53,7 @@ Push to the verified origin feature branch; do not merge, release or tag.
 
 - [x] Task 1: finish specification and quality reviews of `ef23d40`.
 - [x] Task 2: make the retained fail-fast branch policy explicit.
-- [ ] Task 3a: vendor-neutral Orchestrator input/output contract.
+- [x] Task 3a: vendor-neutral Orchestrator input/output contract.
 - [ ] Task 3b: engine-authorized question/answer lifecycle.
 - [ ] Task 4: Claude first-host transport and enforced policy boundary.
 - [ ] Task 5: captured real run with externally anchored hashes.
@@ -175,3 +175,52 @@ prove with contract tests and capture, not a current implementation claim.
 - Constraints: no host vocabulary/model ids; no I/O or clock in compilation;
   TDD with honest RED/GREEN; no commits, agents, user questions or unrelated
   cleanup. Root owns ledger/packet dirty paths.
+
+## Task 3b exact lifecycle decisions
+
+The smallest captured answer path may remain terminally blocked, as the master
+plan explicitly permits. Implement both retry-within-budget and stop decisions
+if they fit one bounded worker task; split a further task rather than hide an
+unimplemented resume path behind a passing fixture.
+
+The failed worker result may carry a question object with question_id and
+prompt. A passed result carrying a question is contradictory and must fail.
+The gate validates the request against the derived failed task and records
+awaiting-user-input with run/task/attempt/question bindings and remaining
+budget. The relay carries that exact question. Never turn every ordinary
+exhausted failure into a request for input; existing exhaustion stays blocked.
+
+An answer carries run_id, task_id, attempt, question_id, decision (retry or
+stop), and text. Check its whole shape and bindings against the outstanding
+engine-declared context before appending anything. Wrong run/task/question,
+wrong phase, duplicate/stale answer, invalid decision or retry without remaining
+budget raises named Blocked. Answer and resulting phase must be one validated
+logical transition when reducing a persisted history; do not leave a crash gap
+that permits accepting the same answer twice. The adapter records only an
+engine-approved transition, and cannot overwrite its phase through context.
+
+On retry, the engine compiles the next attempt with the answer text as context,
+keeps the prior critique and counts the new attempt from mailbox history.
+No reset to attempt 1 and no grant of a fresh max_attempts budget. On stop,
+remaining state stays blocked; re-entering drive must not dispatch untouched
+siblings of a blocked run. Verify/replay must reject a forged answer and
+preserve the same transition after JSONL reload.
+
+Tests must exercise real drive + FakeAdapter + relay composition, not only
+standalone gate helpers. Include valid retry that then passes, valid stop,
+invalid/duplicate/stale answers with unchanged log, exhausted budget, and
+schema-invalid or contradictory worker question. Extend FakeAdapter to carry
+question/artifact fields rather than silently dropping them. Keep every prior
+exhausted-retry and emitted-DAG acceptance case.
+
+### Task 4 identity and payload binding
+
+The host transport must match each returned worker identity to the exact
+engine-issued request, not merely accept a legal agent-to-orchestrator pair.
+The existing verify pairing indexes task/attempt, not worker sender; extending
+capture verification with dispatched-recipient/result-sender binding belongs
+to the real-host task before its authenticity claims. Brief/artifact hashes
+must be computed from actual canonical brief bytes and actual artifact bytes;
+an agent's claimed hash is not evidence. Validate host structured output before
+appending a successful result. Preserve raw evidence of rejected transport
+responses separately from the authoritative mailbox.

@@ -176,3 +176,87 @@ Luna/low PASS. Quality reran 31 compiler tests, diff check clean; scripts 472
 reused unchanged from worker. Retained fail-fast; intentional policy documented
 and emitted-DAG live/replay/verify evidence strengthened. No escalation.
 Commit hash: pending. Next: Task 3a canonical Orchestrator contract.
+
+### Progress — Task 3a dispatched
+
+Task 2 committed a321c14. Dispatch Luna/low attempt 1 with the exact Task3a
+brief saved in the execution packet: immutable canonical Orchestrator contract,
+validated role/budget bindings and emitted worker-result schema. No host code
+or lifecycle changes yet. Acceptance new focused tests then scripts suite.
+
+### Progress — Task 3a returned; specification review dispatched
+
+Luna/low reported DONE: 3 focused tests and 475 scripts tests passed; RED
+was missing-module import (0 tests), not behavioral RED. Root source inspection
+shows the canonical instructions omit passive root and mailbox/state rules, and
+several named adverse-input/immutability/tampered-instruction proofs are absent.
+Dispatch fresh specification reviewer to assess the full brief before repair.
+
+### Progress — Task 3a authority bypass reproduced; escalation ruling
+
+Root executed an isolated Python probe: mutation of CONTROL_INSTRUCTIONS
+changes compiled authority, and dataclasses.replace accepts arbitrary authority.
+No source files changed. These are actual invariant gaps plus omitted proofs,
+so attempt 2 will increase Luna effort from low to medium. The collaboration
+followup API cannot change effort; a new agent will continue the same logical
+worker task from its existing diff and the complete findings. This is a host
+adaptation required to make the escalation actual, not merely prompt prose.
+No model-tier escalation; all other role/commit boundaries stay unchanged.
+
+### Progress — Task 3a attempt 2 returned; specification re-review dispatched
+
+Luna/medium attempt 2 returned DONE after one root interruption for a silent
+run and one resumed turn. Its final evidence reports 9 RED tests with 4
+expected failures, then 13 focused and 485 full scripts tests passing under
+Python 3.12; root independently reran the 13 focused and 485 scripts tests.
+The repair makes the authority source immutable, validates direct construction,
+and adds the missing binding, topology, serialization and authority proofs.
+Dispatch a fresh Luna/low specification re-review against every attempt-1
+finding before quality review. No model-tier escalation is supported yet.
+
+### Progress — Task 3a specification PASS; quality dispatched
+
+Fresh Luna/low specification re-review returned PASS with no findings. It
+confirmed the three owned files now satisfy all attempt-1 authority, binding,
+immutability, serialization, topology and schema requirements. Dispatch a
+different fresh Luna/low quality reviewer to inspect correctness and rerun the
+focused and full scripts commands. The medium-effort implementer evidence is
+not treated as independent quality evidence.
+
+### Progress — Task 3a quality finding; attempt 3 dispatched
+
+Independent Luna/low quality review reran 13 focused and 485 scripts tests,
+all passing, and its construction/immutability probes passed. It found one
+external-input defect: `OrchestratorContract.from_json` leaks raw JSON and type
+exceptions instead of the kernel's named `Blocked` contract. Root accepts the
+finding. Return it to the same logical Luna/medium implementer for attempt 3,
+limited to the parser and two regressions. The required change is mechanically
+precise, so this does not support a model-tier escalation; medium effort remains.
+
+### Progress — Task 3a attempt 3 returned; scoped specification review
+
+Luna/medium produced two honest RED errors from the leaked JSON/type exceptions,
+then 15 focused and 487 scripts tests passed after the minimal `Blocked`
+translation. Diff check passed. Dispatch a fresh Luna/low scoped specification
+review of the parser fix before a different quality re-review. This is the
+third and final implementation attempt; any remaining load-bearing defect would
+trigger the plan's blocker adjudication rather than a fourth repair round.
+
+### Progress — Task 3a attempt 3 specification PASS; quality re-review
+
+Fresh Luna/low scoped specification review returned PASS with no findings. It
+confirmed both malformed input classes become the required named `Blocked` and
+the scope remains limited. Dispatch a different fresh Luna/low quality reviewer
+to rerun the focused and complete scripts suites and independently probe both
+input classes. No implementation attempt remains after this review.
+
+### Checkpoint — Outcome 3 Task 3a PASS
+
+Attempt 3. Implementer: Luna/medium after evidence-based effort escalation.
+Fresh final specification reviewer: Luna/low PASS. Separate final quality
+reviewer: Luna/low PASS. Quality reran 15 focused and 487 complete scripts
+tests, parsed the result schema, independently probed both external-input error
+classes, and found the diff clean. The contract now carries the complete emitted
+workflow, immutable authority instructions, strict identity/role/budget binding,
+stable serialization and the worker-result schema. No model-tier escalation.
+Commit hash: pending. Next: Task 3b engine-authorized question/answer lifecycle.

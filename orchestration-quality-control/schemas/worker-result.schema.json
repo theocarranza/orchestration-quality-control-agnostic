@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["task_id", "attempt", "outcome"],
+  "properties": {
+    "task_id": {"type": "string", "minLength": 1},
+    "attempt": {"type": "integer", "minimum": 1},
+    "outcome": {"enum": ["passed", "failed"]},
+    "critique": {"type": "string"},
+    "artifact": {"type": "string"},
+    "question": {"type": "object", "required": ["question_id", "prompt"], "properties": {"question_id": {"type": "string", "minLength": 1}, "prompt": {"type": "string", "minLength": 1}}, "additionalProperties": false}
+  },
+  "additionalProperties": false
+}
