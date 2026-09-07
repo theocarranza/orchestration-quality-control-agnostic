@@ -57,6 +57,9 @@ Push to the verified origin feature branch; do not merge, release or tag.
 - [ ] Task 3b: engine-authorized question/answer lifecycle.
   - [x] Task 3b.1: executable result schema and question authorization.
   - [ ] Task 3b.2: atomic answer event and drive composition.
+    - [x] Task 3b.2a: schema-valid root answer authorization.
+    - [ ] Task 3b.2b: answer port and atomic reducer event.
+    - [ ] Task 3b.2c: drive pause/resume composition and integrated review.
 - [ ] Task 4: Claude first-host transport and enforced policy boundary.
 - [ ] Task 5: captured real run with externally anchored hashes.
 - [ ] Task 6: full gate and independent acceptance review.
@@ -259,6 +262,34 @@ identical. A retry continues at the next mailbox-derived attempt with prior
 critique plus answer context and no refreshed budget. Tests compose actual
 `drive`, FakeAdapter, JSONL reload and verify; Task 3b closes only after both
 checkpoints and an integrated review pass.
+
+To keep each worker brief bounded, execute 3b.2 as three dependent checkpoints.
+Task 3b.2a owns `schemas/root-answer.schema.json`, the existing narrow schema
+evaluator/public validator in `kernel_specs.py`, `gate.py`, and focused tests.
+The answer object has exactly `run_id`, `task_id`, positive `attempt`, nonblank
+`question_id`, `decision` (`retry` or `stop`) and nonblank `text`.
+`approve_answer(state, answer)` requires `awaiting-user-input`, exact run/task/
+attempt/question binding to the frozen status context, a mailbox-derived failed
+task at that attempt, and remaining budget for retry. It returns an immutable
+engine decision whose phase is `execution` for retry or `blocked` for stop; it
+does not append.
+
+Task 3b.2b then owns `adapter_port.py`, `fake_adapter.py`, `run_state.py` and
+their focused tests. Extend the port only with the root-to-Orchestrator answer
+operation required by Outcome 3. Question envelopes carry the complete approved
+question binding. An answer envelope carries one approved answer and the reducer
+uses that same event atomically to enter `execution` or `blocked`. Replay rejects
+answers outside the waiting phase and any run/task/attempt/question mismatch,
+duplicate/stale answer, invalid value, or retry without remaining budget.
+
+Task 3b.2c finally owns `oqc.py` and its focused integration tests. `drive`
+consumes the actual latest result through `gate_result` and `decide_failure`,
+records and relays an approved question, and returns waiting. A deterministic
+public resume boundary re-derives state, calls `approve_answer` immediately
+before append, leaves JSONL byte-identical on rejection, and resumes an allowed
+retry at the next mailbox-derived attempt with the prior critique plus answer
+text. Stop remains terminal and fail-fast; exhausted ordinary failures remain
+blocked. Prove live state equals replay and verify after JSONL reload.
 
 ### Task 4 identity and payload binding
 

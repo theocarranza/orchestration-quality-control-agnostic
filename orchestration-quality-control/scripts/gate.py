@@ -20,7 +20,7 @@ deciding either.
 from dataclasses import dataclass
 
 from qc_lib import Blocked, freeze, thaw
-from kernel_specs import validate_worker_result
+from kernel_specs import validate_worker_result, validate_root_answer
 from run_state import PHASES, attempts_of, status_of
 
 STAGE = "gate"
@@ -157,6 +157,103 @@ class RetryDecision:
     attempt: object = None
     attempts_remaining: object = None
     question: object = None
+
+@dataclass(frozen=True)
+class AnswerDecision:
+    run_id: str
+    task_id: str
+    attempt: int
+    question_id: str
+    decision: str
+    text: str
+    phase: str
+    critique: str
+    prompt: str
+    attempts_remaining: int
+
+def approve_answer(state, answer):
+    try:
+        value = validate_root_answer(answer)
+    except Blocked as exc:
+        raise Blocked(
+            stage=STAGE,
+            reason_code=exc.reason_code,
+            detail=exc.detail,
+            recovery_action=exc.recovery_action,
+        ) from exc
+    if getattr(state, "phase", None) != AWAITING_USER_INPUT:
+        raise Blocked(
+            stage=STAGE,
+            reason_code="malformed_checkpoint",
+            detail="answer approval requires phase awaiting-user-input",
+            recovery_action="approve answers only while awaiting user input",
+        )
+    if not isinstance(getattr(state, "run_id", None), str) or state.run_id != value["run_id"]:
+        raise Blocked(
+            stage=STAGE,
+            reason_code="malformed_checkpoint",
+            detail="answer run_id does not match state",
+            recovery_action="use the state run_id",
+        )
+    context = getattr(state, "context", None)
+    fields = ("task_id", "attempt", "question_id", "attempts_remaining", "critique", "prompt")
+    if not hasattr(context, "keys") or any(k not in context for k in fields):
+        raise Blocked(
+            stage=STAGE,
+            reason_code="malformed_checkpoint",
+            detail="waiting context is incomplete",
+            recovery_action="restore the complete waiting context",
+        )
+    for key in ("task_id", "question_id", "critique", "prompt"):
+        if not isinstance(context[key], str) or not context[key].strip():
+            raise Blocked(
+                stage=STAGE,
+                reason_code="malformed_checkpoint",
+                detail=f"waiting context field '{key}' must be non-empty",
+                recovery_action="restore a non-empty waiting context field",
+            )
+    for key, minimum in (("attempt", 1), ("attempts_remaining", 0)):
+        if not isinstance(context[key], int) or isinstance(context[key], bool) or context[key] < minimum:
+            raise Blocked(
+                stage=STAGE,
+                reason_code="malformed_checkpoint",
+                detail=f"waiting context field '{key}' has invalid value",
+                recovery_action="restore a valid waiting context integer",
+            )
+    if (value["task_id"], value["attempt"], value["question_id"]) != (context["task_id"], context["attempt"], context["question_id"]):
+        raise Blocked(
+            stage=STAGE,
+            reason_code="malformed_checkpoint",
+            detail="answer does not match waiting context",
+            recovery_action="answer the currently waiting question",
+        )
+    if status_of(state, context["task_id"]) != FAILED or attempts_of(state, context["task_id"]) != context["attempt"]:
+        raise Blocked(
+            stage=STAGE,
+            reason_code="malformed_checkpoint",
+            detail="waiting task status or attempt does not match state",
+            recovery_action="use the failed task and attempt recorded in state",
+        )
+    if value["decision"] == RETRY and context["attempts_remaining"] == 0:
+        raise Blocked(
+            stage=STAGE,
+            reason_code="malformed_checkpoint",
+            detail="retry is not allowed when attempts_remaining is zero",
+            recovery_action="choose stop",
+        )
+    phase = "execution" if value["decision"] == RETRY else BLOCKED_STATE
+    return AnswerDecision(
+        run_id=value["run_id"],
+        task_id=value["task_id"],
+        attempt=value["attempt"],
+        question_id=value["question_id"],
+        decision=value["decision"],
+        text=value["text"],
+        phase=phase,
+        critique=context["critique"],
+        prompt=context["prompt"],
+        attempts_remaining=context["attempts_remaining"],
+    )
 
 
 def retry_or_block(state, task_id, critique, attempts_remaining):

@@ -291,11 +291,22 @@ def _load_envelope_schema():
 def _load_worker_result_schema():
     return load_json_file(SCHEMA_DIR / "worker-result.schema.json", stage="worker_result")
 
+@lru_cache(maxsize=None)
+def _load_root_answer_schema():
+    return load_json_file(SCHEMA_DIR / "root-answer.schema.json", stage="root_answer")
+
 def validate_worker_result(result):
     if not isinstance(result, Mapping):
         raise Blocked(stage="worker_result", reason_code="malformed_checkpoint", detail=f"worker result must be a JSON object, got {type(result).__name__}", recovery_action="pass an object matching worker-result.schema.json")
     plain = thaw(result)
     _schema_validate(plain, _load_worker_result_schema(), stage="worker_result")
+    return plain
+
+def validate_root_answer(answer):
+    if not isinstance(answer, Mapping):
+        raise Blocked(stage="root_answer", reason_code="malformed_checkpoint", detail=f"root answer must be a JSON object, got {type(answer).__name__}", recovery_action="pass an object matching root-answer.schema.json")
+    plain = thaw(answer)
+    _schema_validate(plain, _load_root_answer_schema(), stage="root_answer")
     return plain
 
 

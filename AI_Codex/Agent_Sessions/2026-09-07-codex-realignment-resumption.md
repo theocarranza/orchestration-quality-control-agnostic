@@ -335,3 +335,57 @@ executable at the gate, and `decide_failure` is the sole authorization boundary
 for a validated worker question to enter `awaiting-user-input`. Mailbox event
 append and answer consumption remain explicitly scoped to Task 3b.2. Commit
 hash: pending. Next: Task 3b.2 atomic answer event and drive composition.
+
+### Progress — Task 3b.1 committed; Task 3b.2 bounded dispatch
+
+Task 3b.1 committed as `99b8830` and pushed to the verified origin branch.
+Root decomposed 3b.2 into three dependent checkpoints: answer schema and gate
+authorization; port plus atomic reducer event; then drive pause/resume and the
+integrated review. This keeps schema, replay and scheduler invariants separately
+reviewable. Dispatch Task 3b.2a attempt 1 at Luna/low, the minimum configured
+tier, with an exact answer shape and binding matrix.
+
+### Progress — Task 3b.2a attempt 1 incomplete; attempt 2 dispatched
+
+Luna/low returned DONE with 117 focused and 513 full scripts tests passing;
+root reproduced both counts. The report is not accepted: only four tests were
+added, while the brief required a non-vacuous schema and state-binding matrix.
+The implementation also treats whitespace-only root answer identifiers and text
+as schema-valid because `minLength` alone does not mean nonblank, and no gate
+semantic check closes that gap. Return the exact missing matrix and whitespace
+defect to the same Luna/low worker for attempt 2; no effort escalation yet
+because this is a brief-completion gap rather than demonstrated reasoning need.
+
+### Progress — Task 3b.2a attempt 2 returned; specification review
+
+Luna/low attempt 2 reports 126 focused and 522 full scripts tests passing;
+root reproduced both counts. Root corrects one detail in the prior checkpoint:
+the then-untracked schema already contained a non-whitespace pattern, so the
+demonstrated attempt-1 defect was missing proof rather than missing behavior.
+Attempt 2 adds the requested schema and state-binding matrix and reformats the
+answer decision boundary. The added tests passed immediately against attempt
+1 production instead of demonstrating a new RED, which is recorded as a TDD
+process limitation. Dispatch a fresh Luna/low specification reviewer over the
+complete contract before any quality review or commit.
+
+### Progress — Task 3b.2a specification findings; attempt 3 dispatched
+
+Fresh Luna/low review found no production defect but returned two coverage
+findings before calling the implementation PASS: no proof that approval leaves
+both the immutable state and caller-owned answer mapping unchanged, and no
+absent-task status case. Root treats the explicit findings as non-PASS rather
+than relying on the contradictory closing label. Return these two bounded tests
+to the same Luna/low worker for attempt 3. This is the final implementation
+attempt; a remaining load-bearing defect will trigger blocker adjudication.
+
+### Checkpoint — Outcome 3 Task 3b.2a PASS
+
+Attempt 3. Implementer: Luna/low. Fresh final specification reviewer: Luna/low
+PASS. Separate final quality reviewer: Luna/low PASS. Root and quality each ran
+128 focused and 524 full scripts tests; diff check and adversarial validation,
+binding, budget, stage, import and immutability probes passed. Attempt 2 added
+coverage after production and therefore did not demonstrate a fresh RED; this
+process limitation is preserved above. The checked-in root-answer schema and
+`approve_answer` now produce one immutable engine decision without appending or
+mutating state. No model-tier escalation. Commit hash: pending. Next: Task
+3b.2b answer port and atomic reducer event.

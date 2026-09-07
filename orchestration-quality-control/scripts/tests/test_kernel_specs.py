@@ -9,7 +9,41 @@ from types import MappingProxyType
 from tests import SCRIPTS_DIR
 
 from qc_lib import Blocked
-from kernel_specs import AgentSpec, Envelope, GENESIS_HASH, RunSpec, TaskNode, TaskDag
+from kernel_specs import AgentSpec, Envelope, GENESIS_HASH, RunSpec, TaskNode, TaskDag, validate_root_answer
+
+
+class RootAnswerSchemaTest(unittest.TestCase):
+    def _answer(self, **overrides):
+        value = {"run_id": "run-1", "task_id": "task-1", "attempt": 1,
+                 "question_id": "q-1", "decision": "retry", "text": "Proceed"}
+        value.update(overrides)
+        return value
+
+    def test_valid_root_answer_is_accepted(self):
+        self.assertEqual(validate_root_answer(self._answer())["decision"], "retry")
+
+    def test_schema_rejects_required_types_values_and_extra_fields(self):
+        for field in ("run_id", "task_id", "attempt", "question_id", "decision", "text"):
+            with self.subTest(field=field):
+                value = self._answer(); del value[field]
+                with self.assertRaises(Blocked): validate_root_answer(value)
+        for field, bad in (("run_id", ""), ("task_id", " "), ("question_id", ""), ("text", ""),
+                           ("attempt", 0), ("attempt", True), ("decision", "maybe")):
+            with self.subTest(field=field, bad=bad), self.assertRaises(Blocked):
+                validate_root_answer(self._answer(**{field: bad}))
+        with self.assertRaises(Blocked): validate_root_answer(self._answer(extra=True))
+
+    def test_schema_rejects_wrong_type_for_each_field(self):
+        invalid = {"run_id": 1, "task_id": [], "attempt": "1", "question_id": {},
+                   "decision": 1, "text": None}
+        for field, value in invalid.items():
+            with self.subTest(field=field), self.assertRaises(Blocked):
+                validate_root_answer(self._answer(**{field: value}))
+
+    def test_schema_rejects_whitespace_only_nonblank_fields(self):
+        for field in ("run_id", "task_id", "question_id", "text"):
+            with self.subTest(field=field), self.assertRaises(Blocked):
+                validate_root_answer(self._answer(**{field: " \t\n"}))
 
 
 def _agent_dict(**overrides):

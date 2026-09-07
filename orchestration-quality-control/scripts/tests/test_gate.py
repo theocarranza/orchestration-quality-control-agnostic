@@ -13,8 +13,11 @@ from gate import (
     decide_failure,
     gate_result,
     retry_or_block,
+    AnswerDecision,
+    approve_answer,
 )
 from kernel_specs import Envelope, GENESIS_HASH
+from run_state import RunState
 from qc_lib import Blocked
 from run_state import PHASES, reduce
 
@@ -68,6 +71,108 @@ class GateResultPassedTest(unittest.TestCase):
         self.assertEqual(verdict.task_id, "task-1")
         self.assertEqual(verdict.outcome, PASSED)
         self.assertIsNone(verdict.critique)
+
+
+class ApproveAnswerTest(unittest.TestCase):
+    def _state(self, phase=AWAITING_USER_INPUT, remaining=2):
+        return RunState("run-1", phase, 0, {"task_id": "task-1", "attempt": 1,
+            "question_id": "q-1", "attempts_remaining": remaining,
+            "critique": "wrong", "prompt": "Choose"}, (), {"task-1": "failed"}, {"task-1": 1})
+
+    def _answer(self, decision="retry", **overrides):
+        answer = {"run_id": "run-1", "task_id": "task-1", "attempt": 1,
+                  "question_id": "q-1", "decision": decision, "text": "Proceed"}
+        answer.update(overrides)
+        return answer
+
+    def test_approves_retry_and_stop_with_frozen_context(self):
+        for decision, phase in (("retry", "execution"), ("stop", "blocked")):
+            result = approve_answer(self._state(remaining=2), self._answer(decision))
+            self.assertEqual(result.phase, phase)
+            with self.assertRaises(FrozenInstanceError): result.phase = "blocked"
+
+    def test_rejects_direct_answer_decision_as_raw_answer(self):
+        raw = AnswerDecision("run-1", "task-1", 1, "q-1", "retry", "x", "execution", "wrong", "Choose", 2)
+        with self.assertRaises(Blocked):
+            approve_answer(self._state(), raw)
+
+    def test_decision_carries_all_answer_and_waiting_fields(self):
+        answer = self._answer("retry")
+        answer["text"] = "Use the revised plan"
+        result = approve_answer(self._state(), answer)
+        self.assertEqual(result.run_id, answer["run_id"])
+        self.assertEqual(result.task_id, answer["task_id"])
+        self.assertEqual(result.attempt, answer["attempt"])
+        self.assertEqual(result.question_id, answer["question_id"])
+        self.assertEqual(result.decision, answer["decision"])
+        self.assertEqual(result.text, answer["text"])
+        self.assertEqual((result.phase, result.critique, result.prompt, result.attempts_remaining),
+                         ("execution", "wrong", "Choose", 2))
+
+    def test_approval_does_not_mutate_answer_or_state_and_decision_has_no_alias(self):
+        state = self._state()
+        before = state
+        answer = self._answer()
+        answer_before = dict(answer)
+        result = approve_answer(state, answer)
+        self.assertEqual(answer, answer_before)
+        self.assertEqual(state, before)
+        answer["text"] = "caller changed this"
+        answer["decision"] = "stop"
+        self.assertEqual(result.text, "Proceed")
+        self.assertEqual(result.decision, "retry")
+
+    def test_awaiting_state_with_absent_task_is_rejected_as_pending(self):
+        state = RunState(
+            "run-1", AWAITING_USER_INPUT, 0, self._state().context, (), {}, {}
+        )
+        with self.assertRaises(Blocked) as ctx:
+            approve_answer(state, self._answer())
+        self.assertIn("status", ctx.exception.detail)
+
+    def test_wrong_phase_is_rejected(self):
+        with self.assertRaises(Blocked):
+            approve_answer(self._state(phase="execution"), self._answer())
+
+    def test_mismatched_answer_identity_fields_are_rejected(self):
+        for field, value in (("run_id", "other"), ("task_id", "other"),
+                             ("attempt", 2), ("question_id", "other")):
+            with self.subTest(field=field):
+                with self.assertRaises(Blocked):
+                    approve_answer(self._state(), self._answer(**{field: value}))
+
+    def test_status_and_attempt_mismatches_are_rejected(self):
+        for status, attempts in (("passed", {"task-1": 1}), ("failed", {"task-1": 2})):
+            state = RunState("run-1", AWAITING_USER_INPUT, 0, self._state().context,
+                             (), {"task-1": status}, attempts)
+            with self.subTest(status=status, attempts=attempts), self.assertRaises(Blocked):
+                approve_answer(state, self._answer())
+
+    def test_each_waiting_context_field_is_required(self):
+        fields = ("task_id", "attempt", "question_id", "attempts_remaining", "critique", "prompt")
+        for field in fields:
+            context = dict(self._state().context)
+            del context[field]
+            state = RunState("run-1", AWAITING_USER_INPUT, 0, context, (), {"task-1": "failed"}, {"task-1": 1})
+            with self.subTest(field=field), self.assertRaises(Blocked):
+                approve_answer(state, self._answer())
+
+    def test_waiting_context_strings_and_integers_are_strict(self):
+        for field in ("task_id", "question_id", "critique", "prompt"):
+            context = dict(self._state().context)
+            context[field] = " "
+            state = RunState("run-1", AWAITING_USER_INPUT, 0, context, (), {"task-1": "failed"}, {"task-1": 1})
+            with self.subTest(field=field), self.assertRaises(Blocked): approve_answer(state, self._answer())
+        for field, values in (("attempt", (True, 0, "1")), ("attempts_remaining", (True, -1, "1"))):
+            for value in values:
+                context = dict(self._state().context); context[field] = value
+                state = RunState("run-1", AWAITING_USER_INPUT, 0, context, (), {"task-1": "failed"}, {"task-1": 1})
+                with self.subTest(field=field, value=value), self.assertRaises(Blocked): approve_answer(state, self._answer())
+
+    def test_retry_zero_is_rejected_and_stop_zero_is_accepted(self):
+        self.assertEqual(approve_answer(self._state(remaining=0), self._answer("stop")).phase, BLOCKED_STATE)
+        with self.assertRaises(Blocked):
+            approve_answer(self._state(remaining=0), self._answer("retry"))
 
     def test_passed_result_ignores_a_stray_critique_field(self):
         # A passed result carrying a critique anyway must not surface it --
