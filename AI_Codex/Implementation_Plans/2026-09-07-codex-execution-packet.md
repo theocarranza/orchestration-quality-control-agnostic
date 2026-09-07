@@ -55,6 +55,8 @@ Push to the verified origin feature branch; do not merge, release or tag.
 - [x] Task 2: make the retained fail-fast branch policy explicit.
 - [x] Task 3a: vendor-neutral Orchestrator input/output contract.
 - [ ] Task 3b: engine-authorized question/answer lifecycle.
+  - [x] Task 3b.1: executable result schema and question authorization.
+  - [ ] Task 3b.2: atomic answer event and drive composition.
 - [ ] Task 4: Claude first-host transport and enforced policy boundary.
 - [ ] Task 5: captured real run with externally anchored hashes.
 - [ ] Task 6: full gate and independent acceptance review.
@@ -212,6 +214,51 @@ invalid/duplicate/stale answers with unchanged log, exhausted budget, and
 schema-invalid or contradictory worker question. Extend FakeAdapter to carry
 question/artifact fields rather than silently dropping them. Keep every prior
 exhausted-retry and emitted-DAG acceptance case.
+
+### Task 3b execution split
+
+Task 3b is two committed checkpoints because schema/gate classification and
+mailbox/drive transitions have different invariants.
+
+#### Task 3b.1 — executable result schema and question authorization
+
+Owned files: `scripts/kernel_specs.py`, `scripts/gate.py`, their focused tests,
+and `schemas/worker-result.schema.json` only if a defect is proven. Extend the
+existing narrow schema evaluator with the exact `minLength` and `minimum`
+keywords this checked-in schema uses, and expose a small public validation
+entrypoint so gate code does not import a private helper. `gate_result` validates
+the complete result against the checked-in schema before semantic checks;
+`attempt` is now required and positive at this boundary. Update direct legacy
+gate fixtures accordingly, without weakening envelope/reducer rules.
+
+A passed result carrying `critique` or `question` is contradictory and rejected.
+A failed result requires nonblank critique. Its optional question is recursively
+frozen and must contain exactly nonblank `question_id` and `prompt`. Add a frozen
+engine decision for entering `awaiting-user-input`; it binds task, attempt,
+critique, question and actual attempts remaining to the mailbox-derived failed
+state. Ordinary failures continue through `retry_or_block`, so exhaustion
+without a worker question remains `blocked`. This task does not append events,
+accept answers, or change `drive`.
+
+Tests prove every schema required/type/enum/minimum/minLength/additional-property
+rule, contradictions, immutable question data, mismatched/nonfailed state, bad
+remaining budget, and both question-present versus ordinary-failure decisions.
+Run focused kernel-spec/gate tests then all scripts tests with Python 3.12.
+
+#### Task 3b.2 — atomic answer event and drive composition
+
+After 3b.1 passes, own `adapter_port.py`, `fake_adapter.py`, `run_state.py`,
+`oqc.py` and their focused tests. Preserve earlier fail-fast behavior. Add the
+smallest root-answer port and a deterministic engine API that validates an
+answer against the outstanding question before append. The single answer
+envelope both records the answer and moves phase to `execution` for an allowed
+retry or `blocked` for stop, so a crash cannot leave a consumed answer waiting
+to be applied. Reducer/replay rejects forged, duplicate, stale, mismatched or
+budget-invalid answer histories. Invalid live answers leave the mailbox byte
+identical. A retry continues at the next mailbox-derived attempt with prior
+critique plus answer context and no refreshed budget. Tests compose actual
+`drive`, FakeAdapter, JSONL reload and verify; Task 3b closes only after both
+checkpoints and an integrated review pass.
 
 ### Task 4 identity and payload binding
 

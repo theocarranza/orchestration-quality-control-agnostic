@@ -610,5 +610,84 @@ class TaskDagTest(unittest.TestCase):
         self.assertIn("cycle", ctx.exception.detail.lower())
 
 
+class WorkerResultSchemaTest(unittest.TestCase):
+    def test_public_validator_enforces_minimum_and_min_length(self):
+        from kernel_specs import validate_worker_result
+        with self.assertRaises(Blocked):
+            validate_worker_result({"task_id": "", "attempt": 0, "outcome": "passed"})
+
+    def test_min_length_is_checked_independently(self):
+        from kernel_specs import validate_worker_result
+        with self.assertRaises(Blocked) as ctx:
+            validate_worker_result({"task_id": "", "attempt": 1, "outcome": "passed"})
+        self.assertIn("task_id", ctx.exception.detail)
+
+    def test_minimum_is_checked_independently(self):
+        from kernel_specs import validate_worker_result
+        with self.assertRaises(Blocked) as ctx:
+            validate_worker_result({"task_id": "t", "attempt": 0, "outcome": "passed"})
+        self.assertIn("attempt", ctx.exception.detail)
+
+    def test_integer_minimum_rejects_boolean(self):
+        from kernel_specs import validate_worker_result
+        with self.assertRaises(Blocked):
+            validate_worker_result({"task_id": "t", "attempt": True, "outcome": "passed"})
+
+    def test_required_fields_are_enforced_individually(self):
+        from kernel_specs import validate_worker_result
+        for field in ("task_id", "attempt", "outcome"):
+            result = {"task_id": "t", "attempt": 1, "outcome": "passed"}
+            result.pop(field)
+            with self.subTest(field=field), self.assertRaises(Blocked):
+                validate_worker_result(result)
+
+    def test_field_types_are_enforced(self):
+        from kernel_specs import validate_worker_result
+        for field, value in (("task_id", 1), ("attempt", "1"), ("outcome", 1)):
+            result = {"task_id": "t", "attempt": 1, "outcome": "passed"}
+            result[field] = value
+            with self.subTest(field=field), self.assertRaises(Blocked):
+                validate_worker_result(result)
+
+    def test_outcome_enum_is_enforced(self):
+        from kernel_specs import validate_worker_result
+        with self.assertRaises(Blocked):
+            validate_worker_result({"task_id": "t", "attempt": 1, "outcome": "unknown"})
+
+    def test_top_level_extra_fields_are_rejected(self):
+        from kernel_specs import validate_worker_result
+        with self.assertRaises(Blocked):
+            validate_worker_result({"task_id": "t", "attempt": 1, "outcome": "passed", "extra": True})
+
+    def test_question_required_fields_are_enforced_individually(self):
+        from kernel_specs import validate_worker_result
+        for field in ("question_id", "prompt"):
+            question = {"question_id": "q", "prompt": "Choose"}
+            question.pop(field)
+            with self.subTest(field=field), self.assertRaises(Blocked):
+                validate_worker_result({"task_id": "t", "attempt": 1, "outcome": "failed", "critique": "why", "question": question})
+
+    def test_question_field_types_are_enforced(self):
+        from kernel_specs import validate_worker_result
+        for field in ("question_id", "prompt"):
+            question = {"question_id": "q", "prompt": "Choose"}
+            question[field] = 1
+            with self.subTest(field=field), self.assertRaises(Blocked):
+                validate_worker_result({"task_id": "t", "attempt": 1, "outcome": "failed", "critique": "why", "question": question})
+
+    def test_question_min_length_is_enforced(self):
+        from kernel_specs import validate_worker_result
+        for field in ("question_id", "prompt"):
+            question = {"question_id": "q", "prompt": "Choose"}
+            question[field] = ""
+            with self.subTest(field=field), self.assertRaises(Blocked):
+                validate_worker_result({"task_id": "t", "attempt": 1, "outcome": "failed", "critique": "why", "question": question})
+
+    def test_question_extra_fields_are_rejected(self):
+        from kernel_specs import validate_worker_result
+        with self.assertRaises(Blocked):
+            validate_worker_result({"task_id": "t", "attempt": 1, "outcome": "failed", "critique": "why", "question": {"question_id": "q", "prompt": "Choose", "extra": True}})
+
+
 if __name__ == "__main__":
     unittest.main()

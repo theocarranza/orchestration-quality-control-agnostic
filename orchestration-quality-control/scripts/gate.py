@@ -5,8 +5,9 @@ AI_Codex/Architecture/ADR/0014-generated-workflow-deterministic-kernel.md,
 decision 4: "A failed gate carries its critique into the next attempt; an
 exhausted attempt budget moves the run to a blocked or
 awaiting-user-input state that only the engine can set and only root can
-answer." `gate_result` is the classifier; `retry_or_block` is the engine
-code that makes the retry-or-stop call. Neither function touches a
+answer." `gate_result` is the classifier; `decide_failure` validates one
+failed verdict and derives the retry-or-stop call through `retry_or_block`.
+Neither function touches a
 mailbox or mutates a RunState -- they classify and decide, and the caller
 (an orchestrator loop, here the test loop in tests/test_replay.py) is the
 one that turns a decision into the next envelope via the adapter port.
@@ -18,8 +19,9 @@ deciding either.
 
 from dataclasses import dataclass
 
-from qc_lib import Blocked
-from run_state import PHASES, status_of
+from qc_lib import Blocked, freeze, thaw
+from kernel_specs import validate_worker_result
+from run_state import PHASES, attempts_of, status_of
 
 STAGE = "gate"
 
@@ -64,30 +66,25 @@ class GateVerdict:
     attempt: object
     outcome: str
     critique: object
+    question: object = None
 
 
 def gate_result(result):
     """Classify a worker result as passed or failed.
 
-    `result` is a plain mapping with at least 'task_id' and 'outcome' (one
-    of GATE_OUTCOMES). When outcome == FAILED it must also carry a
-    non-empty 'critique' string explaining why: a failure without an
-    explanation is exactly the silent-stall shape ADR 0014 decision 4
-    exists to rule out, so this raises Blocked rather than let it through
-    unexplained. 'attempt', if present, must be a non-negative integer
-    (checked presence-gated, the same way 'task_id' and 'critique' already
-    are: this kernel slice does not require every result to carry one, but
-    a result that does must carry a valid one) and is then passed through
-    unchanged on the returned GateVerdict for the caller's own
-    bookkeeping; it plays no further role in classification here.
+    `result` is a mapping matching worker-result.schema.json, including a
+    positive integer 'attempt' and an outcome in GATE_OUTCOMES. When outcome
+    == FAILED it must also carry a non-empty 'critique' string explaining
+    why: a failure without an explanation is exactly the silent-stall shape
+    ADR 0014 decision 4 exists to rule out, so this raises Blocked rather
+    than let it through unexplained. The validated attempt is passed through
+    unchanged on the returned GateVerdict for the caller's bookkeeping.
     """
-    if not hasattr(result, "get"):
-        raise Blocked(
-            stage=STAGE,
-            reason_code="malformed_checkpoint",
-            detail=f"gate_result requires a mapping, got {type(result).__name__}",
-            recovery_action="pass a mapping with 'task_id', 'outcome', and (if failed) 'critique'",
-        )
+    try:
+        validate_worker_result(result)
+    except Blocked as exc:
+        raise Blocked(stage=STAGE, reason_code=exc.reason_code, detail=exc.detail,
+                      recovery_action=exc.recovery_action) from exc
 
     task_id = result.get("task_id")
     if not isinstance(task_id, str) or not task_id:
@@ -107,15 +104,9 @@ def gate_result(result):
             recovery_action=f"set result['outcome'] to one of {GATE_OUTCOMES}",
         )
 
-    if "attempt" in result:
-        attempt = result.get("attempt")
-        if not isinstance(attempt, int) or isinstance(attempt, bool) or attempt < 0:
-            raise Blocked(
-                stage=STAGE,
-                reason_code="malformed_checkpoint",
-                detail=f"result['attempt'] must be a non-negative integer, got {attempt!r}",
-                recovery_action="set result['attempt'] to a non-negative integer",
-            )
+    attempt = result["attempt"]
+    if attempt < 1:
+        raise Blocked(stage=STAGE, reason_code="malformed_checkpoint", detail=f"result['attempt'] must be a positive integer, got {attempt!r}", recovery_action="set result['attempt'] to an integer greater than zero")
 
     critique = result.get("critique")
     if outcome == FAILED:
@@ -131,6 +122,10 @@ def gate_result(result):
                 recovery_action="set result['critique'] to a non-empty string explaining the failure",
             )
     else:
+        if "critique" in result or "question" in result:
+            raise Blocked(stage=STAGE, reason_code="malformed_checkpoint",
+                          detail="passed result cannot carry critique or question",
+                          recovery_action="remove critique and question from passed result")
         critique = None
 
     return GateVerdict(
@@ -138,6 +133,7 @@ def gate_result(result):
         attempt=result.get("attempt"),
         outcome=outcome,
         critique=critique,
+        question=freeze(result.get("question")) if result.get("question") is not None else None,
     )
 
 
@@ -158,6 +154,9 @@ class RetryDecision:
     task_id: str
     critique: object
     phase: object
+    attempt: object = None
+    attempts_remaining: object = None
+    question: object = None
 
 
 def retry_or_block(state, task_id, critique, attempts_remaining):
@@ -220,7 +219,6 @@ def retry_or_block(state, task_id, critique, attempts_remaining):
             detail=f"critique must be a non-empty string, got {critique!r}",
             recovery_action="pass the non-empty critique gate_result produced for this failure",
         )
-
     if (
         not isinstance(attempts_remaining, int)
         or isinstance(attempts_remaining, bool)
@@ -249,3 +247,69 @@ def retry_or_block(state, task_id, critique, attempts_remaining):
         critique=critique,
         phase=BLOCKED_STATE,
     )
+
+
+def decide_failure(state, verdict, max_attempts):
+    """Decide the next action from one validated failed gate verdict.
+
+    The verdict is revalidated through ``gate_result`` so callers cannot
+    bypass worker-result or gate invariants by constructing a ``GateVerdict``
+    directly. The mailbox-derived state supplies the authoritative task status
+    and attempt; remaining budget is derived from that attempt and the caller's
+    positive maximum. A question always freezes the run awaiting root input,
+    regardless of remaining budget.
+    """
+    if not isinstance(verdict, GateVerdict):
+        raise Blocked(stage=STAGE, reason_code="malformed_checkpoint",
+                      detail=f"verdict must be a GateVerdict, got {type(verdict).__name__}",
+                      recovery_action="pass the GateVerdict returned by gate_result")
+    try:
+        validated = gate_result({
+            "task_id": verdict.task_id,
+            "attempt": verdict.attempt,
+            "outcome": verdict.outcome,
+            "critique": verdict.critique,
+            **({"question": thaw(verdict.question)} if verdict.question is not None else {}),
+        })
+    except Blocked as exc:
+        raise Blocked(stage=STAGE, reason_code=exc.reason_code, detail=exc.detail,
+                      recovery_action=exc.recovery_action) from exc
+    if validated != verdict:
+        raise Blocked(stage=STAGE, reason_code="malformed_checkpoint",
+                      detail="verdict does not match the gate_result classification",
+                      recovery_action="use the immutable GateVerdict returned by gate_result")
+    if verdict.outcome != FAILED:
+        raise Blocked(stage=STAGE, reason_code="malformed_checkpoint",
+                      detail="decide_failure requires a failed GateVerdict",
+                      recovery_action="pass a GateVerdict whose outcome is failed")
+    if not isinstance(max_attempts, int) or isinstance(max_attempts, bool) or max_attempts <= 0:
+        raise Blocked(stage=STAGE, reason_code="malformed_checkpoint",
+                      detail=f"max_attempts must be a positive integer, got {max_attempts!r}",
+                      recovery_action="set max_attempts to a positive integer")
+    current_status = status_of(state, verdict.task_id)
+    if current_status != FAILED:
+        raise Blocked(stage=STAGE, reason_code="malformed_checkpoint",
+                      detail=(f"decide_failure called for task '{verdict.task_id}' but the "
+                              f"mailbox-derived state shows status '{current_status}', not '{FAILED}'"),
+                      recovery_action="only decide a failed task")
+    actual_attempt = attempts_of(state, verdict.task_id)
+    if verdict.attempt != actual_attempt:
+        raise Blocked(stage=STAGE, reason_code="malformed_checkpoint",
+                      detail=f"verdict attempt {verdict.attempt!r} does not match mailbox-derived attempt {actual_attempt}",
+                      recovery_action="use the failed attempt recorded in mailbox-derived state")
+    if max_attempts < actual_attempt:
+        raise Blocked(stage=STAGE, reason_code="malformed_checkpoint",
+                      detail=f"max_attempts {max_attempts} is below actual attempt {actual_attempt}",
+                      recovery_action="set max_attempts to at least the failed attempt")
+    attempts_remaining = max_attempts - verdict.attempt
+    decision = retry_or_block(state, verdict.task_id, verdict.critique, attempts_remaining)
+    if verdict.question is None:
+        return RetryDecision(action=decision.action, task_id=decision.task_id,
+                             critique=decision.critique, phase=decision.phase,
+                             attempt=verdict.attempt,
+                             attempts_remaining=attempts_remaining)
+    return RetryDecision(action=AWAITING_USER_INPUT, task_id=verdict.task_id,
+                         critique=verdict.critique, phase=AWAITING_USER_INPUT,
+                         attempt=verdict.attempt,
+                         attempts_remaining=attempts_remaining,
+                         question=verdict.question)

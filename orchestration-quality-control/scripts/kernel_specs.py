@@ -26,6 +26,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from qc_lib import Blocked, freeze, load_json_file, require_enum, require_fields, thaw
+from collections.abc import Mapping
 
 SCRIPTS_DIR = Path(__file__).resolve().parent
 SCHEMA_DIR = SCRIPTS_DIR.parent / "schemas"
@@ -243,6 +244,10 @@ def _schema_validate(instance, schema, *, stage, label="<root>"):
             detail=f"field '{label}' does not match pattern {schema['pattern']!r}: {instance!r}",
             recovery_action=f"match '{label}' to pattern {schema['pattern']!r}",
         )
+    if isinstance(instance, str) and "minLength" in schema and len(instance) < schema["minLength"]:
+        raise Blocked(stage=stage, reason_code="malformed_checkpoint", detail=f"field '{label}' must contain at least {schema['minLength']} character(s)", recovery_action=f"provide a non-empty value for '{label}'")
+    if isinstance(instance, (int, float)) and not isinstance(instance, bool) and "minimum" in schema and instance < schema["minimum"]:
+        raise Blocked(stage=stage, reason_code="malformed_checkpoint", detail=f"field '{label}' must be at least {schema['minimum']}, got {instance!r}", recovery_action=f"set '{label}' to a value >= {schema['minimum']}")
 
     if isinstance(instance, str) and schema.get("format") == "date-time":
         _require_iso_datetime(instance, label, stage=stage)
@@ -281,6 +286,17 @@ def _schema_validate(instance, schema, *, stage, label="<root>"):
 @lru_cache(maxsize=None)
 def _load_envelope_schema():
     return load_json_file(ENVELOPE_SCHEMA_PATH, stage="envelope")
+
+@lru_cache(maxsize=None)
+def _load_worker_result_schema():
+    return load_json_file(SCHEMA_DIR / "worker-result.schema.json", stage="worker_result")
+
+def validate_worker_result(result):
+    if not isinstance(result, Mapping):
+        raise Blocked(stage="worker_result", reason_code="malformed_checkpoint", detail=f"worker result must be a JSON object, got {type(result).__name__}", recovery_action="pass an object matching worker-result.schema.json")
+    plain = thaw(result)
+    _schema_validate(plain, _load_worker_result_schema(), stage="worker_result")
+    return plain
 
 
 def _canonical_json(data):

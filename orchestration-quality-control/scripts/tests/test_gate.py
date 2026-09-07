@@ -1,5 +1,6 @@
 import unittest
 from dataclasses import FrozenInstanceError
+from types import MappingProxyType
 
 from gate import (
     AWAITING_USER_INPUT,
@@ -9,6 +10,7 @@ from gate import (
     RETRY,
     GateVerdict,
     RetryDecision,
+    decide_failure,
     gate_result,
     retry_or_block,
 )
@@ -36,7 +38,7 @@ def _request(task_id, *, envelope_id, run_id="run-1", attempt=1):
     })
 
 
-def _worker_result(task_id, outcome, *, envelope_id, run_id="run-1"):
+def _worker_result(task_id, outcome, *, envelope_id, run_id="run-1", attempt=1):
     return Envelope.from_dict({
         "schema_version": 2,
         "previous_hash": GENESIS_HASH,
@@ -45,21 +47,24 @@ def _worker_result(task_id, outcome, *, envelope_id, run_id="run-1"):
         "sender": "agent:worker-1",
         "recipient": "orchestrator",
         "kind": "result",
-        "payload": {"task_id": task_id, "attempt": 1, "outcome": outcome},
+        "payload": {"task_id": task_id, "attempt": attempt, "outcome": outcome},
         "created_at": "2026-09-05T12:00:01Z",
     })
 
 
-def _state_with_task_status(task_id, outcome):
-    return reduce([
-        _request(task_id, envelope_id="env-1"),
-        _worker_result(task_id, outcome, envelope_id="env-2"),
-    ])
+def _state_with_task_status(task_id, outcome, *, attempt=1):
+    envelopes = []
+    for current_attempt in range(1, attempt + 1):
+        envelopes.extend([
+            _request(task_id, envelope_id=f"env-request-{current_attempt}", attempt=current_attempt),
+            _worker_result(task_id, outcome, envelope_id=f"env-result-{current_attempt}", attempt=current_attempt),
+        ])
+    return reduce(envelopes)
 
 
 class GateResultPassedTest(unittest.TestCase):
     def test_passed_result_has_no_critique(self):
-        verdict = gate_result({"task_id": "task-1", "outcome": "passed"})
+        verdict = gate_result({"task_id": "task-1", "attempt": 1, "outcome": "passed"})
         self.assertEqual(verdict.task_id, "task-1")
         self.assertEqual(verdict.outcome, PASSED)
         self.assertIsNone(verdict.critique)
@@ -67,29 +72,29 @@ class GateResultPassedTest(unittest.TestCase):
     def test_passed_result_ignores_a_stray_critique_field(self):
         # A passed result carrying a critique anyway must not surface it --
         # critique is meaningful only for a failure.
-        verdict = gate_result({"task_id": "task-1", "outcome": "passed", "critique": "unused"})
-        self.assertIsNone(verdict.critique)
+        with self.assertRaises(Blocked):
+            gate_result({"task_id": "task-1", "attempt": 1, "outcome": "passed", "critique": "unused"})
 
     def test_attempt_is_passed_through_when_present(self):
         verdict = gate_result({"task_id": "task-1", "outcome": "passed", "attempt": 2})
         self.assertEqual(verdict.attempt, 2)
 
     def test_attempt_defaults_to_none_when_absent(self):
-        verdict = gate_result({"task_id": "task-1", "outcome": "passed"})
-        self.assertIsNone(verdict.attempt)
+        with self.assertRaises(Blocked):
+            gate_result({"task_id": "task-1", "outcome": "passed"})
 
 
 class GateResultFailedTest(unittest.TestCase):
     def test_failed_result_carries_its_critique(self):
         verdict = gate_result({
-            "task_id": "task-1", "outcome": "failed", "critique": "off by one",
+            "task_id": "task-1", "attempt": 1, "outcome": "failed", "critique": "off by one",
         })
         self.assertEqual(verdict.outcome, FAILED)
         self.assertEqual(verdict.critique, "off by one")
 
     def test_failed_result_without_critique_is_blocked(self):
         with self.assertRaises(Blocked) as ctx:
-            gate_result({"task_id": "task-1", "outcome": "failed"})
+            gate_result({"task_id": "task-1", "attempt": 1, "outcome": "failed"})
         self.assertIn("critique", ctx.exception.detail.lower())
 
     def test_failed_result_with_empty_string_critique_is_blocked(self):
@@ -97,15 +102,40 @@ class GateResultFailedTest(unittest.TestCase):
         # but is not an explanation, and must be rejected exactly like a
         # missing critique (mirrors run_state's outcome-truthiness fix).
         with self.assertRaises(Blocked):
-            gate_result({"task_id": "task-1", "outcome": "failed", "critique": ""})
+            gate_result({"task_id": "task-1", "attempt": 1, "outcome": "failed", "critique": ""})
 
     def test_failed_result_with_whitespace_only_critique_is_blocked(self):
         with self.assertRaises(Blocked):
-            gate_result({"task_id": "task-1", "outcome": "failed", "critique": "   "})
+            gate_result({"task_id": "task-1", "attempt": 1, "outcome": "failed", "critique": "   "})
 
     def test_failed_result_with_none_critique_is_blocked(self):
         with self.assertRaises(Blocked):
-            gate_result({"task_id": "task-1", "outcome": "failed", "critique": None})
+            gate_result({"task_id": "task-1", "attempt": 1, "outcome": "failed", "critique": None})
+
+    def test_question_is_accepted_from_a_mapping_proxy(self):
+        verdict = gate_result({
+            "task_id": "task-1", "attempt": 1, "outcome": "failed", "critique": "why",
+            "question": MappingProxyType({"question_id": "q-1", "prompt": "Choose"}),
+        })
+        self.assertEqual(verdict.question["question_id"], "q-1")
+
+    def test_passed_result_with_question_is_blocked(self):
+        with self.assertRaises(Blocked):
+            gate_result({
+                "task_id": "task-1", "attempt": 1, "outcome": "passed",
+                "question": {"question_id": "q-1", "prompt": "Choose"},
+            })
+
+    def test_question_is_frozen_against_source_and_nested_mutation(self):
+        question = {"question_id": "q-1", "prompt": "Choose"}
+        verdict = gate_result({
+            "task_id": "task-1", "attempt": 1, "outcome": "failed", "critique": "why",
+            "question": question,
+        })
+        question["prompt"] = "changed"
+        self.assertEqual(verdict.question["prompt"], "Choose")
+        with self.assertRaises(TypeError):
+            verdict.question["prompt"] = "changed"
 
 
 class GateResultMalformedInputTest(unittest.TestCase):
@@ -120,11 +150,11 @@ class GateResultMalformedInputTest(unittest.TestCase):
 
     def test_empty_task_id_is_blocked(self):
         with self.assertRaises(Blocked):
-            gate_result({"task_id": "", "outcome": "passed"})
+            gate_result({"task_id": "", "attempt": 1, "outcome": "passed"})
 
     def test_unknown_outcome_is_blocked(self):
         with self.assertRaises(Blocked) as ctx:
-            gate_result({"task_id": "task-1", "outcome": "maybe"})
+            gate_result({"task_id": "task-1", "attempt": 1, "outcome": "maybe"})
         self.assertIn("outcome", ctx.exception.detail)
 
     def test_missing_outcome_is_blocked(self):
@@ -134,7 +164,7 @@ class GateResultMalformedInputTest(unittest.TestCase):
 
 class GateVerdictImmutabilityTest(unittest.TestCase):
     def test_gate_verdict_fields_cannot_be_reassigned(self):
-        verdict = gate_result({"task_id": "task-1", "outcome": "passed"})
+        verdict = gate_result({"task_id": "task-1", "attempt": 1, "outcome": "passed"})
         with self.assertRaises(FrozenInstanceError):
             verdict.outcome = "failed"
 
@@ -247,6 +277,58 @@ class RetryDecisionImmutabilityTest(unittest.TestCase):
     def test_retry_decision_fields_cannot_be_reassigned(self):
         state = _state_with_task_status("task-1", "failed")
         decision = retry_or_block(state, "task-1", "off by one", 1)
+        with self.assertRaises(FrozenInstanceError):
+            decision.action = BLOCKED_STATE
+
+
+class DecideFailureTest(unittest.TestCase):
+    def _failed_verdict(self, *, attempt=1, question=None):
+        result = {"task_id": "task-1", "attempt": attempt, "outcome": "failed", "critique": "off by one"}
+        if question is not None:
+            result["question"] = question
+        return gate_result(result)
+
+    def test_question_always_awaits_user_even_with_remaining_budget(self):
+        state = _state_with_task_status("task-1", "failed")
+        decision = decide_failure(state, self._failed_verdict(question={"question_id": "q-1", "prompt": "Choose"}), 3)
+        self.assertEqual(decision.action, AWAITING_USER_INPUT)
+        self.assertEqual(decision.attempts_remaining, 2)
+
+    def test_question_awaits_user_when_budget_is_exhausted(self):
+        state = _state_with_task_status("task-1", "failed")
+        decision = decide_failure(state, self._failed_verdict(question={"question_id": "q-1", "prompt": "Choose"}), 1)
+        self.assertEqual(decision.action, AWAITING_USER_INPUT)
+        self.assertEqual(decision.attempts_remaining, 0)
+
+    def test_ordinary_failure_retries_or_blocks_from_derived_remaining(self):
+        state = _state_with_task_status("task-1", "failed")
+        self.assertEqual(decide_failure(state, self._failed_verdict(), 3).action, RETRY)
+        self.assertEqual(decide_failure(state, self._failed_verdict(), 1).action, BLOCKED_STATE)
+
+    def test_rejects_non_verdict_and_nonfailed_verdict(self):
+        state = _state_with_task_status("task-1", "failed")
+        with self.assertRaises(Blocked):
+            decide_failure(state, {"task_id": "task-1"}, 3)
+        with self.assertRaises(Blocked):
+            decide_failure(state, gate_result({"task_id": "task-1", "attempt": 1, "outcome": "passed"}), 3)
+
+    def test_rejects_mismatched_attempt_and_fabricated_contradiction(self):
+        state = _state_with_task_status("task-1", "failed", attempt=2)
+        with self.assertRaises(Blocked):
+            decide_failure(state, self._failed_verdict(attempt=1), 3)
+        with self.assertRaises(Blocked):
+            decide_failure(state, GateVerdict("task-1", 2, FAILED, "", None), 3)
+
+    def test_rejects_bad_max_attempts_and_budget_below_actual_attempt(self):
+        state = _state_with_task_status("task-1", "failed", attempt=2)
+        verdict = self._failed_verdict(attempt=2)
+        for maximum in (True, False, 0, -1, "3", 1):
+            with self.subTest(max_attempts=maximum), self.assertRaises(Blocked):
+                decide_failure(state, verdict, maximum)
+
+    def test_decision_is_frozen(self):
+        state = _state_with_task_status("task-1", "failed")
+        decision = decide_failure(state, self._failed_verdict(), 3)
         with self.assertRaises(FrozenInstanceError):
             decision.action = BLOCKED_STATE
 

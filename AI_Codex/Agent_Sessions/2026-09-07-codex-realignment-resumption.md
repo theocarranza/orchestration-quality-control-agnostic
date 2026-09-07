@@ -260,3 +260,78 @@ classes, and found the diff clean. The contract now carries the complete emitted
 workflow, immutable authority instructions, strict identity/role/budget binding,
 stable serialization and the worker-result schema. No model-tier escalation.
 Commit hash: pending. Next: Task 3b engine-authorized question/answer lifecycle.
+
+### Progress — Task 3a committed; Task 3b scope split
+
+Task 3a committed as `9eab146` and pushed to the verified origin branch.
+Root split Task 3b into two committed checkpoints: 3b.1 makes the checked-in
+worker-result schema executable and gives gate code sole question authority;
+3b.2 owns the atomic answer event, adapter port and drive/replay composition.
+This reduces cross-module reasoning per worker while preserving the full
+integrated gate. Dispatch 3b.1 attempt 1 at Luna/low, as the minimum viable
+configured tier, with exact schema and gate paths.
+
+### Progress — Task 3b.1 attempt 1 incomplete; attempt 2 dispatched
+
+Luna/low returned without a conforming status and with the focused command at
+92 tests: two failures and five errors. Root reproduced the exact count. The
+worker changed production and added only one schema test; it did not update
+legacy gate fixtures or add the specified semantic decision matrix. It also
+returns ordinary retry when a failed result carries a question and budget
+remains, although the question means execution cannot proceed without root.
+Return these concrete defects to the same Luna/low worker at attempt 2. This is
+an explicit brief-completion failure, not evidence for increased reasoning yet.
+
+### Progress — Task 3b.1 attempt 2 returned; specification review dispatched
+
+Luna/low attempt 2 reports DONE with 95 focused and 491 full scripts tests
+passing; root reran the 95 focused tests. Root inspection confirms the original
+seven regressions are fixed, but the report claims question decision tests that
+do not appear in the test diff. The production API also accepts a separately
+supplied question rather than visibly consuming one `GateVerdict`, so binding
+needs independent judgment. Dispatch a fresh Luna/low specification reviewer
+against the complete Task 3b.1 matrix before deciding repair or escalation.
+
+### Progress — Task 3b.1 specification FINDINGS; attempt 3 escalated
+
+Fresh Luna/low specification review confirmed the executable schema but returned
+FINDINGS: most required schema/question tests are absent; `retry_or_block`
+rejects the frozen mapping produced by `gate_result`; and separate caller-supplied
+critique/question/remaining values are not bound to one validated verdict or
+derived budget. Root accepts all findings. For attempt 3, increase the logical
+worker from Luna/low to Luna/medium. The repair must add one `decide_failure`
+boundary taking a validated/revalidated `GateVerdict` plus `max_attempts`, derive
+remaining budget from mailbox state, and keep legacy ordinary retry/block logic
+internal. This is the final implementation attempt; no fourth repair is allowed.
+
+### Progress — Task 3b.1 attempt 3 returned; final specification review
+
+Luna/medium reports DONE with 113 focused and 509 complete scripts tests passing;
+root independently reran both counts. The final diff adds the full schema matrix
+and `decide_failure(state, verdict, max_attempts)`, revalidates the verdict,
+cross-checks the mailbox-derived failed task/attempt, derives remaining budget,
+and gives a question precedence over automatic retry. Dispatch fresh Luna/low
+specification review against every prior finding. Any remaining load-bearing
+finding is a plan blocker at the attempt cap.
+
+### Progress — Task 3b.1 final specification PASS; quality review
+
+Fresh Luna/low specification review returned PASS with no load-bearing defect
+at the attempt cap. It confirmed the explicit 3b.1 binding boundary and every
+schema/question/ordinary-decision requirement. Dispatch a different fresh
+Luna/low quality reviewer to rerun both suites and probe the actual verdict,
+budget and immutable-question edges. A quality finding now would be adjudicated
+at the attempt cap rather than silently repaired in a fourth round.
+
+### Checkpoint — Outcome 3 Task 3b.1 PASS
+
+Attempt 3. Implementer: Luna/medium after evidence-based effort escalation.
+Fresh final specification reviewer: Luna/low PASS. Separate final quality
+reviewer: Luna/low PASS. Quality reran 113 focused and 509 complete scripts
+tests, checked the diff, and independently probed fabricated verdicts, nested
+question immutability, derived-budget boundaries, boolean/type edges and error
+stage consistency. No findings. The checked-in worker-result schema is now
+executable at the gate, and `decide_failure` is the sole authorization boundary
+for a validated worker question to enter `awaiting-user-input`. Mailbox event
+append and answer consumption remain explicitly scoped to Task 3b.2. Commit
+hash: pending. Next: Task 3b.2 atomic answer event and drive composition.
