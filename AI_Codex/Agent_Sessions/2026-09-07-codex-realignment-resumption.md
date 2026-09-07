@@ -68,8 +68,8 @@ documentation conventions, parent startup rules, and execution contracts.
 Memory registry search found no relevant project entry; no memory-derived
 implementation assumptions were adopted.
 
-- [ ] Preserve existing files, baseline, commit, and verify remote push.
-- [ ] Outcome 3 Task 1: specification and quality review of `ef23d40`.
+- [x] Preserve existing files, baseline, commit, and verify remote push.
+- [x] Outcome 3 Task 1: specification and quality review of `ef23d40`.
 - [ ] Outcome 3 Task 2: branch-halting decision and executable evidence.
 - [ ] Outcome 3 Task 3: Orchestrator contract and answer relay.
 - [ ] Outcome 3 Task 4: first real host adapter.
@@ -77,3 +77,66 @@ implementation assumptions were adopted.
 - [ ] Outcome 3 Task 6: full gate.
 - [ ] Outcome 4: host mappings, enforcement disclosures, available smokes.
 - [ ] Outcome 5: product flow, consolidation, acceptance and documentation.
+
+### Progress — preservation complete; hash-chain specification review dispatched
+
+Commit `957704d` preserves all four accumulated files unchanged. Verified remote
+branch SHA `957704d9a408fef2241f1b4fe510b7d238fb22f0` after successful push.
+Automatic review initially rejected an unverified destination; read-only GitHub
+verification (configured origin, public repository, ADMIN permission) resolved
+that concern and the evidence-backed retry was approved.
+Six baseline suites: 472 + 8 + 6 + 36 + 19 + 49 = 590 passing tests.
+Documentation-truth and diff whitespace checks passed.
+Updating the prior ledger failed at OS permissions even outside the sandbox;
+its contents remain unchanged. This new note provides the backward link.
+
+Dispatch Outcome 3 Task 1 specification review: gpt-5.6-luna, low effort.
+Host adaptation: no file-read tool exists, so permit narrowly scoped read-only
+shell reads for source inspection, no tests or mutations. Quality remains a
+separate agent. Scope is ef23d40 wire-format delta and its named tests only.
+
+### Progress — Task 1 spec PASS; quality dispatched
+
+Fresh gpt-5.6-luna/low specification review returned PASS, no findings.
+Dispatch separate gpt-5.6-luna/low quality reviewer for ef23d40 and focused
+hash/structural regression evidence. No model escalation warranted.
+Prior session forward link was repaired by atomic replacement in its writable
+parent directory; no permission settings or historical prose were changed.
+
+### Progress — Task 2 design ruling
+
+Retain whole-run halt on exhausted retry budget. It is the smallest explicit
+policy for the first real slice: independent work consumes quota after the run
+can no longer meet its overall objective. Pending siblings are preserved as
+pending, never misreported passed. This is an intentional fail-fast policy,
+not an accidental scheduler limitation. The emitted multi-branch regression
+already demonstrates it; next bounded task will state the decision and strengthen
+its evidence. A later partial-success policy would need an explicit run decision.
+
+### Progress — first-host availability
+
+Claude CLI 2.1.234 is installed and authenticated. Local help now exposes
+--effort and explicit tools/model/schema controls; old host capability notes
+are stale. Official subagent and headless documentation consulted at
+https://code.claude.com/docs/en/sub-agents and
+https://code.claude.com/docs/en/headless. No model call made yet.
+
+### Checkpoint — Outcome 3 Task 1 PASS
+
+Fresh specification and quality reviewers both returned PASS, no findings;
+both gpt-5.6-luna / low. Quality reran all 472 scripts tests and verified a
+structurally valid middle-result payload tamper is rejected by the next hash.
+Initial full 590-test baseline reused: product tree unchanged from ef23d40.
+No escalation, no product changes required. Commit hash: pending.
+Next: Task 2 documentation and emitted-DAG fail-fast evidence.
+
+### Progress — isolated checkout for Git ownership failure
+
+Original branch remains feature/original-design-realignment at 957704d.
+Original staged paths are the prior session forward-link, this ledger, and
+2026-09-07-codex-execution-packet.md. Five Git object directories owned by
+a different uid reject writes and rename; no original Git objects changed.
+A verified object copy exists under .git/codex-object-permission-backup/34-writable.
+Continuation checkout: /tmp/oqc-codex-realignment-20260907, cloned without
+hardlinks, same branch/base. Copied only the three known session/plan changes.
+All subsequent implementation and checkpoints occur there; preserve the original.

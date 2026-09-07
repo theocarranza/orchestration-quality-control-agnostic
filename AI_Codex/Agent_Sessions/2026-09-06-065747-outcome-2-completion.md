@@ -5,7 +5,7 @@ type: session
 status: open
 branch: feature/original-design-realignment
 previous: "[[2026-09-05-031418-subagent-template-reconciliation]]"
-next: null
+next: "[[2026-09-07-codex-realignment-resumption]]"
 ticket: "[[refactor-align-the-architecture-with-original-design]]"
 plan: "[[2026-09-04-original-design-realignment-master-plan]]"
 handoff: "[[2026-09-04-claude-original-design-implementation-handoff]]"
@@ -15,7 +15,7 @@ skill: root-architect-execution
 # Session — Outcome 2 completion
 
 Previous Session: [[2026-09-05-031418-subagent-template-reconciliation]]
-Next Session: (none)
+Next Session: [[2026-09-07-codex-realignment-resumption]]
 
 ## Mandate
 
