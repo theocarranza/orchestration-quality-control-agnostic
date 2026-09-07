@@ -6,7 +6,7 @@ from kernel_specs import ENVELOPE_SCHEMA_VERSION, Envelope, GENESIS_HASH
 from mailbox import Mailbox
 from qc_lib import Blocked
 
-ABSTRACT_METHODS = frozenset({"spawn", "emit_status", "relay_question", "enforce_policy"})
+ABSTRACT_METHODS = frozenset({"spawn", "emit_status", "relay_question", "relay_answer", "enforce_policy"})
 
 
 def _envelope_kwargs(**overrides):
@@ -43,6 +43,9 @@ class _MinimalConcreteAdapter(AdapterPort):
     def relay_question(self, mailbox, *, run_id, question):
         raise NotImplementedError
 
+    def relay_answer(self, mailbox, *, answer):
+        raise NotImplementedError
+
     def enforce_policy(self, *, run_id, hook_name, context=None):
         raise NotImplementedError
 
@@ -52,19 +55,19 @@ class AdapterPortIsAbstractTest(unittest.TestCase):
         with self.assertRaises(TypeError):
             AdapterPort()
 
-    def test_exactly_four_abstract_methods(self):
-        # Four operations only, per ADR 0014 and the master plan's Outcome
-        # 2 line -- a table test so a fifth operation quietly added later
+    def test_exactly_five_abstract_methods(self):
+        # Five operations, per the master plan's Outcome 3 line -- a table
+        # test so an operation quietly added later
         # is caught here rather than discovered by review.
         self.assertEqual(AdapterPort.__abstractmethods__, ABSTRACT_METHODS)
 
-    def test_a_subclass_implementing_all_four_methods_is_instantiable(self):
+    def test_a_subclass_implementing_all_five_methods_is_instantiable(self):
         adapter = _MinimalConcreteAdapter()
         self.assertIsInstance(adapter, AdapterPort)
 
     def test_a_subclass_missing_one_method_is_not_instantiable(self):
-        # Removing any one of the four must keep the class abstract; this
-        # is the mirror image of test_exactly_four_abstract_methods,
+        # Removing any one of the five must keep the class abstract; this
+        # is the mirror image of test_exactly_five_abstract_methods,
         # proving the ABC actually enforces the contract rather than just
         # naming it.
         class _MissingEnforcePolicy(AdapterPort):
@@ -79,6 +82,26 @@ class AdapterPortIsAbstractTest(unittest.TestCase):
 
         with self.assertRaises(TypeError):
             _MissingEnforcePolicy()
+
+        class _MissingRelayAnswer(AdapterPort):
+            def spawn(self, mailbox, *, run_id, task_id, attempt, agent_id, brief):
+                raise NotImplementedError
+            def emit_status(self, mailbox, *, run_id, phase, context=None):
+                raise NotImplementedError
+            def relay_question(self, mailbox, *, run_id, question):
+                raise NotImplementedError
+            def enforce_policy(self, *, run_id, hook_name, context=None):
+                raise NotImplementedError
+
+        with self.assertRaises(TypeError):
+            _MissingRelayAnswer()
+
+    def test_relay_answer_has_only_mailbox_and_keyword_answer(self):
+        params = inspect.signature(AdapterPort.relay_answer).parameters
+        self.assertEqual(tuple(params), ("self", "mailbox", "answer"))
+        self.assertTrue(params["answer"].kind is inspect.Parameter.KEYWORD_ONLY)
+        for forbidden in ("sender", "recipient", "run_id"):
+            self.assertNotIn(forbidden, params)
 
 
 class NoWorkerAddressingParameterTest(unittest.TestCase):

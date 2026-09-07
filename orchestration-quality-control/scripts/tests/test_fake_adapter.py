@@ -1,11 +1,14 @@
 import inspect
 import unittest
+from dataclasses import replace
 
 from adapter_port import AdapterPort
 from fake_adapter import FakeAdapter
+from gate import AnswerDecision, approve_answer
 from kernel_specs import Envelope, GENESIS_HASH
 from mailbox import Mailbox
 from qc_lib import Blocked
+from run_state import reduce
 
 
 class FakeAdapterIsAnAdapterPortTest(unittest.TestCase):
@@ -229,6 +232,104 @@ class RelayQuestionTest(unittest.TestCase):
         with self.assertRaises(Blocked):
             adapter.relay_question(mailbox, run_id="run-1", question="   ")
         self.assertEqual(mailbox.read_all(), ())
+
+
+class RelayAnswerTest(unittest.TestCase):
+    def _waiting(self, remaining=2):
+        mailbox = Mailbox()
+        adapter = FakeAdapter({("task-1", 1): {"outcome": "failed", "critique": "bad output"}})
+        adapter.spawn(mailbox, run_id="run-1", task_id="task-1", attempt=1,
+                      agent_id="worker-1", brief={})
+        adapter.emit_status(
+            mailbox, run_id="run-1", phase="awaiting-user-input",
+            context={"task_id": "task-1", "attempt": 1, "question_id": "q-1",
+                     "attempts_remaining": remaining, "critique": "bad output",
+                     "prompt": "Retry this task?"},
+        )
+        return mailbox, adapter
+
+    def test_relay_answer_emits_exact_root_to_orchestrator_schema_fields(self):
+        mailbox, adapter = self._waiting()
+        state = reduce(mailbox.read_all())
+        raw = {"run_id": "run-1", "task_id": "task-1", "attempt": 1,
+               "question_id": "q-1", "decision": "retry", "text": "retry"}
+        answer = adapter.relay_answer(mailbox, answer=approve_answer(state, raw))
+        self.assertEqual((answer.sender, answer.recipient, answer.kind),
+                         ("root", "orchestrator", "answer"))
+        self.assertEqual(set(answer.payload), set(raw))
+        self.assertEqual(answer.payload, raw)
+        self.assertEqual(answer.previous_hash, mailbox.read_all()[-2].hash())
+
+    def test_valid_stop_answer_has_the_same_exact_envelope_contract(self):
+        mailbox, adapter = self._waiting(remaining=0)
+        state = reduce(mailbox.read_all())
+        raw = {"run_id": "run-1", "task_id": "task-1", "attempt": 1,
+               "question_id": "q-1", "decision": "stop", "text": "stop"}
+        answer = adapter.relay_answer(mailbox, answer=approve_answer(state, raw))
+        self.assertEqual((answer.sender, answer.recipient, answer.kind),
+                         ("root", "orchestrator", "answer"))
+        self.assertEqual(answer.payload, raw)
+        self.assertEqual(answer.previous_hash, mailbox.read_all()[-2].hash())
+
+    def test_raw_and_fabricated_decisions_are_rejected_without_counter_gap(self):
+        mailbox, adapter = self._waiting()
+        before = mailbox.to_jsonl()
+        with self.assertRaises(Blocked):
+            adapter.relay_answer(mailbox, answer={})
+        self.assertEqual(mailbox.to_jsonl(), before)
+        state = reduce(mailbox.read_all())
+        raw = {"run_id": "run-1", "task_id": "task-1", "attempt": 1,
+               "question_id": "q-1", "decision": "retry", "text": "retry"}
+        approved = approve_answer(state, raw)
+        fabricated = AnswerDecision(**{**approved.__dict__, "phase": "blocked"})
+        with self.assertRaises(Blocked):
+            adapter.relay_answer(mailbox, answer=fabricated)
+        self.assertEqual(mailbox.to_jsonl(), before)
+        answer = adapter.relay_answer(mailbox, answer=approved)
+        self.assertEqual(answer.envelope_id, "env-4")
+
+    def test_duplicate_answer_is_rejected_without_append_or_counter_gap(self):
+        mailbox, adapter = self._waiting(remaining=0)
+        state = reduce(mailbox.read_all())
+        raw = {"run_id": "run-1", "task_id": "task-1", "attempt": 1,
+               "question_id": "q-1", "decision": "stop", "text": "stop"}
+        answer = approve_answer(state, raw)
+        adapter.relay_answer(mailbox, answer=answer)
+        before = mailbox.to_jsonl()
+        with self.assertRaises(Blocked):
+            adapter.relay_answer(mailbox, answer=answer)
+        self.assertEqual(mailbox.to_jsonl(), before)
+
+    def test_fabricated_decision_fields_are_rejected_byte_identically(self):
+        state_fields = {
+            "phase": "blocked", "critique": "forged critique",
+            "prompt": "forged prompt", "attempts_remaining": 99,
+        }
+        for field, value in state_fields.items():
+            with self.subTest(field=field):
+                mailbox, adapter = self._waiting()
+                state = reduce(mailbox.read_all())
+                raw = {"run_id": "run-1", "task_id": "task-1", "attempt": 1,
+                       "question_id": "q-1", "decision": "retry", "text": "retry"}
+                approved = approve_answer(state, raw)
+                fabricated = replace(approved, **{field: value})
+                before = mailbox.to_jsonl()
+                with self.assertRaises(Blocked):
+                    adapter.relay_answer(mailbox, answer=fabricated)
+                self.assertEqual(mailbox.to_jsonl(), before)
+                next_answer = adapter.relay_answer(mailbox, answer=approved)
+                self.assertEqual(next_answer.envelope_id, "env-4")
+
+        # Text is one of the six raw answer fields, so changing it is a
+        # legitimate new answer decision rather than a fabricated derived
+        # field; approve_answer re-derives and accepts that value.
+        mailbox, adapter = self._waiting()
+        state = reduce(mailbox.read_all())
+        text_answer = approve_answer(state, {
+            "run_id": "run-1", "task_id": "task-1", "attempt": 1,
+            "question_id": "q-1", "decision": "retry", "text": "new text",
+        })
+        self.assertEqual(adapter.relay_answer(mailbox, answer=text_answer).payload["text"], "new text")
 
 
 class EnforcePolicyTest(unittest.TestCase):

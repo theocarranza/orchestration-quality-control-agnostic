@@ -8,11 +8,12 @@ primary asset. `AdapterPort` is the seam a real host adapter implements in
 a later outcome (Outcome 3) so the kernel never has to learn a host name, a
 model id, or any other vendor vocabulary.
 
-Exactly four operations, matching the master plan's Outcome 2 line and the
+Exactly five operations, matching the master plan's Outcome 3 line and the
 ADR's diagram: spawning one execution agent for one task attempt, emitting
 a root-facing status/phase change, relaying a worker's question up to
-root, and a hooks/policy enforcement boundary. There is no fifth
-operation, and none of the four lets one worker address another worker or
+root, relaying one approved root answer back to the orchestrator, and a
+hooks/policy enforcement boundary. None of the five lets one worker address
+another worker or
 lets root address a worker directly -- `sender`/`recipient` are never
 caller-supplied for those two identities; they are fixed by the method
 itself, and `_append` re-checks every pairing against
@@ -49,7 +50,7 @@ class AdapterPort(ABC):
     never has to import a concrete adapter's storage) and returns the
     Envelope(s) it appended, so a caller (an orchestrator loop, or a test)
     can inspect exactly what happened without re-reading the whole
-    mailbox. None of the four methods takes a `sender` or `recipient`
+    mailbox. None of the five methods takes a `sender` or `recipient`
     parameter: legality of who may talk to whom is fixed at the API level,
     not left to a caller's discretion.
     """
@@ -146,6 +147,11 @@ class AdapterPort(ABC):
         from a worker over its own, separate worker<->orchestrator
         channel -- this method is the relay, not the origination.
         """
+        raise NotImplementedError
+
+    @abstractmethod
+    def relay_answer(self, mailbox, *, answer):
+        """Relay one already-approved root answer to the orchestrator."""
         raise NotImplementedError
 
     @abstractmethod

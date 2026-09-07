@@ -389,3 +389,59 @@ process limitation is preserved above. The checked-in root-answer schema and
 `approve_answer` now produce one immutable engine decision without appending or
 mutating state. No model-tier escalation. Commit hash: pending. Next: Task
 3b.2b answer port and atomic reducer event.
+
+### Progress — Task 3b.2a committed; Task 3b.2b dispatched
+
+Task 3b.2a committed as `a0fbe21` and pushed to the verified origin branch.
+Root keeps 3b.2b bounded to the answer port and one shared answer-transition
+validator used by both gate approval and replay reduction. The existing question
+relay remains compatible in this checkpoint; 3b.2c upgrades the live call while
+it changes `drive`, avoiding an intentionally broken intermediate suite.
+Dispatch Task 3b.2b attempt 1 at Luna/low with exact event and tamper cases.
+
+### Progress — Task 3b.2b attempt 1 incomplete; attempt 2 escalated
+
+Luna/low returned DONE with 156 focused and 524 full tests passing; root
+reproduced both counts. The full count did not increase: no requested answer
+adapter or reducer tests were added. Instead, one legacy arbitrary `answer`
+fixture was changed to `question` to avoid exercising the new behavior. Module
+contracts still claim exactly four operations. Root rejects the report as an
+explicit brief-completion failure. Because the same low-effort tier has now
+twice produced broad lifecycle code without its required proof, escalate attempt
+2 to Luna/medium and assign a fresh logical worker the complete missing matrix.
+
+### Progress — Task 3b.2b attempt 2 returned; specification review
+
+Luna/medium reports 162 focused and 530 full scripts tests passing; root
+reproduced both counts. The repair adds six table-driven/compound tests and
+updates the five-operation docs, but many explicitly requested reducer rejection
+paths are still not visible as independent cases. Because attempt 3 is final,
+dispatch a fresh Luna/low specification reviewer now to separate true semantic
+gaps from coverage that existing gate tests already prove before issuing the
+last repair brief.
+
+### Progress — Task 3b.2b specification FINDINGS; attempt 3 dispatched
+
+Fresh Luna/low specification review returned FINDINGS. The reducer validates an
+answer payload but not its required root-to-Orchestrator envelope route, and the
+diff still lacks the direct tampered-history rejection matrix, rejection purity,
+and full FakeAdapter retry/stop plus no-counter-gap evidence. One module header
+also still calls the five-operation adapter an Outcome 2 slice. Root accepts all
+findings. Return the exact repair list to the Luna/medium worker for attempt 3,
+the final implementation attempt; any remaining load-bearing defect blocks this
+task rather than opening a fourth repair.
+
+### Checkpoint — Outcome 3 Task 3b.2b PASS
+
+Attempt 3. Implementer: Luna/medium after evidence-based effort escalation.
+Fresh final specification reviewer: Luna/low PASS. Separate final quality
+reviewer: Luna/low PASS. Root and quality each ran 166 focused and 534 full
+scripts tests; diff check passed. Quality independently proved retry and stop
+answer transitions, JSONL round-trip/replay equality, exact route/hash/payload,
+rejection stages, and byte/counter preservation for invalid calls. One vacuous
+self-comparison remains in the passed-status rejection test. Both reviewers
+classify it as a minor test-quality residual because the rejection and shared
+validator branches have independent non-vacuous evidence; at the attempt cap it
+is recorded for later cleanup rather than repaired in an unplanned fourth
+round. No product finding remains. Commit hash: pending. Next: Task 3b.2c live
+question binding, answer append boundary and drive resume integration.

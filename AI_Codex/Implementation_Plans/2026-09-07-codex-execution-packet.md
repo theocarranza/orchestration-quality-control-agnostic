@@ -58,7 +58,7 @@ Push to the verified origin feature branch; do not merge, release or tag.
   - [x] Task 3b.1: executable result schema and question authorization.
   - [ ] Task 3b.2: atomic answer event and drive composition.
     - [x] Task 3b.2a: schema-valid root answer authorization.
-    - [ ] Task 3b.2b: answer port and atomic reducer event.
+    - [x] Task 3b.2b: answer port and atomic reducer event.
     - [ ] Task 3b.2c: drive pause/resume composition and integrated review.
 - [ ] Task 4: Claude first-host transport and enforced policy boundary.
 - [ ] Task 5: captured real run with externally anchored hashes.
@@ -275,16 +275,18 @@ engine decision whose phase is `execution` for retry or `blocked` for stop; it
 does not append.
 
 Task 3b.2b then owns `adapter_port.py`, `fake_adapter.py`, `run_state.py` and
-their focused tests. Extend the port only with the root-to-Orchestrator answer
-operation required by Outcome 3. Question envelopes carry the complete approved
-question binding. An answer envelope carries one approved answer and the reducer
+their focused tests, plus the smallest `gate.py` refactor needed to share one
+answer-transition validator with replay. Extend the port only with the
+root-to-Orchestrator answer operation required by Outcome 3. Keep the current
+question method compatible until 3b.2c upgrades its live call with the complete
+approved question binding. An answer envelope carries one approved answer and the reducer
 uses that same event atomically to enter `execution` or `blocked`. Replay rejects
 answers outside the waiting phase and any run/task/attempt/question mismatch,
 duplicate/stale answer, invalid value, or retry without remaining budget.
 
 Task 3b.2c finally owns `oqc.py` and its focused integration tests. `drive`
 consumes the actual latest result through `gate_result` and `decide_failure`,
-records and relays an approved question, and returns waiting. A deterministic
+records and relays the complete approved question binding, and returns waiting. A deterministic
 public resume boundary re-derives state, calls `approve_answer` immediately
 before append, leaves JSONL byte-identical on rejection, and resumes an allowed
 retry at the next mailbox-derived attempt with the prior critique plus answer

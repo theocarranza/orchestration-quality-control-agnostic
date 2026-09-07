@@ -72,6 +72,7 @@ higher-layer check, means a `result` cannot be reduced into any
 from dataclasses import dataclass
 
 from qc_lib import Blocked, freeze
+from kernel_specs import validate_root_answer
 
 STAGE = "run_state"
 
@@ -201,6 +202,63 @@ def attempts_of(state, task_id):
     if task_id in state.attempts:
         return state.attempts[task_id]
     return 0
+
+
+@dataclass(frozen=True)
+class AnswerTransition:
+    run_id: str
+    task_id: str
+    attempt: int
+    question_id: str
+    decision: str
+    text: str
+    phase: str
+    critique: str
+    prompt: str
+    attempts_remaining: int
+
+
+def validate_answer_transition(state, raw_answer):
+    """Validate a root answer against the exact current waiting state."""
+    try:
+        value = validate_root_answer(raw_answer)
+    except Blocked as exc:
+        raise Blocked(stage=STAGE, reason_code=exc.reason_code, detail=exc.detail,
+                      recovery_action=exc.recovery_action) from exc
+    if getattr(state, "phase", None) != "awaiting-user-input":
+        raise Blocked(stage=STAGE, reason_code="malformed_checkpoint",
+                      detail="answer approval requires phase awaiting-user-input",
+                      recovery_action="approve answers only while awaiting user input")
+    if not isinstance(getattr(state, "run_id", None), str) or state.run_id != value["run_id"]:
+        raise Blocked(stage=STAGE, reason_code="malformed_checkpoint",
+                      detail="answer run_id does not match state", recovery_action="use the state run_id")
+    context = getattr(state, "context", None)
+    fields = ("task_id", "attempt", "question_id", "attempts_remaining", "critique", "prompt")
+    if not hasattr(context, "keys") or any(k not in context for k in fields):
+        raise Blocked(stage=STAGE, reason_code="malformed_checkpoint", detail="waiting context is incomplete",
+                      recovery_action="restore the complete waiting context")
+    for key in ("task_id", "question_id", "critique", "prompt"):
+        if not isinstance(context[key], str) or not context[key].strip():
+            raise Blocked(stage=STAGE, reason_code="malformed_checkpoint",
+                          detail=f"waiting context field '{key}' must be non-empty",
+                          recovery_action="restore a non-empty waiting context field")
+    for key, minimum in (("attempt", 1), ("attempts_remaining", 0)):
+        if not isinstance(context[key], int) or isinstance(context[key], bool) or context[key] < minimum:
+            raise Blocked(stage=STAGE, reason_code="malformed_checkpoint",
+                          detail=f"waiting context field '{key}' has invalid value",
+                          recovery_action="restore a valid waiting context integer")
+    if (value["task_id"], value["attempt"], value["question_id"]) != (context["task_id"], context["attempt"], context["question_id"]):
+        raise Blocked(stage=STAGE, reason_code="malformed_checkpoint", detail="answer does not match waiting context",
+                      recovery_action="answer the currently waiting question")
+    if status_of(state, context["task_id"]) != "failed" or attempts_of(state, context["task_id"]) != context["attempt"]:
+        raise Blocked(stage=STAGE, reason_code="malformed_checkpoint", detail="waiting task status or attempt does not match state",
+                      recovery_action="use the failed task and attempt recorded in state")
+    if value["decision"] == "retry" and context["attempts_remaining"] == 0:
+        raise Blocked(stage=STAGE, reason_code="malformed_checkpoint", detail="retry is not allowed when attempts_remaining is zero",
+                      recovery_action="choose stop")
+    return AnswerTransition(**value, phase="execution" if value["decision"] == "retry" else "blocked",
+                            critique=context["critique"], prompt=context["prompt"],
+                            attempts_remaining=context["attempts_remaining"])
 
 
 def _apply(state, envelope):
@@ -389,6 +447,35 @@ def _apply(state, envelope):
                     recovery_action=f"set payload['outcome'] to one of {VALID_OUTCOMES}",
                 )
             task_status[task_id] = outcome
+
+    elif envelope.kind == "answer":
+        if envelope.sender != "root" or envelope.recipient != "orchestrator":
+            raise Blocked(
+                stage=STAGE,
+                reason_code="malformed_checkpoint",
+                detail=(
+                    "answer envelope must be addressed from root to orchestrator; "
+                    f"got {envelope.sender!r} to {envelope.recipient!r}"
+                ),
+                recovery_action="route answer envelopes from root to orchestrator",
+            )
+        transition = validate_answer_transition(state, envelope.payload)
+        context = {
+            "phase": transition.phase,
+            "run_id": transition.run_id,
+            "task_id": transition.task_id,
+            "attempt": transition.attempt,
+            "question_id": transition.question_id,
+            "decision": transition.decision,
+            "text": transition.text,
+            "critique": transition.critique,
+            "prompt": transition.prompt,
+            "attempts_remaining": transition.attempts_remaining,
+        }
+        return RunState(run_id=run_id, phase=transition.phase,
+                        envelope_count=state.envelope_count + 1,
+                        context=context, history=state.history + (transition.phase,),
+                        task_status=task_status, attempts=attempts)
 
     if envelope.kind != "status":
         return RunState(

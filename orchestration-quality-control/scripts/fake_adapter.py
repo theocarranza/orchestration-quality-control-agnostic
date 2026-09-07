@@ -1,8 +1,10 @@
 """fake_adapter.py — a scripted, model-free implementation of AdapterPort.
 
-This is the Outcome 2 Task 4 slice of
+This is the Outcome 3 extension of the Outcome 2 Task 4 slice of
 AI_Codex/Architecture/ADR/0014-generated-workflow-deterministic-kernel.md.
-`FakeAdapter` implements the four-operation `adapter_port.AdapterPort`
+Outcome 2 established the adapter boundary and deterministic fake; this
+extension adds the root-answer relay while retaining that origin context.
+`FakeAdapter` implements the five-operation `adapter_port.AdapterPort`
 entirely from a `script` mapping (task_id, attempt) -> a result mapping,
 so a whole run can be driven end to end with no network call, no LLM
 call, no sleep, and no clock read anywhere in the path. It appends
@@ -45,6 +47,7 @@ from datetime import datetime, timedelta, timezone
 from adapter_port import AdapterPort
 from qc_lib import Blocked, require_enum
 from run_state import PHASES
+from gate import AnswerDecision, approve_answer
 
 STAGE = "fake_adapter"
 
@@ -181,6 +184,32 @@ class FakeAdapter(AdapterPort):
             payload={"question": question},
             created_at=created_at,
         )
+
+    def relay_answer(self, mailbox, *, answer):
+        if not isinstance(answer, AnswerDecision):
+            raise Blocked(stage=STAGE, reason_code="malformed_checkpoint",
+                          detail="answer must be an approved AnswerDecision",
+                          recovery_action="approve the raw answer through gate.approve_answer")
+        from run_state import reduce
+        state = reduce(mailbox.read_all())
+        raw = {key: getattr(answer, key) for key in
+               ("run_id", "task_id", "attempt", "question_id", "decision", "text")}
+        expected = approve_answer(state, raw)
+        if expected != answer:
+            raise Blocked(stage=STAGE, reason_code="malformed_checkpoint",
+                          detail="answer decision does not match current state",
+                          recovery_action="approve a current answer decision")
+        previous_counter = self._counter
+        envelope_id, created_at = self._next_meta("env")
+        try:
+            return self._append(mailbox, envelope_id=envelope_id, run_id=answer.run_id,
+                                sender="root", recipient="orchestrator", kind="answer",
+                                payload=raw, created_at=created_at)
+        except Blocked:
+            # A rejected append must be observationally indistinguishable
+            # from a call that never consumed an id.
+            self._counter = previous_counter
+            raise
 
     def enforce_policy(self, *, run_id, hook_name, context=None):
         # The fake adapter enforces no host-specific policy of its own: it

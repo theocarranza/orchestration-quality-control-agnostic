@@ -3,6 +3,9 @@ from dataclasses import FrozenInstanceError
 from types import MappingProxyType
 
 from kernel_specs import Envelope, GENESIS_HASH
+from fake_adapter import FakeAdapter
+from gate import approve_answer
+from mailbox import Mailbox
 from qc_lib import Blocked
 
 from run_state import PHASES, RunState, attempts_of, initial_state, reduce, status_of
@@ -91,12 +94,187 @@ class ObservablePhasesTableTest(unittest.TestCase):
         self.assertEqual(waiting.phase, "awaiting-user-input")
         self.assertEqual(waiting.context["question"], "which target?")
 
+
+class AnswerLifecycleTest(unittest.TestCase):
+    def _waiting_mailbox(self, remaining=2):
+        mailbox = Mailbox()
+        adapter = FakeAdapter({("task-1", 1): {"outcome": "failed", "critique": "bad output"}})
+        adapter.spawn(mailbox, run_id="run-1", task_id="task-1", attempt=1,
+                      agent_id="worker-1", brief={})
+        adapter.emit_status(
+            mailbox, run_id="run-1", phase="awaiting-user-input",
+            context={"task_id": "task-1", "attempt": 1, "question_id": "q-1",
+                     "attempts_remaining": remaining, "critique": "bad output",
+                     "prompt": "Retry this task?"},
+        )
+        return mailbox, adapter
+
+    def test_request_failure_wait_answer_is_atomic_and_keeps_task_failed(self):
+        mailbox, adapter = self._waiting_mailbox()
+        prefix = mailbox.read_all()
+        waiting = reduce(prefix)
+        raw = {"run_id": "run-1", "task_id": "task-1", "attempt": 1,
+               "question_id": "q-1", "decision": "retry", "text": "retry"}
+        decision = approve_answer(waiting, raw)
+        answer = adapter.relay_answer(mailbox, answer=decision)
+        final = reduce(mailbox.read_all())
+        self.assertEqual(final.phase, "execution")
+        self.assertEqual(final.history[-1], "execution")
+        self.assertEqual(status_of(final, "task-1"), "failed")
+        self.assertEqual(final.attempts["task-1"], 1)
+        self.assertEqual(final.envelope_count, len(prefix) + 1)
+        self.assertEqual(final.context["phase"], "execution")
+        for key, value in raw.items():
+            self.assertEqual(final.context[key], value)
+        self.assertEqual(final.context["critique"], "bad output")
+        self.assertEqual(final.context["prompt"], "Retry this task?")
+        self.assertEqual(final.context["attempts_remaining"], 2)
+        self.assertEqual(answer.payload, raw)
+
+    def test_stop_answer_is_atomic_and_prefix_then_suffix_equals_whole(self):
+        mailbox, adapter = self._waiting_mailbox(remaining=0)
+        prefix = mailbox.read_all()
+        waiting = reduce(prefix)
+        decision = approve_answer(waiting, {
+            "run_id": "run-1", "task_id": "task-1", "attempt": 1,
+            "question_id": "q-1", "decision": "stop", "text": "stop",
+        })
+        adapter.relay_answer(mailbox, answer=decision)
+        whole = reduce(mailbox.read_all())
+        suffix = mailbox.read_all()[len(prefix):]
+        self.assertEqual(reduce(suffix, waiting), whole)
+        self.assertEqual(whole.phase, "blocked")
+        self.assertEqual(whole.history[-1], "blocked")
+        self.assertEqual(status_of(whole, "task-1"), "failed")
+        self.assertEqual(whole.context["decision"], "stop")
+        self.assertEqual(whole.context["attempts_remaining"], 0)
+
+    def _answer_envelope(self, prefix, payload, *, sender="root", recipient="orchestrator",
+                         envelope_id="env-tampered-answer"):
+        return Envelope.from_dict({
+            "schema_version": 2, "previous_hash": prefix[-1].hash(),
+            "envelope_id": envelope_id, "run_id": "run-1",
+            "sender": sender, "recipient": recipient, "kind": "answer",
+            "payload": payload, "created_at": "2026-09-04T12:00:03Z",
+        })
+
+    def test_reducer_rejects_answer_tampering_without_mutating_prefix(self):
+        prefix_mailbox, _ = self._waiting_mailbox()
+        prefix = prefix_mailbox.read_all()
+        valid = {"run_id": "run-1", "task_id": "task-1", "attempt": 1,
+                 "question_id": "q-1", "decision": "retry", "text": "retry"}
+        cases = [
+            ("schema-invalid", {**valid, "extra": True}),
+            ("run-mismatch", {**valid, "run_id": "other"}),
+            ("task-mismatch", {**valid, "task_id": "other"}),
+            ("attempt-mismatch", {**valid, "attempt": 2}),
+            ("question-mismatch", {**valid, "question_id": "other"}),
+            ("retry-zero", {**valid}),
+        ]
+        for name, payload in cases:
+            with self.subTest(name=name):
+                current_prefix = prefix
+                if name == "retry-zero":
+                    zero_mailbox, _ = self._waiting_mailbox(remaining=0)
+                    current_prefix = zero_mailbox.read_all()
+                before = reduce(current_prefix)
+                with self.assertRaises(Blocked) as ctx:
+                    reduce(current_prefix + (self._answer_envelope(current_prefix, payload),))
+                self.assertEqual(ctx.exception.stage, "run_state")
+                self.assertEqual(reduce(current_prefix), before)
+
+    def test_reducer_rejects_wrong_state_context_and_routing_without_mutation(self):
+        mailbox, _ = self._waiting_mailbox()
+        base = mailbox.read_all()
+        valid = {"run_id": "run-1", "task_id": "task-1", "attempt": 1,
+                 "question_id": "q-1", "decision": "retry", "text": "retry"}
+        for sender, recipient in (("orchestrator", "orchestrator"), ("root", "root")):
+            with self.subTest(sender=sender, recipient=recipient):
+                before = reduce(base)
+                with self.assertRaises(Blocked):
+                    reduce(base + (self._answer_envelope(base, valid,
+                                                         sender=sender,
+                                                         recipient=recipient),))
+                self.assertEqual(reduce(base), before)
+
+        for phase in ("execution", "blocked"):
+            with self.subTest(phase=phase):
+                status = Envelope.from_dict({
+                    "schema_version": 2, "previous_hash": base[-2].hash(),
+                    "envelope_id": "env-wrong-phase", "run_id": "run-1",
+                    "sender": "orchestrator", "recipient": "root", "kind": "status",
+                    "payload": {"phase": phase},
+                    "created_at": "2026-09-04T12:00:02Z",
+                })
+                wrong_phase = base[:2] + (status,)
+                before = reduce(wrong_phase)
+                with self.assertRaises(Blocked):
+                    reduce(wrong_phase + (self._answer_envelope(wrong_phase, valid),))
+                self.assertEqual(reduce(wrong_phase), before)
+
+        passed_mailbox = Mailbox()
+        passed_adapter = FakeAdapter({("task-1", 1): {"outcome": "passed"}})
+        passed_adapter.spawn(passed_mailbox, run_id="run-1", task_id="task-1", attempt=1,
+                             agent_id="worker-1", brief={})
+        passed_adapter.emit_status(
+            passed_mailbox, run_id="run-1", phase="awaiting-user-input",
+            context={"task_id": "task-1", "attempt": 1, "question_id": "q-1",
+                     "attempts_remaining": 2, "critique": "bad output",
+                     "prompt": "Retry this task?"},
+        )
+        passed_prefix = passed_mailbox.read_all()
+        with self.assertRaises(Blocked):
+            reduce(passed_prefix + (self._answer_envelope(passed_prefix, valid),))
+        self.assertEqual(reduce(passed_prefix), reduce(passed_prefix))
+
+        mismatched_attempt = {**valid, "attempt": 2}
+        before = reduce(base)
+        with self.assertRaises(Blocked):
+            reduce(base + (self._answer_envelope(base, mismatched_attempt),))
+        self.assertEqual(reduce(base), before)
+
+        first = self._answer_envelope(base, valid, envelope_id="env-answer-1")
+        accepted = reduce(base + (first,))
+        self.assertEqual(accepted.phase, "execution")
+        with self.assertRaises(Blocked):
+            reduce(base + (first, self._answer_envelope(base + (first,), valid,
+                                                       envelope_id="env-answer-2")))
+        self.assertEqual(reduce(base + (first,)), accepted)
+
+        # Each context class is independently malformed while the immutable
+        # request/result prefix remains a valid, unchanged state.
+        request_result = base[:2]
+        for field, value in (
+            ("task_id", None), ("attempt", 0), ("question_id", " "),
+            ("critique", ""), ("prompt", None), ("attempts_remaining", -1),
+        ):
+            with self.subTest(field=field):
+                context = {"task_id": "task-1", "attempt": 1, "question_id": "q-1",
+                           "attempts_remaining": 2, "critique": "bad output",
+                           "prompt": "Retry this task?"}
+                context[field] = value
+                status = Envelope.from_dict({
+                    "schema_version": 2, "previous_hash": request_result[-1].hash(),
+                    "envelope_id": "env-bad-status", "run_id": "run-1",
+                    "sender": "orchestrator", "recipient": "root", "kind": "status",
+                    "payload": {"phase": "awaiting-user-input", **context},
+                    "created_at": "2026-09-04T12:00:02Z",
+                })
+                malformed_prefix = request_result + (status,)
+                before = reduce(malformed_prefix)
+                with self.assertRaises(Blocked):
+                    reduce(malformed_prefix + (self._answer_envelope(malformed_prefix, valid),))
+                self.assertEqual(reduce(malformed_prefix), before)
+
     def test_non_status_envelopes_do_not_change_phase_but_are_counted(self):
         state = reduce([
             _status("planning", envelope_id="env-1"),
             _non_status("request", envelope_id="env-2"),
             _non_status("question", envelope_id="env-3"),
-            _non_status("answer", envelope_id="env-4"),
+            # A request without task fields is a valid non-answer
+            # passthrough for this table; answer envelopes have their own
+            # lifecycle tests below.
+            _non_status("request", envelope_id="env-4"),
         ])
         self.assertEqual(state.phase, "planning")
         self.assertEqual(state.envelope_count, 4)
