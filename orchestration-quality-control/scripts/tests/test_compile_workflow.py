@@ -18,7 +18,7 @@ import plan_interview
 from compile_workflow import CompiledWorkflow, compile_workflow
 from fake_adapter import FakeAdapter
 from mailbox import Mailbox
-from oqc import drive
+from oqc import drive, replay, verify
 from qc_lib import Blocked
 from run_state import attempts_of, status_of
 
@@ -446,14 +446,13 @@ class IndependentBranchLimitationTest(unittest.TestCase):
         })
         compiled = compile_workflow(decisions)
 
-        # No script entry at all for task-beta: if drive() ever attempted
-        # it despite task-alpha's exhaustion, FakeAdapter.spawn would raise
-        # Blocked("missing_target") rather than letting this test's own
-        # assertions quietly pass on an unexercised path.
+        # Beta has a valid success response, but fail-fast policy must leave
+        # it pending and never invoke it after alpha exhausts its budget.
         script = {
             ("task-alpha", 1): {"outcome": "failed", "critique": "attempt 1: wrong shape"},
             ("task-alpha", 2): {"outcome": "failed", "critique": "attempt 2: still wrong"},
             ("task-alpha", 3): {"outcome": "failed", "critique": "attempt 3: still wrong"},
+            ("task-beta", 1): {"outcome": "passed"},
         }
         mailbox = Mailbox()
         adapter = FakeAdapter(script)
@@ -467,12 +466,16 @@ class IndependentBranchLimitationTest(unittest.TestCase):
             run_id=compiled.run_spec.run_id,
         )
 
-        self.assertNotEqual(final_state.phase, "completed")
-        self.assertIn(final_state.phase, ("blocked", "awaiting-user-input"))
+        self.assertEqual(final_state.phase, "blocked")
         self.assertEqual(status_of(final_state, "task-alpha"), "failed")
         self.assertEqual(status_of(final_state, "task-beta"), "pending")
         for envelope in mailbox.read_all():
             self.assertNotEqual(envelope.payload.get("task_id"), "task-beta")
+
+        # The terminal phase and state are derived from the emitted mailbox,
+        # so replay and verification must agree with the live drive result.
+        self.assertEqual(replay(mailbox), final_state)
+        self.assertEqual(verify(mailbox).state, final_state)
 
 
 if __name__ == "__main__":

@@ -70,7 +70,7 @@ implementation assumptions were adopted.
 
 - [x] Preserve existing files, baseline, commit, and verify remote push.
 - [x] Outcome 3 Task 1: specification and quality review of `ef23d40`.
-- [ ] Outcome 3 Task 2: branch-halting decision and executable evidence.
+- [x] Outcome 3 Task 2: branch-halting decision and executable evidence.
 - [ ] Outcome 3 Task 3: Orchestrator contract and answer relay.
 - [ ] Outcome 3 Task 4: first real host adapter.
 - [ ] Outcome 3 Task 5: real run capture.
@@ -140,3 +140,39 @@ A verified object copy exists under .git/codex-object-permission-backup/34-writa
 Continuation checkout: /tmp/oqc-codex-realignment-20260907, cloned without
 hardlinks, same branch/base. Copied only the three known session/plan changes.
 All subsequent implementation and checkpoints occur there; preserve the original.
+
+### Progress — Task 2 dispatched
+
+Task 1 review/protocol checkpoint committed as 045fd35 in isolated checkout.
+Dispatch gpt-5.6-luna / low, attempt 1: retain fail-fast policy, precise
+docstring and emitted-DAG regression. Owned files oqc.py and compiler tests.
+Acceptance focused compiler tests plus scripts suite; no host code changes.
+
+### Progress — Task 2 returned; brief-compliance repair
+
+Luna/low returned DONE but reported bare python3 commands and omitted the
+requested passing script for the healthy sibling. Root inspected the diff
+and confirmed the omission. Return to the same worker, attempt 2, same model
+and effort: this is an explicit brief-compliance correction, not evidence of
+a need for a larger model. Use /usr/local/bin/python3.12 exactly.
+
+### Progress — Task 2 repair DONE; spec dispatched
+
+Same Luna/low worker corrected both brief omissions. Python 3.12 focused 31
+and scripts 472 passed. In-memory removal of terminal return makes focused
+evidence fail with the incomplete-DAG invariant; source remained unchanged.
+Dispatch fresh Luna/low specification reviewer for two-file delta at 045fd35.
+
+### Progress — Task 2 spec PASS; quality dispatched
+
+Fresh Luna/low specification review PASS, no findings. Dispatch different
+fresh Luna/low quality reviewer; two-file delta only, focused 31-test command.
+Full scripts evidence from worker is reusable because no source changed.
+
+### Checkpoint — Outcome 3 Task 2 PASS
+
+Attempt 2; implementer Luna/low, fresh spec Luna/low PASS, separate quality
+Luna/low PASS. Quality reran 31 compiler tests, diff check clean; scripts 472
+reused unchanged from worker. Retained fail-fast; intentional policy documented
+and emitted-DAG live/replay/verify evidence strengthened. No escalation.
+Commit hash: pending. Next: Task 3a canonical Orchestrator contract.

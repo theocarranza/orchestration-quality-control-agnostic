@@ -52,7 +52,7 @@ Push to the verified origin feature branch; do not merge, release or tag.
 ## Outcome 3
 
 - [x] Task 1: finish specification and quality reviews of `ef23d40`.
-- [ ] Task 2: make the retained fail-fast branch policy explicit.
+- [x] Task 2: make the retained fail-fast branch policy explicit.
 - [ ] Task 3a: vendor-neutral Orchestrator input/output contract.
 - [ ] Task 3b: engine-authorized question/answer lifecycle.
 - [ ] Task 4: Claude first-host transport and enforced policy boundary.
@@ -124,3 +124,54 @@ Outcome 5 follows the adapter gate: wire install/discover/interview/build/run,
 generate manifest settings from accepted decisions, fold QC into gates, prove
 equivalence before removing duplicate legacy behavior, and run the complete
 product acceptance flow with a measured time/tool budget and truthful docs.
+
+## First-host transport design to validate at Task 4
+
+Candidate transport: one native Orchestrator session launched with an explicit
+agent definition; subsequent engine-selected task requests resume that same
+session. The deterministic Python controller drives scheduling and gates while
+the root user-facing agent remains idle. Each request permits exactly its
+generated worker type through the native Agent tool. Capture the native session
+id and Agent tool-use ids, including subagent output records; never manufacture
+worker identity evidence from the requested role name alone.
+
+Use the native pre-tool hook to admit only the engine-issued dispatch and reject
+other tools/worker types. The first slice can use tool-free workers returning
+text artifacts, with artifact files written and hashed by deterministic adapter
+code. Transport/schema errors are named blockers, never fabricated successes.
+A single logical Orchestrator session may span short CLI resume invocations;
+record process invocation count separately from native session identity and
+verify that resume never silently starts a new session. This is a design to
+prove with contract tests and capture, not a current implementation claim.
+
+## Task 3a exact worker brief
+
+- Task: vendor-neutral Orchestrator contract; attempt 1; Luna / low.
+- Read: compile_workflow.py, kernel_specs.py, compile_prompt.py, adapter_port.py,
+  qc_lib.py and their focused tests; ADR 0014; Task 3a above.
+- Write: package scripts/orchestrator_contract.py,
+  scripts/tests/test_orchestrator_contract.py,
+  schemas/worker-result.schema.json. No other files without a root ruling.
+- Interface: compile_orchestrator(compiled, max_attempts) returns immutable
+  OrchestratorContract; .to_dict(), .to_json(), .from_dict(), .from_json()
+  serialize and revalidate the complete contract. The contract contains the
+  emitted run_spec, task_dag, agent_specs, max_attempts and canonical control
+  instructions. Do not hand-copy existing record validation; reuse from_dict
+  and TaskDag.from_list. Validate role-map key equals spec.role, exact DAG role
+  coverage, unique agent ids, and budget positive integer excluding bool.
+- Output schema: required task_id (nonempty string), attempt (integer >= 1),
+  outcome (passed/failed); optional critique (string), artifact (string),
+  question (object with question_id and prompt, both nonempty strings).
+  Additional properties false. Failed results still require a nonempty
+  critique in gate_result; question decisions are Task 3b. This task creates
+  the schema artifact; gate integration and schema keyword support must be
+  proven in 3b, not claimed here.
+- Tests: bad bindings/duplicate identities/budget rejected; frozen nested
+  contract data and independent serialization; stable JSON roundtrip; changed
+  discovery decisions alter the contract; explicit canonical instructions
+  reserve engine authority and enforce the root relay/worker isolation rules.
+- Acceptance: /usr/local/bin/python3.12 with scripts and scripts/tests on
+  PYTHONPATH; focused test_orchestrator_contract then full scripts suite.
+- Constraints: no host vocabulary/model ids; no I/O or clock in compilation;
+  TDD with honest RED/GREEN; no commits, agents, user questions or unrelated
+  cleanup. Root owns ledger/packet dirty paths.

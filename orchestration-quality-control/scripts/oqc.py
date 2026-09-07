@@ -165,12 +165,12 @@ def drive(dag, adapter, mailbox, agent_specs, max_attempts, *, run_id):
     If any task reaches a terminal (non-RETRY) decision, this function
     stops the *entire* run immediately and returns -- it does not
     attempt to keep making progress on unrelated, still-runnable
-    branches. This matches the two-task dependent fixture this task's
-    evidence is built on (Outcome 2 Task 4's Fixture B, where task-b must
-    never run once task-a is exhausted) and keeps this slice's scope to
-    exactly what is tested; a scheduler that keeps running healthy
-    siblings past a sibling's terminal block is a real, larger feature
-    this kernel slice does not build.
+    branches. This is an intentional whole-run fail-fast policy: once the
+    objective cannot complete within the retry budget, continuing healthy
+    siblings would spend quota while producing only a partial result.
+    Independent branches therefore remain pending, and changing that
+    policy requires an explicit partial-success scheduler design rather
+    than an incidental change to this loop.
 
     Two findings carried forward from Task 4's quality review, both
     closed in this function:
