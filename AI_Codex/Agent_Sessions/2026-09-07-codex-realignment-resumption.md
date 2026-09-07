@@ -501,3 +501,137 @@ the accepted feature branch stays at `8e37252`. Resume from
 clone), rerun a fresh Luna/low specification review against the Task 3b.2c brief,
 then use the remaining attempt 3 only for accepted load-bearing findings. Do not
 mark 3b.2c complete until fresh specification and quality reviewers both PASS.
+
+### Progress — Task 3b.2c specification review resumed — 2026-09-07 03:39 PM -03
+
+Verified the isolated checkout is clean at WIP `6c6beb2`; the original workspace
+remains preserved with its older staged ledger edits and uncommitted protocol and
+handoff. Current quota percentages are not exposed by this host. Dispatch a fresh
+Luna/low read-only specification reviewer for `8e37252..6c6beb2`; it may inspect
+the Task 3b.2c contract and owned diff but must not edit files or run tests. The
+remaining implementation allowance is attempt 3 of 3.
+
+### Progress — Task 3b.2c specification FINDINGS; attempt 3 dispatched — 2026-09-07 03:41 PM -03
+
+Fresh Luna/low specification review returned FINDINGS. Blocked-run re-entry
+raises an invariant instead of returning the terminal state; `oqc.py` and
+`compile_prompt.py` retain stale lifecycle/input documentation; the empty-mailbox
+FakeAdapter regression was weakened to a last-item comparison; and the integrated
+tests do not prove the required invalid/stale/duplicate rejection purity,
+zero-budget boundary, repeated post-answer lifecycle, attempt/budget continuity,
+fresh-adapter reload/resume, question-flow replay/verify hashes, or blocked
+re-entry. Root accepts the findings. Dispatch final attempt 3 of 3 to Sol/medium:
+prior Luna/low and Luna/medium attempts missed coupled scheduler/replay evidence,
+so both the higher model tier and effort are warranted. Scope remains the eight
+Task 3b.2c product/test files; no Git or ledger ownership is delegated.
+
+### Progress — Task 3b.2c attempt 3 DONE; final specification review — 2026-09-07 03:55 PM -03
+
+Sol/medium repaired blocked-run re-entry and the approval-order budget check,
+restored the whole-mailbox assertion and current API documentation, and added
+the composed lifecycle matrix. Honest RED evidence covers blocked sibling
+dispatch and approval-before-budget-check; documentation and already-working
+coverage cases were not presented as RED. Worker evidence: 137 focused and 550
+complete scripts tests passed under Python 3.12; diff check clean. Scope is six
+of the eight allowed product/test files, plus this root-owned ledger. Dispatch
+a fresh Luna/low read-only specification review over the complete
+`8e37252` working-tree delta. This was implementation attempt 3 of 3; no further
+product repair attempt is authorized by the protocol.
+
+### Progress — Task 3b.2c final specification PASS; quality review — 2026-09-07 03:56 PM -03
+
+Fresh Luna/low read-only specification review returned PASS with no material
+finding or scope drift. It traced persisted-result gating, terminal re-entry,
+approval order, relay/append counter rollback, answer-transition validation,
+the composed rejection/retry/stop/reload/replay/hash evidence, restored mailbox
+assertion and five-input brief documentation. Dispatch a separate Terra/medium
+quality reviewer to run the focused and complete scripts suites, diff check and
+independent lifecycle boundary probes. The stronger quality tier is warranted
+because this is the final attempt at a coupled scheduler/replay boundary.
+
+### Progress — Task 3b.2c quality PASS; Astra acceptance gate — 2026-09-07 04:00 PM -03
+
+Independent Terra/medium quality review returned PASS with no material finding.
+It reran 137 focused and 550 complete scripts tests under Python 3.12, confirmed
+the diff check, and independently probed terminal re-entry, rejection purity,
+approval order, repeated-question continuity and live/replay/verify equality.
+Real-host proof remains correctly deferred. Because this closes the coupled
+Task 3b authority/replay boundary at its implementation-attempt cap, dispatch
+the protocol's optional Astra/high read-only integrated acceptance gate before
+marking Task 3b.2c and Task 3b complete or authorizing Git mechanics.
+
+### Blocked checkpoint — Task 3b integrated acceptance FINDINGS — 2026-09-07 04:03 PM -03
+
+Astra/high read-only integrated acceptance found a load-bearing defect missed
+by the final specification and quality gates. The worker-result schema and
+`gate_result` accept whitespace-only `question_id` or `prompt`; `drive` then
+persists `awaiting-user-input` before FakeAdapter rejects the relay. The run is
+left in an unanswerable waiting state because answer validation also rejects the
+blank outstanding binding. This violates Task 3b.1's explicit nonblank question
+contract and the rule that rejection must precede state-changing append.
+
+Ruling: Task 3b.2c and Task 3b remain incomplete and uncommitted — the finding
+is real and load-bearing, so it cannot be parked. Task 3b.2c has consumed its
+third and final implementation attempt, and the defect belongs to the already
+attempt-capped Task 3b.1 gate boundary. The execution protocol prohibits hiding
+a fourth attempt behind a renamed task. Owner authorization is required to make
+one narrow cap exception covering `gate.py` and its gate/composed-drive tests.
+No Git worker, push, real-host task or later outcome is authorized while this
+gate is open. Deterministic evidence remains 137 focused and 550 scripts tests
+passing, but those suites do not cover this defect.
+
+Handoff: [[2026-09-07-task-3b-astra-blocker-handoff]].
+
+### Ruling — owner authorizes narrow cap exception — 2026-09-07 04:06 PM -03
+
+The owner explicitly authorized root to lead past the three-attempt cap. Apply
+one narrow fourth logical repair only: reject whitespace-only worker
+`question_id` and `prompt` at the gate, add gate and composed-drive regressions
+proving rejection before any waiting/question append, then repeat fresh
+specification, independent quality and scoped Astra acceptance. This ruling does
+not reset the attempt count, broaden product ownership, or authorize Task 4,
+merge, release or tag. Cost if wrong: the exception may conceal a structurally
+weak earlier gate; the three independent post-repair gates mitigate that risk.
+
+### Progress — cap-exception repair DONE; scoped specification review — 2026-09-07 04:10 PM -03
+
+Sol/medium added gate-side semantic nonblank validation plus direct gate and
+composed-drive regressions for whitespace-only question identifiers and prompts.
+Observed RED: two methods with four failing subtests, including persisted waiting
+status before relay rejection. GREEN: 117 focused gate/drive tests and 552 full
+scripts tests passed under Python 3.12; diff check clean. The composed regression
+proves that rejection preserves the JSONL bytes at the post-worker-result
+boundary and appends neither waiting status nor question relay. Dispatch a fresh
+Luna/low read-only scoped specification review before quality or acceptance.
+
+### Progress — cap-exception specification PASS; quality review — 2026-09-07 04:11 PM -03
+
+Fresh Luna/low scoped specification review returned PASS. It confirmed semantic
+nonblank checks execute before an authorizable verdict, direct tests cover both
+fields, and composed drive evidence preserves the allowed post-result JSONL
+boundary without waiting or relay append. No scope drift. Dispatch a separate
+Terra/medium quality reviewer for focused and complete suites, diff check and
+independent ordering/purity probes.
+
+### Progress — cap-exception quality PASS; scoped Astra acceptance — 2026-09-07 04:13 PM -03
+
+Independent Terra/medium quality review returned PASS. It reran 117 focused and
+552 complete scripts tests, confirmed the diff check, and independently rejected
+spaces, tab and newline variants for both question fields through gate and
+composed drive with byte-identical post-result JSONL. No material issue or scope
+drift. Dispatch Astra/high for the final scoped acceptance of the prior P1 and
+integrated Task 3b completion boundary.
+
+### Checkpoint — Outcome 3 Task 3b PASS — 2026-09-07 04:15 PM -03
+
+Owner-authorized logical attempt 4 resolved the Astra P1 without resetting or
+hiding the attempt count. Implementer: Sol/medium. Fresh scoped specification:
+Luna/low PASS. Independent quality: Terra/medium PASS with 117 focused and 552
+complete scripts tests plus diff check and adversarial whitespace probes.
+Scoped Astra/high acceptance: ACCEPT; the prior P1 is resolved and no material
+Task 3b issue remains. The complete lifecycle now rejects invalid worker
+questions before waiting authorization, preserves atomic answer transitions,
+attempt/budget continuity, terminal fail-fast behavior and deterministic
+live/replay/verify equality. Real-host transport remains Task 4 scope. Task
+3b.2c, Task 3b.2 and Task 3b are checked complete. Commit hash: pending.
+Next: exact allowlisted Git checkpoint, then Task 4 first-host transport.

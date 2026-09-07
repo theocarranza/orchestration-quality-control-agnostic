@@ -9,7 +9,7 @@ compiles each agent's brief, gates every result, counts attempts...".
 an `adapter_port.AdapterPort.spawn` call puts on a 'request' envelope's
 `payload['brief']`.
 
-Deterministic and byte-stable. The same four inputs always produce an
+Deterministic and byte-stable. The same five inputs always produce an
 equal dict, and `json.dumps(brief, sort_keys=True)` on two separately
 compiled-but-equal-input briefs is byte-identical: every field here is a
 plain str/int/list/None copied straight from an already-validated
@@ -120,7 +120,8 @@ def compile_brief(task_node, agent_spec, critique=None, attempt=1, answer_contex
     `gate.gate_result` verdict produced for the immediately preceding
     failed attempt on this task, or None on a first attempt. `attempt`
     (default 1) is the 1-indexed attempt number this brief is being
-    compiled for.
+    compiled for. `answer_context` is the non-empty root answer text that
+    authorized this resumed attempt, or None outside an answered retry.
 
     Returns a plain dict -- not frozen. Freezing happens exactly once,
     at the `kernel_specs.Envelope` boundary this brief is eventually

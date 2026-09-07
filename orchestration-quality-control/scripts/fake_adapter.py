@@ -8,9 +8,9 @@ extension adds the root-answer relay while retaining that origin context.
 entirely from a `script` mapping (task_id, attempt) -> a result mapping,
 so a whole run can be driven end to end with no network call, no LLM
 call, no sleep, and no clock read anywhere in the path. It appends
-envelopes to the `mailbox` it is given; it never constructs, reads, or
-mutates a `run_state.RunState` itself -- that derivation is strictly the
-caller's job via `run_state.reduce`.
+envelopes to the `mailbox` it is given. Question and answer relays re-derive
+`run_state.RunState` only to validate that their engine decisions still bind
+the current log; the adapter never chooses or mutates lifecycle state.
 
 Every id and timestamp this adapter emits comes from an internal,
 strictly-increasing counter, never from the wall clock or any other

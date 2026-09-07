@@ -224,6 +224,17 @@ class GateResultFailedTest(unittest.TestCase):
         })
         self.assertEqual(verdict.question["question_id"], "q-1")
 
+    def test_question_rejects_whitespace_only_identity_and_prompt(self):
+        for field in ("question_id", "prompt"):
+            question = {"question_id": "q-1", "prompt": "Choose"}
+            question[field] = "   "
+            with self.subTest(field=field), self.assertRaises(Blocked):
+                gate_result({
+                    "task_id": "task-1", "attempt": 1,
+                    "outcome": "failed", "critique": "why",
+                    "question": question,
+                })
+
     def test_passed_result_with_question_is_blocked(self):
         with self.assertRaises(Blocked):
             gate_result({

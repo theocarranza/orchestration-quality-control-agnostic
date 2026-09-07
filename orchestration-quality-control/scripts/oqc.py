@@ -17,12 +17,12 @@ oqc -- see tests/test_oqc.py's KernelStaysImportableWithoutOqcTest, which
 scans every one of those modules' source for the substring rather than
 merely trusting the import graph at the time this was written.
 
-Every decision in `drive` below is made by this module or by the
-gate.py functions it calls -- `router.next_tasks`, `gate.gate_result` and
-`gate.retry_or_block` are reused, never reimplemented, and
-`adapter_port.AdapterPort` is the only thing an adapter is asked to do:
-execute (spawn, emit a status, relay a question, enforce a policy hook).
-No judgment leaks into the adapter, per ADR 0014 decision 0.
+Every decision in `drive` and `resume` is made by this module or by the
+gate functions it calls. Routing is re-derived from mailbox state;
+`gate_result`, `decide_failure`, and `approve_answer` remain the engine
+authority. The adapter only executes the five port operations: spawn,
+status emission, question relay, approved-answer relay, and policy
+enforcement. No judgment leaks into the adapter, per ADR 0014 decision 0.
 """
 
 import argparse
@@ -166,117 +166,18 @@ def _drive_task(dag, adapter, mailbox, agent_specs, max_attempts, *, run_id,
 
 
 def drive(dag, adapter, mailbox, agent_specs, max_attempts, *, run_id):
-    """Run `dag` to completion (or to a terminal stop) through `adapter`.
+    """Drive the DAG until completed, blocked, or awaiting root input.
 
-    This is the real orchestrator loop Outcome 2 Task 4's test fixtures
-    (tests/test_replay.py) drove by hand: select a runnable task with
-    `router.next_tasks`, compile its brief, spawn it through the adapter,
-    gate the result, and either retry carrying the critique forward or
-    stop at a terminal state. All engine authority lives here (and in the
-    gate.py functions this calls) -- the adapter only executes.
+    Each iteration re-derives state and runnable tasks from the mailbox.
+    A failed result is classified and decided by the gate. Ordinary
+    retries record their remaining budget before dispatching the next
+    attempt; an approved worker question records the complete waiting
+    binding, relays that binding to root, and returns immediately.
 
-    Parameters match the brief's named signature
-    (`dag, adapter, mailbox, agent_specs, max_attempts`) with one
-    necessary addition: `run_id`, keyword-only and required. None of
-    `dag` (a `kernel_specs.TaskDag`), `agent_specs`, or `max_attempts`
-    carries a run identity, and every `AdapterPort` method requires
-    `run_id` explicitly -- there is no way to spawn the very first
-    envelope of a fresh run without one, so it must come from the caller.
-    `agent_specs` is a mapping from role (as named on a
-    `kernel_specs.TaskNode`) to the `kernel_specs.AgentSpec` generated
-    for that role; `max_attempts` is the attempt budget shared by every
-    task in `dag` (matching tests/test_replay.py's `MAX_ATTEMPTS`, a
-    single scalar applied uniformly).
-
-    Scheduling. `router.next_tasks(dag, state)` is re-derived from the
-    mailbox at the top of every outer iteration and answers only "which
-    *new* tasks are now runnable" (pending, with every dependency
-    passed) -- it has no notion of "retry this task that already
-    failed", because a failed task's status is 'failed', not 'pending',
-    and `next_tasks` never returns a non-pending task. Retrying a task
-    already in flight is instead driven directly by
-    `gate.retry_or_block`'s RETRY decision, in the inner loop below,
-    exactly like tests/test_replay.py's own fixtures never asked
-    `next_tasks` for permission to attempt task-a a second time. When
-    `next_tasks` returns more than one runnable task_id (independent
-    branches with no dependency between them), this loop takes the
-    first in its returned sort order, drives it to conclusion (pass or a
-    terminal stop), and only then re-derives `next_tasks` for the next
-    one -- tasks are never run concurrently, matching "no long-running
-    process" (ADR 0014 decision 0) and this kernel's model-free,
-    single-threaded nature.
-
-    If any task reaches a terminal (non-RETRY) decision, this function
-    stops the *entire* run immediately and returns -- it does not
-    attempt to keep making progress on unrelated, still-runnable
-    branches. This is an intentional whole-run fail-fast policy: once the
-    objective cannot complete within the retry budget, continuing healthy
-    siblings would spend quota while producing only a partial result.
-    Independent branches therefore remain pending, and changing that
-    policy requires an explicit partial-success scheduler design rather
-    than an incidental change to this loop.
-
-    Two findings carried forward from Task 4's quality review, both
-    closed in this function:
-
-    1. A RETRY decision now leaves a durable trace. The instant
-       `retry_or_block` returns RETRY, this function calls
-       `adapter.emit_status` to append a 'status' envelope recording
-       that decision (`context={"decision": "retry", "task_id":...,
-       "critique":..., "attempt":..., "attempts_remaining":...}`)
-       *before* compiling or spawning the next attempt. Without this, a
-       crash between the decision and the next spawn would leave the
-       task sitting at status 'failed' with nothing in the mailbox to
-       distinguish "root chose to retry" from silent abandonment --
-       replaying the mailbox would show only a failed result, identical
-       in shape either way. The recorded phase is `_WORKING_PHASE`
-       ('execution'): a retry is not itself a macro lifecycle
-       transition, so it does not claim to be 'completed', 'blocked', or
-       any other terminal name -- only the `context` payload carries the
-       decision. See tests/test_oqc.py's
-       RetryDecisionRecordedDurablyTest, which truncates a mailbox
-       immediately after this envelope and confirms the decision is
-       still legible.
-
-    2. `relay_question` and `enforce_policy` are now composed into this
-       loop alongside `spawn`, `emit_status`, `gate_result` and
-       `retry_or_block`, so all four `AdapterPort` operations work
-       together rather than being proven only in isolation (as
-       tests/test_adapter_port.py and tests/test_fake_adapter.py already
-       do for each method alone):
-
-       - `enforce_policy` is called once per attempt, immediately before
-         that attempt's `spawn` (`hook_name="pre-spawn"`, carrying
-         `task_id`/`attempt` as context). A `qc_lib.Blocked` raised there
-         is authoritative (per `adapter_port.AdapterPort.enforce_policy`'s
-         own docstring) and stops the run before anything is appended --
-         proven by tests/test_oqc.py's
-         EnforcePolicyComposedWithSpawnTest.
-
-       - `relay_question` is called on the one path this model-free
-         kernel slice actually has a real question to ask: once
-         `retry_or_block` returns a terminal decision, this function
-         relays a question to root asking how to proceed, *composed
-         with* the terminal status the gate already decided, rather than
-         exercised in isolation. It does **not** attempt to make
-         `awaiting-user-input` reachable. `gate.retry_or_block` (which
-         this module must not reimplement or override -- ADR 0014
-         decision 4 gives only the engine that decision, and here "the
-         engine" for this specific choice is `gate.py`, not `oqc.py`)
-         never returns AWAITING_USER_INPUT; every exhaustion it produces
-         names BLOCKED_STATE. Making the run declare
-         'awaiting-user-input' from inside `drive` instead would mean
-         this loop fabricating a judgment -- "this failure specifically
-         needs a human decision, as opposed to just being stuck" -- that
-         nothing in a deterministic, model-free path actually has a
-         basis to make; `adapter_port.AdapterPort.relay_question`'s own
-         docstring describes relaying a question a worker already asked
-         over a separate channel this kernel slice does not build. So
-         that phase remains unreachable here, exactly as
-         gate.py's own reservation note beside AWAITING_USER_INPUT
-         still accurately describes, and tests/test_oqc.py's
-         AwaitingUserInputRemainsUnreachableTest pins that as a
-         deliberate scope decision rather than an oversight.
+    Awaiting and blocked states are stable re-entry boundaries: this
+    function returns the already-derived state without appending or
+    dispatching untouched siblings. Ordinary exhausted failures and stop
+    answers are therefore terminal and whole-run fail-fast.
     """
     _require_adapter_port(adapter)
     _require_max_attempts(max_attempts)
@@ -285,7 +186,7 @@ def drive(dag, adapter, mailbox, agent_specs, max_attempts, *, run_id):
         raise Blocked(stage=STAGE, reason_code="malformed_checkpoint",
                       detail="run_id does not match the mailbox run",
                       recovery_action="resume the mailbox with its existing run_id")
-    if waiting.phase == AWAITING_USER_INPUT:
+    if waiting.phase in (AWAITING_USER_INPUT, "blocked"):
         return waiting
 
     while True:
@@ -320,18 +221,36 @@ def drive(dag, adapter, mailbox, agent_specs, max_attempts, *, run_id):
 
 
 def resume(dag, adapter, mailbox, agent_specs, max_attempts, *, answer):
-    """Approve and apply one answer to the current waiting run."""
+    """Atomically approve, append, and apply one current root answer.
+
+    State and remaining budget are re-derived from the mailbox. Rejected
+    raw answers are blocked before append. Retry continues at the next
+    mailbox-derived attempt with the prior critique and answer text;
+    stop returns the terminal state produced by the answer envelope.
+    """
     _require_adapter_port(adapter)
     _require_max_attempts(max_attempts)
     state = reduce(mailbox.read_all())
-    approved = approve_answer(state, answer)
-    expected_budget = approved.attempt + approved.attempts_remaining
-    if max_attempts != expected_budget:
+    context = state.context
+    attempt = context.get("attempt") if hasattr(context, "get") else None
+    attempts_remaining = (
+        context.get("attempts_remaining") if hasattr(context, "get") else None
+    )
+    if (
+        state.phase == AWAITING_USER_INPUT
+        and isinstance(attempt, int)
+        and not isinstance(attempt, bool)
+        and isinstance(attempts_remaining, int)
+        and not isinstance(attempts_remaining, bool)
+        and max_attempts != attempt + attempts_remaining
+    ):
         raise Blocked(
             stage=STAGE, reason_code="malformed_checkpoint",
-            detail=f"max_attempts {max_attempts} does not match outstanding budget {expected_budget}",
+            detail=(f"max_attempts {max_attempts} does not match outstanding "
+                    f"budget {attempt + attempts_remaining}"),
             recovery_action="resume with the max_attempts value recorded by the waiting state",
         )
+    approved = approve_answer(state, answer)
     adapter.relay_answer(mailbox, answer=approved)
     if approved.decision == "stop":
         return reduce(mailbox.read_all())

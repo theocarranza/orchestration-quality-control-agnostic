@@ -40,7 +40,7 @@ class _MinimalConcreteAdapter(AdapterPort):
     def emit_status(self, mailbox, *, run_id, phase, context=None):
         raise NotImplementedError
 
-    def relay_question(self, mailbox, *, run_id, question):
+    def relay_question(self, mailbox, *, run_id, decision):
         raise NotImplementedError
 
     def relay_answer(self, mailbox, *, answer):
@@ -77,7 +77,7 @@ class AdapterPortIsAbstractTest(unittest.TestCase):
             def emit_status(self, mailbox, *, run_id, phase, context=None):
                 raise NotImplementedError
 
-            def relay_question(self, mailbox, *, run_id, question):
+            def relay_question(self, mailbox, *, run_id, decision):
                 raise NotImplementedError
 
         with self.assertRaises(TypeError):
@@ -88,7 +88,7 @@ class AdapterPortIsAbstractTest(unittest.TestCase):
                 raise NotImplementedError
             def emit_status(self, mailbox, *, run_id, phase, context=None):
                 raise NotImplementedError
-            def relay_question(self, mailbox, *, run_id, question):
+            def relay_question(self, mailbox, *, run_id, decision):
                 raise NotImplementedError
             def enforce_policy(self, *, run_id, hook_name, context=None):
                 raise NotImplementedError

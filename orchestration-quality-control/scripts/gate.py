@@ -121,6 +121,18 @@ def gate_result(result):
                 detail="a failed result must carry a non-empty 'critique' explaining why",
                 recovery_action="set result['critique'] to a non-empty string explaining the failure",
             )
+        question = result.get("question")
+        if question is not None:
+            for field in ("question_id", "prompt"):
+                if not question[field].strip():
+                    raise Blocked(
+                        stage=STAGE,
+                        reason_code="malformed_checkpoint",
+                        detail=(f"a worker question must carry a nonblank "
+                                f"'{field}'"),
+                        recovery_action=(f"set question['{field}'] to a "
+                                         "nonblank string"),
+                    )
     else:
         if "critique" in result or "question" in result:
             raise Blocked(stage=STAGE, reason_code="malformed_checkpoint",

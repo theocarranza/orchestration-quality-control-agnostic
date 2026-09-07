@@ -207,7 +207,7 @@ class EmitStatusTest(unittest.TestCase):
         envelope = adapter.emit_status(
             mailbox, run_id="run-1", phase="completed", context={"note": "done"},
         )
-        self.assertEqual(mailbox.read_all()[-1:], (envelope,))
+        self.assertEqual(mailbox.read_all(), (envelope,))
         self.assertEqual(envelope.kind, "status")
         self.assertEqual(envelope.sender, "orchestrator")
         self.assertEqual(envelope.recipient, "root")
@@ -263,6 +263,44 @@ class RelayQuestionTest(unittest.TestCase):
         with self.assertRaises(Blocked):
             adapter.relay_question(mailbox, run_id="run-1", decision=decision)
         self.assertEqual(mailbox.read_all(), ())
+
+    def test_mismatched_question_decision_is_rejected_without_append_or_counter_gap(self):
+        mailbox = Mailbox()
+        adapter = FakeAdapter({
+            ("task-1", 1): {
+                "outcome": "failed", "critique": "bad output",
+                "question": {"question_id": "q-1", "prompt": "Retry?"},
+            },
+        })
+        adapter.spawn(
+            mailbox, run_id="run-1", task_id="task-1", attempt=1,
+            agent_id="worker-1", brief={},
+        )
+        adapter.emit_status(
+            mailbox, run_id="run-1", phase=AWAITING_USER_INPUT,
+            context={"task_id": "task-1", "attempt": 1, "critique": "bad output",
+                     "attempts_remaining": 2, "question_id": "q-1", "prompt": "Retry?"},
+        )
+        approved = RetryDecision(
+            action=AWAITING_USER_INPUT, task_id="task-1", attempt=1,
+            critique="bad output", attempts_remaining=2,
+            phase=AWAITING_USER_INPUT,
+            question=freeze({"question_id": "q-1", "prompt": "Retry?"}),
+        )
+        stale = replace(approved, question=freeze({
+            "question_id": "stale", "prompt": "Retry?",
+        }))
+        before = mailbox.to_jsonl()
+        with self.assertRaises(Blocked):
+            adapter.relay_question(mailbox, run_id="run-1", decision=stale)
+        with self.assertRaises(Blocked):
+            adapter.relay_question(mailbox, run_id="wrong-run", decision=approved)
+        self.assertEqual(mailbox.to_jsonl(), before)
+
+        envelope = adapter.relay_question(
+            mailbox, run_id="run-1", decision=approved,
+        )
+        self.assertEqual(envelope.envelope_id, "env-4")
 
 
 class RelayAnswerTest(unittest.TestCase):

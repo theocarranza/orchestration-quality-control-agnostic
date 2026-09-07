@@ -54,12 +54,12 @@ Push to the verified origin feature branch; do not merge, release or tag.
 - [x] Task 1: finish specification and quality reviews of `ef23d40`.
 - [x] Task 2: make the retained fail-fast branch policy explicit.
 - [x] Task 3a: vendor-neutral Orchestrator input/output contract.
-- [ ] Task 3b: engine-authorized question/answer lifecycle.
+- [x] Task 3b: engine-authorized question/answer lifecycle.
   - [x] Task 3b.1: executable result schema and question authorization.
-  - [ ] Task 3b.2: atomic answer event and drive composition.
+  - [x] Task 3b.2: atomic answer event and drive composition.
     - [x] Task 3b.2a: schema-valid root answer authorization.
     - [x] Task 3b.2b: answer port and atomic reducer event.
-    - [ ] Task 3b.2c: drive pause/resume composition and integrated review.
+    - [x] Task 3b.2c: drive pause/resume composition and integrated review.
 - [ ] Task 4: Claude first-host transport and enforced policy boundary.
 - [ ] Task 5: captured real run with externally anchored hashes.
 - [ ] Task 6: full gate and independent acceptance review.
