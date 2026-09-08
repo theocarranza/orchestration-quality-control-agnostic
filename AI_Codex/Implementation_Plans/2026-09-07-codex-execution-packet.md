@@ -62,7 +62,7 @@ Push to the verified origin feature branch; do not merge, release or tag.
     - [x] Task 3b.2c: drive pause/resume composition and integrated review.
 - [ ] Task 4: Claude first-host transport and enforced policy boundary.
   - [x] Task 4a: deterministic Claude CLI/session transport contract.
-  - [ ] Task 4b: Claude AdapterPort composition and request/identity binding.
+  - [x] Task 4b: Claude AdapterPort composition and request/identity binding.
   - [ ] Task 4c: native pre-tool policy hook and local capability smoke.
 - [ ] Task 5: captured real run with externally anchored hashes.
 - [ ] Task 6: full gate and independent acceptance review.
@@ -337,3 +337,63 @@ hook error is not fail-closed and keep deterministic adapter policy validation
 load-bearing. A local no-model smoke verifies installed CLI flags and hook
 fixtures. Task 5, not Task 4, owns the authenticated model invocation and real
 identity/capture proof.
+
+### Task 4b exact worker brief
+
+Implement `ClaudeAdapter(AdapterPort)` in new `scripts/claude_adapter.py` with
+focused `tests/test_claude_adapter.py`. It receives an injected process runner,
+explicit non-inherited Orchestrator model/effort, exact generated worker
+definitions, an injected policy boundary and an artifact directory. It owns a
+`ClaudeTransport`, records every returned process tuple or runner exception as
+immutable out-of-mailbox transport evidence, and never invokes a real process
+in tests. Process exceptions/nonzero exits remain runner-owned evidence exactly
+as ruled at Task 4a.
+
+For `spawn`, canonicalize the actual engine brief bytes with sorted compact
+JSON, derive SHA-256 from those bytes, and append the engine-issued request
+before transport. Select only the worker definition whose key exactly equals
+`agent_id`; use that same identity for the request recipient and permitted
+native Agent tool. Keep one native Orchestrator session: the first valid
+transport result establishes it and every later invocation resumes it. Recheck
+the validated structured result's `task_id` and `attempt` against the exact
+engine request before appending a result. The result sender is the exact
+engine-issued agent identity and its payload records native session, Agent
+tool-use id, invocation count and adapter identity as evidence. A returned text
+artifact is encoded to bytes and written by deterministic adapter code to a
+path derived only from validated run/task/attempt identifiers; compute its hash
+from bytes read back from that file, never from a model claim. Record the path
+and hash with the result.
+
+Rejected transport or request-binding responses append no result and preserve
+inspectable raw evidence. Do not let model output choose sender, recipient,
+task, attempt, artifact path, hash, session, or tool identity. Implement the
+other four port operations with the same engine-authority and pairing rules as
+the fake adapter: status/question/approved-answer envelopes go only through
+`AdapterPort._append`; policy is the injected Task 4c seam and must return an
+immutable disclosure rather than claim native enforcement itself. Restore an
+id counter after a rejected append so failure consumes no envelope id.
+
+Prove with honest RED/GREEN: exact canonical brief/hash and request binding;
+initial plus resumed native session; exact Agent identity/tool-use evidence;
+task/attempt/worker/session mismatches; structured-output and artifact hashing
+from stored bytes; immutable returned/rejected transport evidence; no result on
+rejection; all five port operations; composed `drive` retry through the same
+session; and no host subprocess/model call. A test double must mirror the full
+Task 4a tuple/event shape and assertions target adapter/mailbox/files, not the
+double. Only change `claude_transport.py`, `adapter_port.py`, `oqc.py` or their
+focused tests if a failing Task 4b test proves the smallest interface change
+necessary; report that proof explicitly. Run focused Claude adapter plus
+transport/port/oqc tests, then the complete scripts discovery under Python 3.12
+and `git diff --check`.
+
+Quality-review production-fix ruling: preserve the strict model-output schema.
+After transport validation, add reserved, vendor-neutral, engine-owned
+`execution_evidence` to the authoritative result payload with exactly adapter
+identity, native session id, Agent tool-use id, Agent id and positive invocation
+count. The gate must separate and validate that evidence before validating the
+remaining worker-result payload; evidence stays optional for existing adapters,
+and unknown model-result fields remain rejected. Snapshot runner exceptions by
+value rather than retaining mutable exception objects, and validate injected
+worker definitions as a mapping with project `Blocked` failures. This owner-
+authorized cap exception is limited to `claude_adapter.py`, its focused tests,
+and the smallest proven `gate.py`/`test_gate.py` compatibility change.

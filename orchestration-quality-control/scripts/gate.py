@@ -17,7 +17,9 @@ named terminal phase. There is no third path that returns without
 deciding either.
 """
 
+from collections.abc import Mapping
 from dataclasses import dataclass
+import re
 
 from qc_lib import Blocked, freeze, thaw
 from kernel_specs import validate_worker_result
@@ -28,6 +30,36 @@ STAGE = "gate"
 PASSED = "passed"
 FAILED = "failed"
 GATE_OUTCOMES = (PASSED, FAILED)
+
+_EXECUTION_EVIDENCE_KEYS = {
+    "adapter_identity", "native_session_id", "agent_id", "agent_tool_use_id", "invocation_count",
+}
+_ARTIFACT_METADATA_KEYS = {"artifact_path", "artifact_hash"}
+_SHA256 = re.compile(r"[0-9a-f]{64}")
+
+def _validate_execution_evidence(evidence):
+    if not isinstance(evidence, Mapping) or set(evidence) != _EXECUTION_EVIDENCE_KEYS:
+        raise Blocked(stage=STAGE, reason_code="malformed_checkpoint", detail="execution evidence must contain exactly the reserved engine-owned fields", recovery_action="provide complete engine-owned execution evidence")
+    for field in _EXECUTION_EVIDENCE_KEYS - {"invocation_count"}:
+        if not isinstance(evidence[field], str) or not evidence[field].strip():
+            raise Blocked(stage=STAGE, reason_code="malformed_checkpoint", detail=f"execution evidence '{field}' must be a nonblank string", recovery_action="provide nonblank engine-owned identity values")
+    count = evidence["invocation_count"]
+    if not isinstance(count, int) or isinstance(count, bool) or count < 1:
+        raise Blocked(stage=STAGE, reason_code="malformed_checkpoint", detail="execution evidence invocation_count must be a positive integer", recovery_action="provide a positive invocation count")
+
+def _split_artifact_metadata(worker_result):
+    has_path = "artifact_path" in worker_result
+    has_hash = "artifact_hash" in worker_result
+    if has_path != has_hash:
+        raise Blocked(stage=STAGE, reason_code="malformed_checkpoint", detail="artifact metadata must provide path and hash together", recovery_action="provide both artifact_path and artifact_hash")
+    if not has_path:
+        return
+    path = worker_result.pop("artifact_path")
+    digest = worker_result.pop("artifact_hash")
+    if not isinstance(path, str) or not path.strip():
+        raise Blocked(stage=STAGE, reason_code="malformed_checkpoint", detail="artifact_path must be a nonblank string", recovery_action="provide a nonblank artifact path")
+    if not isinstance(digest, str) or not _SHA256.fullmatch(digest):
+        raise Blocked(stage=STAGE, reason_code="malformed_checkpoint", detail="artifact_hash must be a lowercase SHA-256 hex digest", recovery_action="provide the exact stored artifact SHA-256")
 
 RETRY = "retry"
 BLOCKED_STATE = "blocked"
@@ -80,13 +112,19 @@ def gate_result(result):
     than let it through unexplained. The validated attempt is passed through
     unchanged on the returned GateVerdict for the caller's bookkeeping.
     """
+    if not isinstance(result, Mapping):
+        raise Blocked(stage=STAGE, reason_code="malformed_checkpoint", detail="result must be a mapping", recovery_action="provide a worker result mapping")
+    worker_result = dict(result)
+    if "execution_evidence" in worker_result:
+        _validate_execution_evidence(worker_result.pop("execution_evidence"))
+    _split_artifact_metadata(worker_result)
     try:
-        validate_worker_result(result)
+        validate_worker_result(worker_result)
     except Blocked as exc:
         raise Blocked(stage=STAGE, reason_code=exc.reason_code, detail=exc.detail,
                       recovery_action=exc.recovery_action) from exc
 
-    task_id = result.get("task_id")
+    task_id = worker_result.get("task_id")
     if not isinstance(task_id, str) or not task_id:
         raise Blocked(
             stage=STAGE,
@@ -95,7 +133,7 @@ def gate_result(result):
             recovery_action="set result['task_id'] to a non-empty string",
         )
 
-    outcome = result.get("outcome")
+    outcome = worker_result.get("outcome")
     if outcome not in GATE_OUTCOMES:
         raise Blocked(
             stage=STAGE,
@@ -104,11 +142,11 @@ def gate_result(result):
             recovery_action=f"set result['outcome'] to one of {GATE_OUTCOMES}",
         )
 
-    attempt = result["attempt"]
+    attempt = worker_result["attempt"]
     if attempt < 1:
         raise Blocked(stage=STAGE, reason_code="malformed_checkpoint", detail=f"result['attempt'] must be a positive integer, got {attempt!r}", recovery_action="set result['attempt'] to an integer greater than zero")
 
-    critique = result.get("critique")
+    critique = worker_result.get("critique")
     if outcome == FAILED:
         # Presence, not truthiness: an empty-string or whitespace-only
         # critique is not an explanation either, and must be rejected the
@@ -121,7 +159,7 @@ def gate_result(result):
                 detail="a failed result must carry a non-empty 'critique' explaining why",
                 recovery_action="set result['critique'] to a non-empty string explaining the failure",
             )
-        question = result.get("question")
+        question = worker_result.get("question")
         if question is not None:
             for field in ("question_id", "prompt"):
                 if not question[field].strip():
@@ -134,7 +172,7 @@ def gate_result(result):
                                          "nonblank string"),
                     )
     else:
-        if "critique" in result or "question" in result:
+        if "critique" in worker_result or "question" in worker_result:
             raise Blocked(stage=STAGE, reason_code="malformed_checkpoint",
                           detail="passed result cannot carry critique or question",
                           recovery_action="remove critique and question from passed result")
@@ -142,10 +180,10 @@ def gate_result(result):
 
     return GateVerdict(
         task_id=task_id,
-        attempt=result.get("attempt"),
+        attempt=worker_result.get("attempt"),
         outcome=outcome,
         critique=critique,
-        question=freeze(result.get("question")) if result.get("question") is not None else None,
+        question=freeze(worker_result.get("question")) if worker_result.get("question") is not None else None,
     )
 
 

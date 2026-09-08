@@ -738,7 +738,7 @@ an exact Git worker for its narrow checkpoint; then begin Task 4b carrying the
 runner-owned process-evidence residual. Handoff:
 [[2026-09-07-task-4a-quota-handoff]].
 
-### Progress — Task 4a recovery and fresh quality dispatch — 2026-09-08 01:42 AM -03
+### Progress — Task 4a recovery and fresh quality dispatch — September 8, 2026 at 1:42 AM (America/Recife, UTC-03:00)
 
 Recovered a clean clone at `/tmp/oqc-recovery-SW091rYH/repo`. Remote WIP
 `8631295` is directly based on accepted Task 3b `ea85ffa` and contains the
@@ -749,7 +749,7 @@ Dispatch a fresh independent Terra/medium quality validator to rerun the focused
 init/final/resume identity, Agent/schema rejection, immutable evidence, nested
 settings and invocation-counter failure purity. No host subprocess or model call.
 
-### Progress — remote work consolidated into main checkout — 2026-09-08 01:48 AM -03
+### Progress — remote work consolidated into main checkout — September 8, 2026 at 1:48 AM (America/Recife, UTC-03:00)
 
 At the owner's direction, consolidated the verified remote history and WIP tree
 into the original checkout; no further worktrees will be created. The current
@@ -761,7 +761,7 @@ recoverable directory swap; their existing envelope peer is byte-identical.
 Dispatch the fresh independent Terra/medium Task 4a quality validator from this
 main checkout with the previously recorded focused/full/diff/probe contract.
 
-### Checkpoint — Outcome 3 Task 4a PASS — 2026-09-08 01:51 AM -03
+### Checkpoint — Outcome 3 Task 4a PASS — September 8, 2026 at 1:51 AM (America/Recife, UTC-03:00)
 
 Attempt 3. Implementer: Terra/medium. Fresh final specification reviewer from
 the prior unchanged WIP: Luna/low PASS. Separate fresh quality validator:
@@ -773,3 +773,263 @@ evidence, nested model/effort settings and invocation-counter failure purity.
 No subprocess or model call occurred. The runner-owned process-evidence ruling
 remains load-bearing for Task 4b and Task 5. Commit hash: pending. Next: Task 4b
 Claude AdapterPort composition and exact request/identity binding.
+
+### Progress — Task 4a committed and pushed; Task 4b dispatched — September 8, 2026 at 1:53 AM (America/Recife, UTC-03:00)
+
+Task 4a committed as `c00069e` (`feat(adapter): define deterministic Claude
+transport`) from the consolidated main checkout and fast-forwarded the verified
+origin feature branch. Local governance/handoff paths remain preserved and no
+new worktree was created. Dispatch Task 4b attempt 1 to Luna/low with the exact
+brief now recorded in the packet: compose `ClaudeAdapter` over Task 4a, bind
+request/result/session/Agent identities, hash actual brief and stored artifact
+bytes, preserve rejected raw transport evidence outside the mailbox, and prove
+the five AdapterPort operations plus same-session drive retry without a real
+host/model call.
+
+### Progress — Task 4b attempt 1 DONE; specification review — September 8, 2026 at 1:57 AM (America/Recife, UTC-03:00)
+
+Luna/low returned a two-file adapter/test delta with 2 focused, 10 transport,
+23 port, 63 OQC and 564 complete scripts tests passing plus a clean diff. Its
+RED was only zero discovery before the new test module existed, not a failing
+behavioral assertion; preserve that TDD limitation. Root inspection also sees
+that the two focused tests do not visibly exercise several exact brief cases,
+including same-session retry and all five operations. Dispatch a fresh Luna/low
+specification validator against the full Task 4b brief before deciding the
+attempt-2 repair; no quality review yet.
+
+### Progress — Task 4b specification FINDINGS; attempt 2 — September 8, 2026 at 2:00 AM (America/Recife, UTC-03:00)
+
+Fresh Luna/low specification review returned four findings: rejection paths
+discard raw stdout/stderr/parsed evidence; failed status/question/answer/result
+appends can consume adapter ids; no composed `drive` failure/retry/pass test
+proves `--resume` with one native session; and rejection tests omit immutable
+raw evidence across nonzero/malformed/wrong-session/wrong-worker/schema cases.
+Root accepts all four and returns them verbatim to the same Luna/low worker for
+attempt 2. These are bounded brief-completion gaps, not yet evidence of a model
+reasoning failure; ownership remains the adapter and its focused test, with the
+smallest Task 4a transport change allowed only if RED proves it necessary.
+
+### Progress — Task 4b attempt 2 DONE; specification re-review — September 8, 2026 at 2:04 AM (America/Recife, UTC-03:00)
+
+The same Luna/low worker reported two honest RED errors, then 5 focused,
+10 transport, 23 port, 63 OQC and 567 complete scripts tests passing with a
+clean diff. The repair records immutable returned/rejected process tuples and
+raw streams, restores counters on rejected append paths, and adds a composed
+failure/retry/pass `drive` proof using `--resume` with one native session. No
+Task 4a or port interface change was needed. Dispatch a fresh Luna/low
+specification re-review against all four attempt-1 findings; independent quality
+remains gated on PASS.
+
+### Progress — Task 4b specification FINDINGS; final attempt 3 — September 8, 2026 at 2:07 AM (America/Recife, UTC-03:00)
+
+Fresh Luna/low re-review found that exact adapter-side worker/recipient/session/
+Agent-tool identity binding is still not proved; the focused tests omit native
+identity evidence and wrong-identity rejection; question/answer/result counter
+purity is not demonstrated; the question, answer and policy operations remain
+untested; and complete raw evidence is not proved across every required failure
+class. Root accepts all findings. Because the explicit identity/five-operation
+requirements survived two attempts, this is a demonstrated reasoning gap:
+attempt 3 keeps Luna but raises effort from low to medium through a fresh logical
+worker, since the host cannot retier an existing follow-up. Scope stays limited
+to the same adapter/test files. This is the final implementation attempt; any
+remaining load-bearing defect triggers cap adjudication rather than a silent
+fourth repair.
+
+### Progress — Task 4b attempt 3 DONE; final specification review — September 8, 2026 at 2:13 AM (America/Recife, UTC-03:00)
+
+The fresh Luna/medium logical worker reported 9 focused tests with 3 expected
+failures and 1 error at RED, then 11 focused, 10 transport, 23 port, 63 OQC and
+573 complete scripts tests passing plus a clean diff. The two-file repair now
+revalidates native task/attempt/worker/session/Agent-tool identity, exposes an
+immutable evidence tuple with raw process/stream data, restores only rejected
+id allocations, validates and freezes the injected policy disclosure, binds
+question relay to engine waiting state, and exercises composed retry/resume.
+No Task 4a, port or OQC interface changed. Dispatch a fresh Luna/low final
+specification reviewer against the entire brief and every prior finding before
+quality. This is the attempt cap.
+
+### Blocked checkpoint — Task 4b attempt cap — September 8, 2026 at 2:15 AM (America/Recife, UTC-03:00)
+
+Fresh Luna/low final specification review returned FINDINGS at attempt 3 of 3.
+Production and 11 focused tests are green, but the exact brief still lacks
+non-vacuous proof for successful status/question/approved-answer envelopes;
+generated argv selection of canonical prompt, exact worker definition,
+model/effort, Agent-only tools and schema; and nested mutation/completeness of
+rejected evidence with parseable native session/tool identities. These are
+load-bearing for Task 4c and the real captured run, so root does not park them as
+minor coverage debt. Per the plan's attempt cap, do not dispatch a fourth repair,
+quality review, Task 4b commit or Task 4c until the owner authorizes one narrow
+cap exception limited to these three test/proof findings. Current product delta
+remains only `claude_adapter.py` and `test_claude_adapter.py`; no real host or
+model call occurred. The composed test also left
+`r1__t1__attempt-1.artifact` at repository root; root moved that generated file
+to `/tmp`, and any authorized repair must use a temporary artifact directory so
+the suite leaves the checkout unchanged.
+
+### Ruling — narrow Task 4b cap exception authorized — September 8, 2026 at 2:17 AM (America/Recife, UTC-03:00)
+
+The owner explicitly authorized one fourth attempt. Keep the exception limited
+to the three final specification findings and making the composed test use a
+temporary artifact directory; do not reopen production design or widen paths.
+Because this is a post-cap repair after Luna/medium, route the fresh implementer
+one model tier higher at Terra/medium. Require behavioral RED, then fresh
+specification and separate quality reviews. Cost if wrong: a narrow coverage
+repair could expose a production defect that cannot be fixed within this
+exception; in that case stop and report it rather than silently expanding scope.
+
+### Progress — Task 4b cap-exception repair DONE; specification review — September 8, 2026 at 2:24 AM (America/Recife, UTC-03:00)
+
+Terra/medium added only the authorized tests. One focused test produced an
+expected RED error under a temporary sender mutation; after restoring production
+byte-identically, 14 focused, 10 transport, 23 port, 63 OQC and 576 complete
+scripts tests passed with a clean diff. New proof covers successful status,
+engine-approved question/answer and frozen policy envelopes; exact canonical
+prompt/model/effort/Agent-only/schema/worker argv; alternate-worker exclusion;
+and recursively immutable rejected evidence retaining parseable native session
+and tool identities. Fixtures now use temporary artifact directories. Root moved
+the one artifact created by the pre-repair RED run to `/tmp`. Dispatch a fresh
+Luna/low specification validator against only the authorized findings before
+independent quality review.
+
+### Progress — cap-exception spec tool failure; readable rerun — September 8, 2026 at 2:26 AM (America/Recife, UTC-03:00)
+
+The fresh configured spec-validator returned no code verdict because its host
+surface exposed neither the assigned files nor a read tool. It did not inspect
+the plan, implementation, tests or report, so treat its FAIL as an unavailable
+review seat rather than a finding and do not charge an implementation attempt.
+Per the execution packet's host adaptation, dispatch a different fresh Luna/low
+reviewer with narrowly scoped read-only shell access to those exact artifacts;
+it may read only and must not run tests or modify files.
+
+### Progress — Task 4b cap-exception specification PASS; quality dispatch — September 8, 2026 at 2:27 AM (America/Recife, UTC-03:00)
+
+The different fresh Luna/low reviewer with readable, procedural read-only scope
+returned PASS with no findings across the original Task 4b brief and all four
+authorized cap-exception proof groups. Dispatch a separate fresh Terra/medium
+quality validator to rerun 14 focused adapter, 10 transport, 23 port, 63 OQC
+and 576 complete scripts tests; check tracked and untracked-file whitespace;
+verify the suite leaves no artifact at repository root; and independently probe
+identity, argv, evidence, counter and five-operation boundary cases. No real
+host subprocess or model call.
+
+### Blocked checkpoint — Task 4b cap-exception quality findings — September 8, 2026 at 2:32 AM (America/Recife, UTC-03:00)
+
+Fresh independent Terra/medium quality review reran 14 adapter, 10 transport,
+23 port, 63 OQC and 576 complete scripts tests; tracked and new-file whitespace
+checks passed, and the suite left no repository-root artifact. Quality returned
+three production findings: authoritative result history omits native session,
+Agent tool-use, invocation and adapter identity evidence; caller-owned mutable
+runner exceptions remain aliased inside supposedly immutable evidence; and
+`worker_definitions=None` leaks bare `TypeError` instead of `Blocked`.
+
+The owner-authorized fourth attempt was limited to proof tests and cleanup, so
+do not repair or commit these production defects under that exception. The first
+finding also exposes an interface conflict: the checked-in worker-result schema
+has `additionalProperties: false`, while the Task 4b brief requires adapter-added
+identity evidence in the authoritative result representation. Resolving it
+correctly requires an explicit architecture ruling and wider owned paths—for
+example, separate model-output validation from a vendor-neutral persisted
+execution-evidence extension—plus TDD and fresh specification/quality reviews.
+Task 4b and Task 4c remain unchecked; no real host/model call occurred.
+
+### Ruling — focused Task 4b production-fix exception — September 8, 2026 at 2:40 AM (America/Recife, UTC-03:00)
+
+The owner explicitly authorizes a further cap exception and exceptionally routes
+the builder at Terra/medium. The deadline ruling is to fix the three already
+diagnosed production defects steadfastly, without reopening settled design or
+spending another cycle on broad exploration. Keep the model-owned
+`worker-result.schema.json` unchanged; after transport validates that payload,
+the adapter adds vendor-neutral, engine-owned `execution_evidence` to the
+authoritative result. The gate validates the worker-result subset with the
+existing schema and validates the reserved evidence separately, preserving
+compatibility for adapters that do not supply it. Also freeze runner exceptions
+as value snapshots and reject non-mapping worker definitions with `Blocked`.
+Own only the adapter and focused tests plus the smallest proven gate/test change.
+Require behavioral RED/GREEN and fresh independent specification and quality
+reviews. Cost if wrong: a malformed split could either let model-controlled
+metadata bypass validation or make existing FakeAdapter results invalid; tests
+must prove both boundaries before checkpointing.
+
+### Progress — focused Task 4b production repair DONE; specification dispatch — September 8, 2026 at 2:45 AM (America/Recife, UTC-03:00)
+
+The exceptional Terra/medium builder completed the three-defect TDD repair in
+the four authorized adapter/gate paths. Behavioral RED was 17 adapter tests with
+2 failures and 4 errors plus 57 gate tests with 1 error. GREEN is 18 adapter,
+57 gate, 10 transport, 23 port and 63 OQC tests. The adapter now appends exact
+engine-owned execution evidence, snapshots runner exceptions by value, and
+rejects non-mapping worker definitions with `Blocked`; the unchanged gate
+interface validates reserved evidence separately while retaining strict worker
+schema validation and evidence-optional FakeAdapter compatibility. Whitespace
+checks passed and no repository-root artifact was left. The builder's bare
+repository-root discovery command hit the suite's known flat-import path issue;
+root and independent quality must use the established scripts `PYTHONPATH` for
+the complete suite. Dispatch a fresh read-only specification reviewer before
+quality; no Task 4b checkpoint or completion claim yet.
+
+### Progress — Task 4b production-fix specification PASS; quality dispatch — September 8, 2026 at 2:47 AM (America/Recife, UTC-03:00)
+
+The fresh independent Luna/low read-only specification reviewer returned PASS
+with no findings across the complete original Task 4b brief and the focused
+production-fix ruling. Dispatch a separate fresh Terra/medium quality validator
+to rerun the focused and complete suites with the repository's established
+scripts `PYTHONPATH`, check tracked/untracked whitespace and root-artifact
+absence, and independently probe the three repaired defects plus compatibility
+boundaries. Task 4b remains unchecked pending this quality verdict.
+
+### Findings — Task 4b production-fix quality; artifact repair dispatch — September 8, 2026 at 2:51 AM (America/Recife, UTC-03:00)
+
+Fresh independent Terra/medium quality reran 18 adapter, 57 gate, 10 transport,
+23 port, 63 OQC and 583 complete scripts tests successfully, with clean
+whitespace and no root artifact, but returned two concrete artifact-path
+findings. The gate separated only execution evidence, so adapter-owned
+`artifact_path`/`artifact_hash` metadata could not pass the strict worker schema;
+and a result-append rejection after file creation left that unauthoritative file
+behind. These are within the original Task 4b stored-artifact contract. Dispatch
+attempt 2 of 3 to the same exceptional Terra/medium builder, limited to separate
+exact validation of the deterministic artifact metadata while keeping unknown
+model fields rejected, rollback of a newly written artifact on rejected result
+append, and drive-through-artifact/append-rejection regression tests. Require
+fresh specification and quality review afterward; Task 4b remains unchecked.
+
+### Progress — Task 4b artifact repair DONE; specification dispatch — September 8, 2026 at 2:54 AM (America/Recife, UTC-03:00)
+
+Terra/medium attempt 2 completed the two quality-directed artifact fixes under
+TDD. RED was 21 adapter tests with 2 failures and 1 error plus 59 gate tests with
+1 error. GREEN is 21 adapter, 59 gate, 10 transport, 23 port, 63 OQC and 588
+complete scripts tests. The gate now separately validates paired deterministic
+artifact metadata while retaining the unchanged strict model schema; composed
+drive accepts a stored artifact and verifies its bytes/hash. A rejected result
+append restores the result id and removes only the file created by that call;
+pre-existing deterministic paths are blocked and preserved. Whitespace checks
+passed and no root artifact remains. Dispatch a fresh independent read-only
+specification reviewer before quality; Task 4b remains unchecked.
+
+### Progress — Task 4b artifact specification PASS; quota-bounded quality — September 8, 2026 at 2:56 AM (America/Recife, UTC-03:00)
+
+The fresh independent Luna/low specification reviewer returned PASS with no
+findings for attempt 2 and the complete Task 4b contract. The owner then exposed
+the current quota state: 8% remains in the five-hour window and 86% in the
+seven-day window. Conserve the short-window budget: run one final narrowly
+bounded independent quality pass, checkpoint Task 4b only on PASS, and do not
+open exploratory review cycles. If Task 4b passes, preserve a precise Task 4c
+handoff rather than beginning another expensive implementation cycle before the
+short-window reset.
+
+### Checkpoint — Task 4b accepted — September 8, 2026 at 2:58 AM (America/Recife, UTC-03:00)
+
+Fresh independent artifact-repair quality returned PASS with no findings:
+21 adapter, 59 gate, 10 transport, 23 port, 63 OQC and 588 complete scripts
+tests passed; tracked and both untracked-file whitespace checks were clean; the
+root artifact was absent before and after. Root then independently reran the
+same focused counts and all 588 scripts tests with zero failures, reran the
+whitespace checks, and confirmed root-artifact absence. Task 4b is accepted and
+checked in the execution packet. Checkpoint commit hash is pending creation.
+
+Next exact move is Task 4c: implement the smallest Claude `PreToolUse` command
+hook/configuration and focused tests that admit only the engine-issued
+`Agent(<worker>)` dispatch, deny other tool/worker requests, use current
+`hookSpecificOutput.permissionDecision`, disclose timeout/error non-fail-closed
+limits, retain deterministic adapter validation as load-bearing, and run a
+local no-model CLI/hook-fixture smoke. Because only 8% remains in the five-hour
+window, do not begin this new implementation cycle before the reset; resume from
+the single main checkout and create no worktree.

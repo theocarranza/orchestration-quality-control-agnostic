@@ -72,6 +72,62 @@ class GateResultPassedTest(unittest.TestCase):
         self.assertEqual(verdict.outcome, PASSED)
         self.assertIsNone(verdict.critique)
 
+    def test_accepts_valid_engine_owned_execution_evidence(self):
+        verdict = gate_result({
+            "task_id": "task-1", "attempt": 1, "outcome": "passed",
+            "execution_evidence": {
+                "adapter_identity": "claude-adapter", "native_session_id": "native-1",
+                "agent_id": "author", "agent_tool_use_id": "u1", "invocation_count": 1,
+            },
+        })
+        self.assertEqual(verdict.outcome, PASSED)
+
+    def test_rejects_malformed_engine_owned_execution_evidence(self):
+        valid = {
+            "adapter_identity": "claude-adapter", "native_session_id": "native-1",
+            "agent_id": "author", "agent_tool_use_id": "u1", "invocation_count": 1,
+        }
+        malformed = [
+            {key: value for key, value in valid.items() if key != "agent_id"},
+            {**valid, "unexpected": "value"},
+            *[{**valid, field: "   "} for field in ("adapter_identity", "native_session_id", "agent_id", "agent_tool_use_id")],
+            *[{**valid, "invocation_count": value} for value in (0, -1, True)],
+        ]
+        for evidence in malformed:
+            with self.subTest(evidence=evidence), self.assertRaises(Blocked):
+                gate_result({"task_id": "task-1", "attempt": 1, "outcome": "passed",
+                             "execution_evidence": evidence})
+
+    def test_unknown_model_result_field_remains_rejected_with_execution_evidence(self):
+        with self.assertRaises(Blocked):
+            gate_result({
+                "task_id": "task-1", "attempt": 1, "outcome": "passed", "model_claim": "forged",
+                "execution_evidence": {
+                    "adapter_identity": "claude-adapter", "native_session_id": "native-1",
+                    "agent_id": "author", "agent_tool_use_id": "u1", "invocation_count": 1,
+                },
+            })
+
+    def test_accepts_valid_paired_adapter_artifact_metadata(self):
+        verdict = gate_result({
+            "task_id": "task-1", "attempt": 1, "outcome": "passed",
+            "artifact_path": "/tmp/artifact", "artifact_hash": "a" * 64,
+        })
+        self.assertEqual(verdict.outcome, PASSED)
+
+    def test_rejects_unpaired_or_malformed_adapter_artifact_metadata(self):
+        base = {"task_id": "task-1", "attempt": 1, "outcome": "passed"}
+        invalid = [
+            {**base, "artifact_path": "/tmp/artifact"},
+            {**base, "artifact_hash": "a" * 64},
+            {**base, "artifact_path": "   ", "artifact_hash": "a" * 64},
+            {**base, "artifact_path": "/tmp/artifact", "artifact_hash": "A" * 64},
+            {**base, "artifact_path": "/tmp/artifact", "artifact_hash": "a" * 63},
+        ]
+        for result in invalid:
+            with self.subTest(result=result), self.assertRaises(Blocked):
+                gate_result(result)
+
 
 class ApproveAnswerTest(unittest.TestCase):
     def _state(self, phase=AWAITING_USER_INPUT, remaining=2):
