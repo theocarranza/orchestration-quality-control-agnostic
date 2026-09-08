@@ -1025,6 +1025,9 @@ same focused counts and all 588 scripts tests with zero failures, reran the
 whitespace checks, and confirmed root-artifact absence. Task 4b is accepted and
 checked in the execution packet. Checkpoint commit hash is pending creation.
 
+Task 4b checkpoint commit `21bbd9c` was created on the single main checkout at
+September 8, 2026 at 2:59 AM (America/Recife, UTC-03:00).
+
 Next exact move is Task 4c: implement the smallest Claude `PreToolUse` command
 hook/configuration and focused tests that admit only the engine-issued
 `Agent(<worker>)` dispatch, deny other tool/worker requests, use current
