@@ -61,6 +61,9 @@ Push to the verified origin feature branch; do not merge, release or tag.
     - [x] Task 3b.2b: answer port and atomic reducer event.
     - [x] Task 3b.2c: drive pause/resume composition and integrated review.
 - [ ] Task 4: Claude first-host transport and enforced policy boundary.
+  - [x] Task 4a: deterministic Claude CLI/session transport contract.
+  - [ ] Task 4b: Claude AdapterPort composition and request/identity binding.
+  - [ ] Task 4c: native pre-tool policy hook and local capability smoke.
 - [ ] Task 5: captured real run with externally anchored hashes.
 - [ ] Task 6: full gate and independent acceptance review.
 
@@ -304,3 +307,33 @@ must be computed from actual canonical brief bytes and actual artifact bytes;
 an agent's claimed hash is not evidence. Validate host structured output before
 appending a successful result. Preserve raw evidence of rejected transport
 responses separately from the authoritative mailbox.
+
+### Task 4 execution split
+
+Task 4a owns a new `scripts/claude_transport.py` and its focused test module.
+It builds an explicit, shell-free Claude CLI invocation for one Orchestrator
+session and subsequent `--resume` calls, with explicit model, effort, Agent-only
+tools, generated `--agents`, structured worker-result schema, stream JSON and
+hook-event capture. `inherit`, blank settings, ambiguous session changes,
+malformed/nonzero transport output and missing result/session/Agent identity
+records are named blockers. The subprocess runner is injected so tests consume
+recorded JSONL without a model call. Raw stdout/stderr and every parsed event are
+retained separately from any authoritative mailbox append.
+
+Task 4b owns `scripts/claude_adapter.py`, its tests and the smallest port/drive
+changes proven necessary. It implements `AdapterPort` over Task 4a, keeps one
+native Orchestrator session across task attempts, matches each Agent tool-use
+request to the exact engine-issued task/attempt/worker recipient, validates the
+returned structured worker payload before appending a result, computes brief
+and artifact hashes from canonical bytes, and records host/session/agent/tool-use
+identities as evidence. Rejected host responses never enter the authoritative
+mailbox; raw transport evidence remains inspectable.
+
+Task 4c owns the smallest Claude `PreToolUse` command hook, configuration and
+focused tests needed to admit only the engine-issued `Agent(<worker>)` dispatch
+and deny all other tool/worker requests. Use current structured
+`hookSpecificOutput.permissionDecision`; disclose that command-hook timeout or
+hook error is not fail-closed and keep deterministic adapter policy validation
+load-bearing. A local no-model smoke verifies installed CLI flags and hook
+fixtures. Task 5, not Task 4, owns the authenticated model invocation and real
+identity/capture proof.

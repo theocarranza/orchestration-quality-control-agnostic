@@ -635,3 +635,141 @@ attempt/budget continuity, terminal fail-fast behavior and deterministic
 live/replay/verify equality. Real-host transport remains Task 4 scope. Task
 3b.2c, Task 3b.2 and Task 3b are checked complete. Commit hash: pending.
 Next: exact allowlisted Git checkpoint, then Task 4 first-host transport.
+
+### Progress — Task 3b committed; Task 4 split — 2026-09-07 04:18 PM -03
+
+GPT-5.5/low Git worker staged the exact 11-path allowlist, verified the WIP head
+and origin feature base, committed `ea85ffa` (`feat(kernel): integrate question
+answer lifecycle`), pushed a fast-forward to
+`origin/feature/original-design-realignment`, and verified the remote SHA equals
+`ea85ffa54e61fbfe98cb0ee0bdfbd830465e4c2e`. No extra staged paths remain.
+
+Task 4 preflight confirms installed Claude Code 2.1.234 exposes explicit
+`--agent`, `--agents`, `--model`, `--effort`, `--tools`, `--allowedTools`,
+`--output-format`, `--json-schema`, `--resume` and hook-event capture flags.
+Current official docs confirm JSON output carries session metadata, stream JSON
+ends with a result record, explicit session IDs resume a conversation, agent
+definitions support model/effort/tools, and PreToolUse decisions use structured
+`hookSpecificOutput.permissionDecision`. Root splits Task 4 into transport,
+AdapterPort composition, and policy-hook checkpoints so each authority boundary
+has its own tests and review. No live model call belongs to Task 4.
+
+### Progress — Task 4a attempt 1 DONE; specification review — 2026-09-07 04:25 PM -03
+
+Terra/medium added the shell-free Claude CLI/session transport and one
+table-driven focused test module. Its report records module-import RED, then 4
+focused and 556 complete scripts tests passing plus a clean diff. The transport
+uses an injected runner, preserves raw and parsed stream evidence, requires
+explicit model/effort/Agent tools/schema/session identity, validates structured
+worker output through the checked-in schema, and makes rejected-stream evidence
+available through a pure parse result because `Blocked` cannot carry it. No
+subprocess or model call occurs in tests. Four top-level tests cover a broad
+subtest matrix, so dispatch a fresh Luna/low specification reviewer to judge the
+actual case coverage and full Task 4a contract before repair or quality review.
+
+### Progress — Task 4a specification FINDINGS; attempt 2 — 2026-09-07 04:27 PM -03
+
+Fresh Luna/low specification review returned FINDINGS. The parser can accept a
+result-only session without the required native `system/init`; the table omits
+direct proof for duplicate result/Agent evidence, wrong session, missing tool-use
+id, malformed structured output and rejected-evidence preservation; and nested
+worker definitions do not reject blank or `inherit` model/effort settings.
+Root accepts all findings and returns them to the same Terra/medium worker for
+attempt 2. The defects are bounded brief-completion gaps, so no escalation is
+warranted. Ownership stays limited to the two Task 4a files.
+
+### Progress — Task 4a attempt 2 DONE; specification re-review — 2026-09-07 04:30 PM -03
+
+Terra/medium reports honest RED with four failures and one error, then 8 focused
+and 560 complete scripts tests passing plus a clean diff. The repair requires
+exactly one init and one final record with matching nonblank sessions, preserves
+raw stdout/stderr/events on rejected parses, independently covers every named
+adverse stream case, and rejects blank or inherited nested agent model/effort
+settings. Dispatch a fresh Luna/low specification reviewer against all attempt-1
+findings before independent quality review.
+
+### Progress — Task 4a specification FINDINGS; final attempt 3 — 2026-09-07 04:32 PM -03
+
+Fresh Luna/low re-review returned FINDINGS. Missing and duplicate terminal
+records share one blocker rather than independent classifications; rejected raw
+evidence preservation is asserted only for duplicate-result rejection; and
+nested blank/inherited model/effort variants are not independently covered.
+Root accepts the bounded contract/test findings and returns them to the same
+Terra/medium worker for final attempt 3. No model escalation is warranted because
+the remaining work is mechanical classification and table coverage. Any further
+load-bearing finding will trigger cap adjudication.
+
+### Progress — Task 4a attempt 3 DONE; final specification review — 2026-09-07 04:34 PM -03
+
+Terra/medium reports 10 focused and 562 complete scripts tests passing plus a
+clean diff. Missing and duplicate final records now have distinct blockers;
+table evidence covers raw stdout/stderr/parsed-event preservation across the
+named parse failures; and nested blank/inherited model/effort settings are
+directly covered. Runner exceptions and nonzero exits cannot produce an
+archival parse result, so the injected runner remains responsible for preserving
+that process evidence; record this as an explicit boundary, not a host-proof
+claim. Dispatch fresh Luna/low final specification review at attempt cap.
+
+### Progress — Task 4a final specification PASS; quality review — 2026-09-07 04:36 PM -03
+
+Fresh Luna/low final specification review returned PASS. All command, session,
+identity, schema, immutable-evidence and adverse-stream requirements are met.
+Ruling: process launch exceptions/nonzero exits remain the injected runner's
+capture responsibility; this is acceptable for Task 4a's offline parser seam but
+must be carried into Task 4b and real-host capture. Cost if wrong: rejected host
+process evidence could be lost unless the concrete runner persists it before
+raising. Dispatch separate Terra/medium quality review with focused/full tests
+and independent parser/argv probes.
+
+### Quota guard — Task 4a quality interrupted — 2026-09-07 04:36 PM -03
+
+The owner reported 5% remaining, resetting at 8:27 PM; the quota window was not
+specified. Root conservatively triggered the protocol guard and interrupted the
+running Terra/medium Task 4a quality reviewer before a verdict. Task 4a remains
+unchecked and incomplete despite final specification PASS and worker evidence
+of 10 focused and 562 full scripts tests passing with a clean diff. No Task 4b,
+host subprocess, model call or accepted checkpoint commit has started.
+
+Resume by rerunning a fresh independent Task 4a quality review against
+`claude_transport.py` and its tests. Required checks: focused 10-test module,
+complete scripts discovery, diff check, and independent argv/session/Agent/
+schema/evidence/settings/counter probes. If PASS, mark Task 4a complete and use
+an exact Git worker for its narrow checkpoint; then begin Task 4b carrying the
+runner-owned process-evidence residual. Handoff:
+[[2026-09-07-task-4a-quota-handoff]].
+
+### Progress — Task 4a recovery and fresh quality dispatch — 2026-09-08 01:42 AM -03
+
+Recovered a clean clone at `/tmp/oqc-recovery-SW091rYH/repo`. Remote WIP
+`8631295` is directly based on accepted Task 3b `ea85ffa` and contains the
+complete two-file Task 4a delta plus its packet/session handoff; `git diff
+--check ea85ffa..8631295` passes. The original dirty checkout remains untouched.
+Dispatch a fresh independent Terra/medium quality validator to rerun the focused
+10-test module, complete scripts discovery and diff check, then probe argv,
+init/final/resume identity, Agent/schema rejection, immutable evidence, nested
+settings and invocation-counter failure purity. No host subprocess or model call.
+
+### Progress — remote work consolidated into main checkout — 2026-09-08 01:48 AM -03
+
+At the owner's direction, consolidated the verified remote history and WIP tree
+into the original checkout; no further worktrees will be created. The current
+feature branch and index now match accepted `ea85ffa`, remote WIP `8631295`
+remains reachable, and the complete Task 4a product delta is present here for
+review without losing the pre-existing local governance/handoff files. The two
+schema files blocked by a `nobody`-owned directory were restored through a
+recoverable directory swap; their existing envelope peer is byte-identical.
+Dispatch the fresh independent Terra/medium Task 4a quality validator from this
+main checkout with the previously recorded focused/full/diff/probe contract.
+
+### Checkpoint — Outcome 3 Task 4a PASS — 2026-09-08 01:51 AM -03
+
+Attempt 3. Implementer: Terra/medium. Fresh final specification reviewer from
+the prior unchanged WIP: Luna/low PASS. Separate fresh quality validator:
+Terra/medium PASS with no findings. Quality reran 10 focused Claude transport
+tests and all 562 scripts tests under Python 3.12; `git diff --check
+ea85ffa..8631295` passed. Independent probes covered exact shell-free argv,
+init/final/resume session identity, Agent/schema rejection, immutable rejected
+evidence, nested model/effort settings and invocation-counter failure purity.
+No subprocess or model call occurred. The runner-owned process-evidence ruling
+remains load-bearing for Task 4b and Task 5. Commit hash: pending. Next: Task 4b
+Claude AdapterPort composition and exact request/identity binding.
