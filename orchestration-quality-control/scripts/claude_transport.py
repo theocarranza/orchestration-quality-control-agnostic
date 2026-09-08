@@ -50,6 +50,10 @@ def _canonical_json(value):
         raise _blocked(f"cannot canonicalize CLI JSON argument: {exc}") from exc
 
 
+def _cli_json_schema(schema):
+    return {key: value for key, value in schema.items() if key != "$schema"}
+
+
 def _worker_schema():
     try:
         with _SCHEMA_PATH.open(encoding="utf-8") as source:
@@ -221,7 +225,7 @@ class ClaudeTransport:
             raise _blocked("worker_schema must equal the checked-in worker-result schema")
         argv = [self._executable, "--print", "--model", model, "--effort", effort,
                 "--tools", "Agent", "--allowed-tools", f"Agent({worker_name})", "--agents",
-                _canonical_json({worker_name: worker_definition}), "--json-schema", _canonical_json(schema),
+                _canonical_json({worker_name: worker_definition}), "--json-schema", _canonical_json(_cli_json_schema(schema)),
                 "--settings", _canonical_json(generated_settings(worker_name)),
                 "--output-format", "stream-json", "--verbose", "--include-hook-events",
                 "--permission-mode", "dontAsk"]

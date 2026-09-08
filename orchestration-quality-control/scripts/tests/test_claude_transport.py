@@ -39,7 +39,7 @@ class ClaudeTransportTests(unittest.TestCase):
             "claude", "--print", "--model", "sonnet", "--effort", "medium",
             "--tools", "Agent", "--allowed-tools", "Agent(author)", "--agents",
             '{"author":{"description":"Worker","prompt":"Do work"}}', "--json-schema",
-            json.dumps(_schema(), sort_keys=True, separators=(",", ":")), "--settings",
+            json.dumps({key: value for key, value in _schema().items() if key != "$schema"}, sort_keys=True, separators=(",", ":")), "--settings",
             json.dumps(generated_settings("author"), sort_keys=True, separators=(",", ":")), "--output-format", "stream-json", "--verbose",
             "--include-hook-events", "--permission-mode", "dontAsk", "dispatch",
         )])
@@ -49,6 +49,21 @@ class ClaudeTransportTests(unittest.TestCase):
         self.assertEqual(result.raw_stdout, _events())
         with self.assertRaises(TypeError):
             result.events[0]["type"] = "changed"
+
+    def test_json_schema_argv_omits_only_top_level_schema_metadata(self):
+        self.transport.invoke(
+            prompt="dispatch", model="sonnet", effort="medium", worker_name="author",
+            worker_definition={"description": "Worker", "prompt": "Do work"},
+            worker_schema=_schema(),
+        )
+        schema_argument = json.loads(self.calls[0][self.calls[0].index("--json-schema") + 1])
+        checked_in_schema = _schema()
+        self.assertNotIn("$schema", schema_argument)
+        self.assertEqual(schema_argument, {key: value for key, value in checked_in_schema.items() if key != "$schema"})
+        self.assertEqual(schema_argument["required"], checked_in_schema["required"])
+        self.assertEqual(schema_argument["properties"], checked_in_schema["properties"])
+        self.assertEqual(schema_argument["additionalProperties"], checked_in_schema["additionalProperties"])
+        self.assertEqual(schema_argument["properties"]["question"], checked_in_schema["properties"]["question"])
 
     def test_resume_uses_explicit_session_and_rejects_changed_session(self):
         self.transport.invoke("first", "sonnet", "medium", "author", {"description": "W", "prompt": "P"}, _schema())
