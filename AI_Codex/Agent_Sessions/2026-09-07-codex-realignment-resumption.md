@@ -71,8 +71,8 @@ implementation assumptions were adopted.
 - [x] Preserve existing files, baseline, commit, and verify remote push.
 - [x] Outcome 3 Task 1: specification and quality review of `ef23d40`.
 - [x] Outcome 3 Task 2: branch-halting decision and executable evidence.
-- [ ] Outcome 3 Task 3: Orchestrator contract and answer relay.
-- [ ] Outcome 3 Task 4: first real host adapter.
+- [x] Outcome 3 Task 3: Orchestrator contract and answer relay.
+- [x] Outcome 3 Task 4: first real host adapter.
 - [ ] Outcome 3 Task 5: real run capture.
 - [ ] Outcome 3 Task 6: full gate.
 - [ ] Outcome 4: host mappings, enforcement disclosures, available smokes.
@@ -1125,5 +1125,46 @@ commands:
   counts: 594 passed
   command: local_cli_smoke and tracked/untracked whitespace checks
   counts: required flags present; fixtures allow/deny/deny; clean
-commit hash: pending
+commit hash: 9d1c647
 next: Task 5 captured authenticated real run with externally anchored hashes
+
+### Ruling — split Task 5 capture mechanism from live evidence — September 8, 2026 (America/Recife, UTC-03:00)
+
+Task 4c committed and pushed as `9d1c647`; local branch and the successful push
+advanced from `a320862`, with preserved untracked paths untouched. Split Task 5
+into two dependent checkpoints. Task 5a builds and independently reviews a
+model-free capture writer/offline verifier against injected recorded host
+streams. Task 5b then performs exactly one authenticated live run through that
+reviewed path and verifies the saved capture without respawning. Cost if wrong:
+an unreviewed archive format could waste the only model call or preserve
+evidence that cannot prove its own integrity; the split pays one offline review
+cycle to avoid that loss.
+
+The live fixture will be the smallest emitted isolated-workers workflow that
+can prove distinct worker identities and the answer boundary: one worker emits
+an engine-authorized question on attempt 1 and passes after the schema-valid
+root retry answer; a second worker then passes. One native Orchestrator session
+must span all invocations. Capture the generated contract, canonical mailbox,
+artifact bytes and hashes, raw host records and native identities, plus the
+final mailbox head hash in a separate anchor. Offline verification must bind
+request recipient to result sender, reject artifact/mailbox tampering and reject
+synthetic evidence for the live acceptance gate.
+
+### Handoff — Task 5a prepared, not dispatched — September 8, 2026 (America/Recife, UTC-03:00)
+
+Owner requested a pause before Task 5a dispatch. No Task 5 worker was spawned,
+no Task 5 files were created, and no authenticated model call occurred. The
+exact Task 5a worker brief is now in the execution packet under “Task 5
+execution split and exact Task 5a brief.” Resume from `9d1c647` plus this
+documentation checkpoint on the single main checkout; do not create a
+worktree. Start gpt-5.6-luna / low, attempt 1, with only new
+`scripts/claude_capture.py` and `scripts/tests/test_claude_capture.py` owned by
+default. Preserve `.agents/`, `.codex/`, the Sol handoff, execution protocol and
+schemas permission backup as untracked owner-owned paths.
+
+After Task 5a passes fresh specification and quality reviews, checkpoint it
+before Task 5b. Task 5b performs exactly one authenticated run through the
+reviewed capture path, then validates the saved bytes offline; missing host,
+quota failure or synthetic evidence blocks the gate. Task 6 still owns all six
+baseline suites, documentation truth and final independent Outcome 3
+acceptance. Do not begin Outcome 4 before Task 6 PASS.

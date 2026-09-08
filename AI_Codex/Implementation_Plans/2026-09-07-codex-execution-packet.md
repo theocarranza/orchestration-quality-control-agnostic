@@ -65,6 +65,8 @@ Push to the verified origin feature branch; do not merge, release or tag.
   - [x] Task 4b: Claude AdapterPort composition and request/identity binding.
   - [x] Task 4c: native pre-tool policy hook and local capability smoke.
 - [ ] Task 5: captured real run with externally anchored hashes.
+  - [ ] Task 5a: model-free capture writer and offline verifier.
+  - [ ] Task 5b: one authenticated run and saved-capture acceptance.
 - [ ] Task 6: full gate and independent acceptance review.
 
 ### Task 2 bounded decision
@@ -337,6 +339,54 @@ hook error is not fail-closed and keep deterministic adapter policy validation
 load-bearing. A local no-model smoke verifies installed CLI flags and hook
 fixtures. Task 5, not Task 4, owns the authenticated model invocation and real
 identity/capture proof.
+
+### Task 5 execution split and exact Task 5a brief
+
+Task 5a builds the archive and verification path without invoking a model.
+Own new `scripts/claude_capture.py` and focused
+`scripts/tests/test_claude_capture.py`; change existing capture dependencies
+only when a failing focused test proves the smallest interface seam. The module
+accepts an emitted `CompiledWorkflow`/`OrchestratorContract`, the authoritative
+`Mailbox`, the adapter's immutable transport evidence and the deterministic
+artifact directory. It writes canonical UTF-8 evidence into one caller-owned
+capture directory: generated contract JSON, mailbox JSONL, one raw transport
+record per invocation, copied artifact bytes, a manifest of file SHA-256 values
+and native adapter/session/Agent/tool-use identities, and a separate final
+mailbox-head anchor. Writes must be atomic enough that an interrupted archive is
+never accepted as complete.
+
+Offline verification reparses the contract and mailbox through existing public
+constructors, calls `oqc.verify`, compares the separate anchored head hash,
+recomputes every manifest and artifact hash from stored bytes, and binds every
+request recipient to the corresponding result sender plus its engine-owned
+`execution_evidence`. It requires one native Orchestrator session across all
+invocations, distinct worker identities for the two-task live fixture, unique
+nonblank Agent tool-use ids, positive sequential invocation counts, passive
+root until an engine-approved question/status boundary, and a schema-valid
+answer before retry. Unknown/missing files, identities or fields fail with the
+project's named `Blocked` contract. The live acceptance verifier rejects a
+synthetic capture; unit tests may verify injected recorded streams only through
+an explicit non-live test boundary that cannot be mistaken for acceptance.
+
+Provide a shell-free live CLI/library seam for Task 5b that compiles one small
+`isolated-workers` workflow with two generated worker identities. The first
+worker asks an engine-authorized question on attempt 1 and passes after a
+schema-valid `retry` answer; the second then passes. Use one explicit,
+non-inherited Claude Orchestrator model and effort, generated tool-free worker
+definitions, the Task 4c policy disclosure, one native session, and a real
+subprocess runner. The Task 5a worker must not call this live seam. Task 5b owns
+the single authenticated invocation sequence and capture bytes.
+
+TDD must prove at minimum: deterministic archive round-trip from realistic
+recorded Task 4 transport tuples; external head-anchor mismatch; mailbox byte
+tamper including the final envelope; artifact byte/hash tamper; manifest/file
+tamper; request-recipient/result-sender mismatch; session/Agent/tool identity
+mismatch or duplication; invocation gap; root activity before the allowed
+question boundary; answer missing/invalid/out of order; incomplete interrupted
+archive; and synthetic evidence rejected by live acceptance. Run focused
+capture tests, Claude adapter/transport/OQC regressions, complete scripts
+discovery under Python 3.12, and `git diff --check`. No model call, commit,
+agent spawn, scope widening or owner question from the implementer.
 
 ### Task 4b exact worker brief
 
