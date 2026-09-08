@@ -1036,3 +1036,94 @@ limits, retain deterministic adapter validation as load-bearing, and run a
 local no-model CLI/hook-fixture smoke. Because only 8% remains in the five-hour
 window, do not begin this new implementation cycle before the reset; resume from
 the single main checkout and create no worktree.
+
+### Progress — Task 4c takeover and dispatch — September 8, 2026 (America/Recife, UTC-03:00)
+
+Owner resumed autonomous execution after the short-window checkpoint. Branch
+and verified origin both point to `a320862`; preserved untracked governance and
+permission-backup paths remain out of scope, and no worktree was created. The
+installed Claude CLI is still 2.1.234. Current official hook documentation
+confirms exec-form `command` plus `args`, exact `Agent` matching, and structured
+`hookSpecificOutput.permissionDecision`; command-hook timeout/error behavior is
+not a fail-closed security boundary.
+
+Dispatch Task 4c attempt 1 to gpt-5.6-luna / low. Own only the new Claude policy
+hook and focused tests plus the smallest transport/test integration proven by
+RED. Generate a shell-free `--settings` configuration bound to the exact
+engine-selected worker, allow only that `Agent(<worker>)` input, deny every
+other tool or worker, retain explicit non-fail-closed disclosure, and run a
+local no-model CLI/fixture smoke. Full scripts and outcome gates remain later.
+
+### Progress — Task 4c attempt 1 DONE; specification review — September 8, 2026 (America/Recife, UTC-03:00)
+
+Luna/low returned DONE after missing-module RED, then 14 focused hook/transport,
+84 adapter/OQC and 592 complete scripts tests passed; local Claude 2.1.234 help
+exposed every required flag and diff check was clean. The four-file delta adds
+an exact-worker decision command, wildcard exec-form hook settings, transport
+`--settings` integration and an explicit non-fail-closed disclosure. No model
+call occurred. Dispatch a fresh Luna/low specification validator against the
+complete Task 4c brief, including realistic native common-input and Agent-input
+shape, command-fixture smoke, disclosure and initial/resume integration.
+
+### Findings — Task 4c specification; attempt 2 repair — September 8, 2026 (America/Recife, UTC-03:00)
+
+Fresh Luna/low specification review returned two accepted findings. The hook's
+exact-key checks reject valid current Claude common fields and documented Agent
+`prompt`/`description`/optional `model`; and the installed-CLI flag probe exists
+only in the implementer report, not a reproducible smoke artifact. Return these
+two items to the same Luna/low worker as attempt 2. Permit current documented
+fields without weakening exact `Agent`/`subagent_type`/tool-use-id binding, and
+add a no-model smoke that checks local CLI flags plus allow/deny/malformed
+entrypoint fixtures. No transport or adapter redesign is authorized.
+
+### Progress — Task 4c attempt 2 DONE; specification re-review — September 8, 2026 (America/Recife, UTC-03:00)
+
+Same Luna/low worker returned DONE after a missing-smoke import RED. GREEN is 16
+focused hook/transport, 84 adapter/OQC and 594 complete scripts tests, with a
+clean diff. The hook now accepts allowlisted current common and Agent fields
+while retaining exact worker/tool-use binding; `local_cli_smoke()` uses only
+shell-free `claude --help`, `claude --version` and real allow/deny/malformed
+hook subprocess fixtures. Dispatch a fresh Luna/low specification re-review of
+the two accepted findings before any quality run. No model call occurred.
+
+### Progress — Task 4c specification PASS; quality dispatch — September 8, 2026 (America/Recife, UTC-03:00)
+
+Fresh Luna/low specification re-review returned PASS with no findings across
+both repaired requirements and the complete Task 4c boundary. Dispatch a
+different fresh Luna/low quality validator to rerun focused hook/transport,
+adapter/OQC and complete scripts suites; independently probe native field
+shapes, malformed entrypoint behavior, generated initial/resume argv and
+disclosure; and verify the installed-CLI smoke performs no model invocation.
+
+### Checkpoint — Outcome 3 Task 4c PASS — September 8, 2026 (America/Recife, UTC-03:00)
+
+Attempt 2. Implementer: Luna/low. Fresh final specification validator:
+Luna/low PASS. Separate quality validator: Luna/low PASS. Quality reran 16
+hook/transport, 84 adapter/OQC and 594 complete scripts tests with zero
+failures, verified tracked and untracked whitespace, and independently ran the
+local no-model smoke against Claude Code 2.1.234: required flags present and
+allow/deny/malformed fixtures returned allow/deny/deny. The generated wildcard
+exec-form hook binds the exact engine-selected worker on initial and resumed
+transport invocations; its structured decision denies other tools/workers.
+Disclosure truthfully keeps deterministic adapter validation load-bearing
+because command-hook errors and timeouts are not fail-closed. No authenticated
+model call or real-host identity claim occurred.
+
+time: September 8, 2026 (America/Recife, UTC-03:00)
+task: Outcome 3 Task 4c — native pre-tool policy hook and local capability smoke
+attempt: 2 of 3
+worker model: gpt-5.6-luna
+worker effort: low
+spec validator: gpt-5.6-luna / low — PASS
+quality reviewer: gpt-5.6-luna / low — PASS
+commands:
+  command: focused hook/transport unittest
+  counts: 16 passed
+  command: adapter/OQC regression unittest
+  counts: 84 passed
+  command: complete scripts unittest discovery
+  counts: 594 passed
+  command: local_cli_smoke and tracked/untracked whitespace checks
+  counts: required flags present; fixtures allow/deny/deny; clean
+commit hash: pending
+next: Task 5 captured authenticated real run with externally anchored hashes

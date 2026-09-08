@@ -11,6 +11,7 @@ from pathlib import Path
 
 from kernel_specs import validate_worker_result
 from qc_lib import Blocked, freeze
+from claude_policy_hook import generated_settings
 
 
 STAGE = "claude_transport"
@@ -221,6 +222,7 @@ class ClaudeTransport:
         argv = [self._executable, "--print", "--model", model, "--effort", effort,
                 "--tools", "Agent", "--allowed-tools", f"Agent({worker_name})", "--agents",
                 _canonical_json({worker_name: worker_definition}), "--json-schema", _canonical_json(schema),
+                "--settings", _canonical_json(generated_settings(worker_name)),
                 "--output-format", "stream-json", "--verbose", "--include-hook-events",
                 "--permission-mode", "dontAsk"]
         if session_id is not None:

@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 from claude_transport import ClaudeTransport, parse_stream
+from claude_policy_hook import generated_settings
 from qc_lib import Blocked
 
 
@@ -38,7 +39,8 @@ class ClaudeTransportTests(unittest.TestCase):
             "claude", "--print", "--model", "sonnet", "--effort", "medium",
             "--tools", "Agent", "--allowed-tools", "Agent(author)", "--agents",
             '{"author":{"description":"Worker","prompt":"Do work"}}', "--json-schema",
-            json.dumps(_schema(), sort_keys=True, separators=(",", ":")), "--output-format", "stream-json", "--verbose",
+            json.dumps(_schema(), sort_keys=True, separators=(",", ":")), "--settings",
+            json.dumps(generated_settings("author"), sort_keys=True, separators=(",", ":")), "--output-format", "stream-json", "--verbose",
             "--include-hook-events", "--permission-mode", "dontAsk", "dispatch",
         )])
         self.assertEqual(result.session_id, "session-1")
