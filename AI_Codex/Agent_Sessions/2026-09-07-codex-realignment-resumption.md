@@ -1168,3 +1168,178 @@ reviewed capture path, then validates the saved bytes offline; missing host,
 quota failure or synthetic evidence blocks the gate. Task 6 still owns all six
 baseline suites, documentation truth and final independent Outcome 3
 acceptance. Do not begin Outcome 4 before Task 6 PASS.
+
+### Progress — Task 5a attempt 1 dispatch — September 8, 2026 (America/Recife, UTC-03:00)
+
+Resumed at `ccc51fd`; its delta from accepted Task 4c `9d1c647` is documentation
+only, so the 594-test product baseline is reused. Dispatch gpt-5.6-luna / low
+as the Task 5a implementer to build the model-free capture writer and offline
+verifier in only the two new capture files, following the packet's exact brief.
+No live Claude invocation is authorized. Preserve every existing untracked path.
+
+### Finding — Task 5a attempt 1 rejected before review — September 8, 2026 (America/Recife, UTC-03:00)
+
+The Luna/low worker returned DONE after writing only `claude_capture.py`; it
+created no focused test, observed no RED, and ran only 94 adapter/transport/OQC
+regressions rather than the named focused and complete suites. This violates the
+brief's TDD and acceptance contracts, so no specification reviewer is dispatched.
+Return the same worker for attempt 2: discard its untested new module, establish
+an honest failing capture test first, then implement the full brief and run every
+named command. The read-only `scripts/__pycache__` environment may be handled by
+setting `PYTHONDONTWRITEBYTECODE=1`; no dependency seam is authorized.
+
+### Progress — Task 5a attempt 2 DONE; specification dispatch — September 8, 2026 (America/Recife, UTC-03:00)
+
+The same Luna/low worker discarded the untested draft, observed a missing-module
+RED, then returned DONE with both owned files. Its GREEN evidence is 1 focused,
+95 capture/adapter/transport/OQC and 595 complete scripts tests plus clean diff;
+no dependency or live-model activity occurred. Dispatch a fresh Luna/low
+specification validator against the complete Task 5a packet before any quality
+run; the single focused test must be judged against every mandatory tamper,
+identity, ordering, atomicity and synthetic/live-boundary requirement.
+
+### Progress — Task 5a specification dispatch corrected — September 8, 2026 (America/Recife, UTC-03:00)
+
+The first fresh validator could not inspect files because root prohibited shell
+despite this host exposing no separate file reader. This is a root dispatch
+error, not a product finding or implementation attempt. Per the execution
+packet, dispatch a different fresh Luna/low specification validator with
+read-only shell reads permitted and tests forbidden; Task 5a remains unaccepted.
+
+The dedicated `spec-validator` host role still denied even read-only shell
+commands through its enforced guard, so it again returned no product verdict.
+Use the packet's documented procedural fallback: a fresh default Luna/low agent
+acting only as plan-compliance validator, with read-only shell commands allowed
+and test/write/Git mutation prohibited. This is infrastructure recovery, not an
+implementation attempt or acceptance.
+
+### Findings — Task 5a specification; attempt 3 repair — September 8, 2026 (America/Recife, UTC-03:00)
+
+Fresh procedural Luna/low specification review returned FINDINGS. Accepted:
+support the specified compiled-workflow/contract boundary and immutable evidence;
+define complete canonical raw-record/manifest/native identity data; reparse and
+validate transport, sender/recipient execution evidence, one-session/distinct-
+worker/tool-id/invocation/root/answer invariants; make synthetic provenance not
+caller-asserted; validate exact archive/COMPLETE structure; add the shell-free
+two-worker Task 5b seam; and add every mandatory round-trip/tamper/identity/order
+focused test. Return all findings to the same worker as attempt 3 of 3. Outcome
+3 live evidence remains Task 5b and is not required from this offline repair.
+
+### Progress — Task 5a attempt 3 DONE; specification re-review — September 8, 2026 (America/Recife, UTC-03:00)
+
+The same Luna/low worker returned DONE with 3 focused, 97 targeted and 597 full
+scripts tests plus clean diff. Its RED report does not identify a concrete
+failing assertion, and its summary names archive/identity tightening but not the
+required Task 5b seam or full adverse matrix. Dispatch a fresh procedural
+Luna/low specification validator over the actual files. This is the third normal
+implementation attempt; any accepted remaining finding reaches the task cap.
+
+### Blocked — Task 5a exhausted three attempts — September 8, 2026 (America/Recife, UTC-03:00)
+
+Fresh final Luna/low specification review returned FINDINGS. The two-file draft
+still lacks request-recipient/result-sender/execution-evidence and artifact
+binding; one-session/distinct-worker/unique-tool/root-boundary/answer-order
+verification; complete canonical manifest and non-caller-asserted live
+provenance; the required shell-free Task 5b workflow seam; and all but three of
+the mandatory focused cases. These are accepted, load-bearing requirements.
+
+Task 5a has exhausted attempts 1 through 3, so root stops under the execution
+protocol rather than dispatching another worker or quality review. Preserve the
+untracked `claude_capture.py` and `test_claude_capture.py` draft plus this ledger
+finding for diagnosis; do not stage or commit them as accepted work. No live
+Claude/model invocation occurred, Task 5b and Task 6 remain unstarted, and
+Outcome 4 remains gated. Owner authorization is required for a narrowly scoped
+cap exception and escalated repair model, or direction to discard/replan Task 5a.
+
+### Ruling — Task 5a narrow cap exception authorized — September 8, 2026 (America/Recife, UTC-03:00)
+
+The owner authorized one exception after the three-attempt stop. Dispatch one
+fresh gpt-5.6-terra / medium implementer for logical attempt 4, limited to the
+existing two Task 5a files and the accepted final specification findings. No
+dependency changes, live Claude invocation, Task 5b execution or further retry
+is implied. Require honest per-behavior RED/GREEN evidence, then fresh separate
+specification and quality gates before any acceptance or commit.
+
+### Progress — Task 5a cap repair DONE; specification dispatch — September 8, 2026 (America/Recife, UTC-03:00)
+
+Terra/medium returned DONE within the two owned files. RED: 6 focused tests
+produced 9 errors, including missing `recorded_test_provenance` and
+`compile_task_5b_seam`; GREEN: 6 focused, 100 capture/adapter/transport/OQC and
+600 full scripts tests, plus clean diff. The worker reports complete archive,
+identity, lifecycle, artifact, provenance and uninvoked live-seam binding with
+no dependency or model activity. Dispatch a fresh procedural Luna/low
+specification validator over every original finding before quality review.
+
+### Blocked — Task 5a cap exception specification FINDINGS — September 8, 2026 (America/Recife, UTC-03:00)
+
+Fresh Luna/low specification review rejected the one-attempt Terra repair.
+Accepted remaining findings: focused tests do not explicitly cover missing,
+invalid or out-of-order answers; request-recipient and Agent identity mismatch
+or duplication; authoritative result artifact-hash tampering; missing manifest
+fields/files and no-COMPLETE interruption. More importantly,
+`compile_task_5b_seam` configures two workers but does not encode/expose the
+required first-worker question, schema-valid retry answer and second-worker pass
+sequence. No quality review is dispatched because specification did not pass.
+
+The owner-authorized exception is exhausted. Preserve the two-file draft and
+this evidence uncommitted. No live model call, Task 5b execution, Task 6,
+commit, push or Outcome 4 work occurred. A second explicit exception or a
+replan is required before further implementation.
+
+### Ruling — Task 5a second narrow exception authorized — September 8, 2026 (America/Recife, UTC-03:00)
+
+The owner authorized a second exception limited to the five final specification
+findings. Resume the same Terra/medium repair worker for logical attempt 5: add
+test-first proof for missing/invalid/out-of-order answers, request and Agent
+identity mismatches, authoritative artifact-hash tamper, missing/incomplete
+archive cases, and encode the exact two-worker question/retry fixture in the
+uninvoked Task 5b seam. No other behavior, dependency, live call or retry is
+authorized. Fresh specification and quality gates remain mandatory.
+
+### Progress — Task 5a second exception DONE; specification dispatch — September 8, 2026 (America/Recife, UTC-03:00)
+
+The same Terra/medium worker returned DONE. RED: 9 focused tests produced 2
+failures and 1 error, including the absent seam fixture; GREEN: 9 focused, 103
+targeted and 603 complete scripts tests plus clean diff. The repair reports all
+five findings covered and the live seam construction left its injected runner
+at zero calls. Dispatch a fresh procedural Luna/low specification validator over
+the five repairs and the complete Task 5a contract before quality review.
+
+### Progress — Task 5a specification PASS; quality dispatch — September 8, 2026 (America/Recife, UTC-03:00)
+
+Fresh procedural Luna/low specification review returned PASS with no findings
+across the complete Task 5a contract and five final repairs. Dispatch a different
+fresh Terra/medium quality validator to rerun 9 focused, 103 targeted and the
+complete scripts suite, check the diff, and hunt concrete archive traversal,
+aliasing, malformed JSON/type, atomic-publication, identity/lifecycle and
+test-vacuity defects. No live Claude/model invocation is permitted.
+
+### Checkpoint — Outcome 3 Task 5a PASS — September 8, 2026 (America/Recife, UTC-03:00)
+
+The second owner-authorized exception closed the five residual findings. Fresh
+procedural Luna/low specification review returned PASS. A different fresh
+Terra/medium quality validator returned PASS after rerunning 9 focused, 103
+capture/adapter/transport/OQC and 603 complete scripts tests plus a clean diff,
+and independently hunting archive/path/type/atomicity/identity/lifecycle and
+test-vacuity defects. The accepted module writes and verifies canonical offline
+captures and exposes, but does not invoke, the Task 5b live seam. No Claude or
+other model process ran.
+
+time: September 8, 2026 (America/Recife, UTC-03:00)
+task: Outcome 3 Task 5a — model-free capture writer and offline verifier
+attempt: logical 5 of 3, second owner-authorized exception
+worker model: gpt-5.6-terra
+worker effort: medium
+spec validator: gpt-5.6-luna / low — PASS
+quality reviewer: gpt-5.6-terra / medium — PASS
+commands:
+  command: focused capture unittest
+  counts: 9 passed
+  command: capture/adapter/transport/OQC regression unittest
+  counts: 103 passed
+  command: complete scripts unittest discovery
+  counts: 603 passed
+  command: git diff --check
+  counts: clean
+commit hash: pending
+next: Task 5b — one authenticated run and offline saved-capture acceptance
