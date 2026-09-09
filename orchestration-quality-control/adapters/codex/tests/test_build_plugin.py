@@ -91,6 +91,22 @@ class BuildPluginTest(unittest.TestCase):
             if any(resource in path for resource in resource_classes):
                 self.assertTrue(path.startswith(resource_prefix), path)
 
+    def test_validator_accepts_the_installed_upgrade_orchestrator_caller(self):
+        BUILDER.build(self.output)
+        validator = (
+            self.output
+            / "agents"
+            / "oqc_codex_validator.toml"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "Accept work only from oqc_codex_upgrade_orchestrator",
+            validator,
+        )
+        self.assertNotIn(
+            "Accept work only from oqc_codex_orchestrator",
+            validator,
+        )
+
     def test_build_manifest_hashes_every_other_file(self):
         BUILDER.build(self.output)
         manifest = json.loads((self.output / "BUILD-MANIFEST.json").read_text(encoding="utf-8"))["files"]

@@ -928,3 +928,21 @@ quality review PASSed after rerunning the Codex builder suite (6 tests, 0
 failures, 0 errors) and `git diff --check` (clean). Next: commit this narrow
 repair, rebuild/reinstall, and repeat the unchanged Seu MEI Simples authoring
 case.
+
+### Progress — real authoring trial exposed Codex validator identity mismatch — 2026-09-09 13:30:00 -03
+
+After the corrected entrypoint reached the installed author workflow, the
+Proposal Author created the complete preview but the Validator failed closed.
+The Codex author route correctly delegates through
+`oqc_codex_upgrade_orchestrator`; the Validator's own managed contract instead
+accepted only the stale, nonexistent `oqc_codex_orchestrator` identity. The
+failure is intentional fail-closed behavior, but the package declared an
+internally inconsistent topology.
+
+An explicit `gpt-5.6-luna`/medium worker changed only that identity and its
+generated-artifact regression. RED demonstrated the stale identity failing;
+the final test proves the installed artifact accepts the actual upgrade
+orchestrator and rejects the stale name. Fresh plan-compliance PASS and a
+different `gpt-5.6-terra`/medium quality PASS reran the Codex builder suite (7
+tests, 0 failures, 0 errors) plus `git diff --check` (clean). Next:
+commit, rebuild/reinstall, and resume the same real authoring case.
