@@ -22,10 +22,20 @@ class ClaudePolicyHookTests(unittest.TestCase):
 
     def test_allows_documented_native_metadata_and_agent_fields(self):
         payload = {"hook_event_name": "PreToolUse", "session_id": "s1", "transcript_path": "/tmp/t",
-                   "cwd": "/tmp", "permission_mode": "default", "tool_name": "Agent",
-                   "tool_input": {"prompt": "do", "description": "worker", "subagent_type": "author", "model": "sonnet"},
+                   "cwd": "/tmp", "permission_mode": "default", "effort": {"level": "medium"},
+                   "future_common_field": "accepted", "tool_name": "Agent",
+                   "tool_input": {"prompt": "do", "description": "worker", "subagent_type": "author",
+                                  "model": "sonnet", "run_in_background": False},
                    "tool_use_id": "u1"}
         self.assertEqual(decide(payload, "author")["hookSpecificOutput"]["permissionDecision"], "allow")
+
+    def test_agent_background_field_is_optional_boolean(self):
+        for value in (True, False):
+            payload = {"tool_name": "Agent", "tool_input": {"subagent_type": "author", "run_in_background": value}, "tool_use_id": "u1"}
+            with self.subTest(value=value):
+                self.assertEqual(decide(payload, "author")["hookSpecificOutput"]["permissionDecision"], "allow")
+        payload = {"tool_name": "Agent", "tool_input": {"subagent_type": "author", "run_in_background": "false"}, "tool_use_id": "u1"}
+        self.assertEqual(decide(payload, "author")["hookSpecificOutput"]["permissionDecision"], "deny")
 
     def test_denies_other_tools_workers_malformed_and_invalid_expected_identity(self):
         cases = [
@@ -68,14 +78,15 @@ class ClaudePolicyHookTests(unittest.TestCase):
                 self.assertEqual(decide({"tool_name": "StructuredOutput", "tool_input": tool_input, "tool_use_id": "u2"}, "author")["hookSpecificOutput"]["permissionDecision"], "deny")
 
     def test_settings_are_deterministic_direct_argv_and_match_every_tool(self):
-        settings = generated_settings("author")
+        settings = generated_settings("author", "claude-opus-4-6")
         hook = settings["hooks"]["PreToolUse"][0]
         self.assertEqual(hook["matcher"], "*")
         command = hook["hooks"][0]
         self.assertEqual(command["type"], "command")
         self.assertEqual(command["args"][-1], "author")
         self.assertGreater(command["timeout"], 0)
-        self.assertEqual(settings, generated_settings("author"))
+        self.assertEqual(settings, generated_settings("author", "claude-opus-4-6"))
+        self.assertEqual(settings["env"], {"CLAUDE_CODE_SUBAGENT_MODEL": "claude-opus-4-6"})
         self.assertNotIn(" ", command["command"])
 
     def test_command_entrypoint_emits_one_decision(self):

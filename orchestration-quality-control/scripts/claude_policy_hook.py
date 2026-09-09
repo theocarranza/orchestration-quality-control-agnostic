@@ -7,8 +7,7 @@ from pathlib import Path
 from types import MappingProxyType
 
 _IDENTITY = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
-_TOP_LEVEL = {"hook_event_name", "session_id", "transcript_path", "cwd", "permission_mode", "tool_name", "tool_input", "tool_use_id"}
-_TOOL_INPUT = {"prompt", "description", "subagent_type", "model"}
+_TOOL_INPUT = {"prompt", "description", "subagent_type", "model", "run_in_background"}
 _RESULT_FIELDS = {"task_id", "attempt", "outcome", "critique", "artifact", "question"}
 POLICY_DISCLOSURE = MappingProxyType({
     "native_hook_intent": "admit only the exact engine-issued Agent worker",
@@ -35,10 +34,21 @@ def _valid_structured_output(value):
             and ("question" not in value or _valid_question(value["question"])))
 
 
+def _valid_agent_input(value, expected_worker):
+    return (set(value) <= _TOOL_INPUT
+            and value.get("subagent_type") == expected_worker
+            and all(field not in value or isinstance(value[field], str)
+                    for field in ("prompt", "description", "model"))
+            and ("run_in_background" not in value
+                 or isinstance(value["run_in_background"], bool)))
+
+
 def decide(payload, expected_worker):
     allowed = False
     if _valid_identity(expected_worker) and isinstance(payload, dict):
-        allowed = (set(payload) <= _TOP_LEVEL and {"tool_name", "tool_input", "tool_use_id"} <= set(payload)
+        # Claude Code adds common top-level hook metadata across releases. Keep
+        # the security boundary on the event-specific tool name and input.
+        allowed = ({"tool_name", "tool_input", "tool_use_id"} <= set(payload)
                    and payload.get("tool_name") in {"Agent", "StructuredOutput"}
                    and isinstance(payload.get("tool_input"), dict)
                    and isinstance(payload.get("tool_use_id"), str)
@@ -46,8 +56,7 @@ def decide(payload, expected_worker):
         tool_name = payload.get("tool_name")
         tool_input = payload.get("tool_input")
         if allowed and tool_name == "Agent":
-            allowed = (set(tool_input) <= _TOOL_INPUT and "subagent_type" in tool_input
-                       and tool_input.get("subagent_type") == expected_worker)
+            allowed = _valid_agent_input(tool_input, expected_worker)
         elif allowed and tool_name == "StructuredOutput":
             allowed = _valid_structured_output(tool_input)
     return {"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow" if allowed else "deny"}}
@@ -71,13 +80,18 @@ def local_cli_smoke():
         outcomes[name] = json.loads(run.stdout)["hookSpecificOutput"]["permissionDecision"]
     return {"flags": flags, "fixtures": outcomes, "version": version_run.stdout.strip()}
 
-def generated_settings(expected_worker):
+def generated_settings(expected_worker, subagent_model=None):
     if not _valid_identity(expected_worker):
         raise ValueError("expected_worker must be a validated identity")
-    return {"hooks": {"PreToolUse": [{"matcher": "*", "hooks": [{
+    settings = {"hooks": {"PreToolUse": [{"matcher": "*", "hooks": [{
         "type": "command", "command": sys.executable,
         "args": [str(Path(__file__).resolve()), expected_worker], "timeout": 3,
     }]}]}}
+    if subagent_model is not None:
+        if not _valid_identity(subagent_model):
+            raise ValueError("subagent_model must be a validated identity")
+        settings["env"] = {"CLAUDE_CODE_SUBAGENT_MODEL": subagent_model}
+    return settings
 
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv

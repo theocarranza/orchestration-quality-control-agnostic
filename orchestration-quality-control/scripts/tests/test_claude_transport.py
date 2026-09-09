@@ -40,7 +40,7 @@ class ClaudeTransportTests(unittest.TestCase):
             "--tools", "Agent", "--allowed-tools", "Agent(author)", "--agents",
             '{"author":{"description":"Worker","prompt":"Do work"}}', "--json-schema",
             json.dumps({key: value for key, value in _schema().items() if key != "$schema"}, sort_keys=True, separators=(",", ":")), "--settings",
-            json.dumps(generated_settings("author"), sort_keys=True, separators=(",", ":")), "--output-format", "stream-json", "--verbose",
+            json.dumps(generated_settings("author", "sonnet"), sort_keys=True, separators=(",", ":")), "--output-format", "stream-json", "--verbose",
             "--include-hook-events", "--permission-mode", "dontAsk", "You are the Orchestrator; act as the Orchestrator for this dispatch. Treat the supplied engine brief as a worker task, call exactly Agent(author) once with it, then return that worker's schema-valid result through the structured-output boundary.\n\nEngine brief:\ndispatch",
         )])
         self.assertEqual(result.session_id, "session-1")
@@ -49,6 +49,15 @@ class ClaudeTransportTests(unittest.TestCase):
         self.assertEqual(result.raw_stdout, _events())
         with self.assertRaises(TypeError):
             result.events[0]["type"] = "changed"
+
+    def test_settings_pin_subagent_model_for_pre_2_1_251_host(self):
+        self.transport.invoke(
+            "dispatch", "sonnet", "medium", "author",
+            {"description": "Worker", "prompt": "Do work", "model": "claude-opus-4-6"}, _schema(),
+        )
+        argv = self.calls[0]
+        settings = json.loads(argv[argv.index("--settings") + 1])
+        self.assertEqual(settings["env"], {"CLAUDE_CODE_SUBAGENT_MODEL": "claude-opus-4-6"})
 
     def test_prompt_makes_top_level_session_dispatch_exact_worker_once(self):
         self.transport.invoke("engine brief", "sonnet", "medium", "author", {"description": "Worker", "prompt": "Do work"}, _schema())

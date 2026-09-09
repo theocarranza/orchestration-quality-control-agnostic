@@ -226,7 +226,7 @@ class ClaudeTransport:
         argv = [self._executable, "--print", "--model", model, "--effort", effort,
                 "--tools", "Agent", "--allowed-tools", f"Agent({worker_name})", "--agents",
                 _canonical_json({worker_name: worker_definition}), "--json-schema", _canonical_json(_cli_json_schema(schema)),
-                "--settings", _canonical_json(generated_settings(worker_name)),
+                "--settings", _canonical_json(generated_settings(worker_name, worker_definition.get("model", model))),
                 "--output-format", "stream-json", "--verbose", "--include-hook-events",
                 "--permission-mode", "dontAsk"]
         if session_id is not None:
