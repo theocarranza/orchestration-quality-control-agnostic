@@ -41,7 +41,7 @@ class ClaudeTransportTests(unittest.TestCase):
             '{"author":{"description":"Worker","prompt":"Do work"}}', "--json-schema",
             json.dumps({key: value for key, value in _schema().items() if key != "$schema"}, sort_keys=True, separators=(",", ":")), "--settings",
             json.dumps(generated_settings("author"), sort_keys=True, separators=(",", ":")), "--output-format", "stream-json", "--verbose",
-            "--include-hook-events", "--permission-mode", "dontAsk", "dispatch",
+            "--include-hook-events", "--permission-mode", "dontAsk", "You are the Orchestrator; act as the Orchestrator for this dispatch. Treat the supplied engine brief as a worker task, call exactly Agent(author) once with it, then return that worker's schema-valid result through the structured-output boundary.\n\nEngine brief:\ndispatch",
         )])
         self.assertEqual(result.session_id, "session-1")
         self.assertEqual(result.worker_tool_use_id, "tool-1")
@@ -49,6 +49,21 @@ class ClaudeTransportTests(unittest.TestCase):
         self.assertEqual(result.raw_stdout, _events())
         with self.assertRaises(TypeError):
             result.events[0]["type"] = "changed"
+
+    def test_prompt_makes_top_level_session_dispatch_exact_worker_once(self):
+        self.transport.invoke("engine brief", "sonnet", "medium", "author", {"description": "Worker", "prompt": "Do work"}, _schema())
+        prompt = self.calls[0][-1]
+        self.assertIn("act as the Orchestrator", prompt)
+        self.assertIn("call exactly Agent(author) once", prompt)
+        self.assertIn("engine brief", prompt)
+        self.assertNotEqual(prompt, "engine brief")
+
+    def test_json_shaped_engine_brief_is_dispatched_to_the_exact_worker(self):
+        brief = '{"a":"x","z":1}'
+        self.transport.invoke(brief, "sonnet", "medium", "author", {"description": "Worker", "prompt": "Do work"}, _schema())
+        prompt = self.calls[0][-1]
+        self.assertIn("call exactly Agent(author) once", prompt)
+        self.assertTrue(prompt.endswith(f"Engine brief:\n{brief}"))
 
     def test_json_schema_argv_omits_only_top_level_schema_metadata(self):
         self.transport.invoke(

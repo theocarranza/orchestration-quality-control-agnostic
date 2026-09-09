@@ -231,6 +231,10 @@ class ClaudeTransport:
                 "--permission-mode", "dontAsk"]
         if session_id is not None:
             argv.extend(["--resume", _nonblank_text(session_id, "session_id")])
+        prompt = ("You are the Orchestrator; act as the Orchestrator for this dispatch. Treat the supplied engine brief as a worker task, "
+                  f"call exactly Agent({worker_name}) once with it, then return that worker's "
+                  "schema-valid result through the structured-output boundary.\n\n"
+                  f"Engine brief:\n{prompt}")
         argv.append(prompt)
         try:
             exit_code, stdout, stderr = self._runner(tuple(argv))

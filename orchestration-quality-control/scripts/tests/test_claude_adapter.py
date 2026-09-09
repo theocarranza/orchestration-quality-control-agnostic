@@ -283,7 +283,8 @@ class ClaudeAdapterTests(unittest.TestCase):
         self.assertEqual(argv[10:12], ("--agents", '{"author":{"description":"Author definition","prompt":"Write exactly."}}'))
         self.assertEqual(argv[12], "--json-schema")
         self.assertEqual(json.loads(argv[13])["required"], ["task_id", "attempt", "outcome"])
-        self.assertEqual(argv[-1], '{"a":"x","z":1}')
+        self.assertIn("call exactly Agent(author) once", argv[-1])
+        self.assertTrue(argv[-1].endswith('Engine brief:\n{"a":"x","z":1}'))
         self.assertEqual((request.recipient, request.payload["brief"]), ("agent:author", {"z": 1, "a": "x"}))
         self.assertNotIn("reviewer", argv[11])
 
