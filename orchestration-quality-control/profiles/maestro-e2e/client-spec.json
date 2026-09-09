@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "engine_id": "maestro-e2e",
+  "artifact_root": "e2e_test/modules",
+  "state_root": ".orchestration-state/maestro-e2e",
+  "max_attempts": 3,
+  "coordinator": {
+    "responsibilities": "Runs one operation from start to finish. Delegates every unit of work to exactly one role at a time, checks each returned result against that role's declared shape before anything downstream reads it, saves each accepted result immediately, puts the change set forward for approval, and delegates application only after approval. Authors no target content and never replaces a worker's returned result with its own account of it.",
+    "capabilities": ["coordinate"],
+    "tools": ["read", "delegate"],
+    "denied_tools": ["write", "edit", "bash"],
+    "model_tier": "high",
+    "reasoning_effort": "high",
+    "output_schema": "schemas/final-report.schema.json"
+  },
+  "roles": {
+    "planner": {
+      "responsibilities": "Reads the application source to work out what a scenario must cover, then drafts the test plan and the element inventory for it. The only role allowed to read application source, so that later roles cannot quietly re-derive behaviour from code instead of from the plan.",
+      "capabilities": ["plan"],
+      "tools": ["read", "grep", "glob"],
+      "denied_tools": ["write", "edit", "bash"],
+      "model_tier": "high",
+      "reasoning_effort": "high",
+      "output_schema": "schemas/worker-result.schema.json"
+    },
+    "generator": {
+      "responsibilities": "Turns an approved plan into flow files and shared flow fragments, following the conventions already present in the test tree. Denied application source on purpose: a generator that can read the code will drift towards describing the implementation rather than the agreed plan.",
+      "capabilities": ["generate"],
+      "tools": ["read", "glob"],
+      "denied_tools": ["write", "edit", "bash", "grep"],
+      "model_tier": "high",
+      "reasoning_effort": "high",
+      "output_schema": "schemas/worker-result.schema.json"
+    },
+    "checker": {
+      "responsibilities": "Judges drafted and existing flows against the test tree's own conventions and returns structured findings bound to the digest of exactly what it read. Holds no writing tool at all, so it can never repair what it judges.",
+      "capabilities": ["verify"],
+      "tools": ["read", "grep", "glob"],
+      "denied_tools": ["write", "edit", "bash"],
+      "model_tier": "high",
+      "reasoning_effort": "high",
+      "output_schema": "schemas/worker-result.schema.json"
+    },
+    "applier": {
+      "responsibilities": "Writes the exact approved change set into the artifact folder and reports every item as applied or skipped with a reason. Selects nothing, judges nothing, and holds no approval authority.",
+      "capabilities": ["apply"],
+      "tools": ["read", "write", "edit"],
+      "denied_tools": ["bash", "delegate"],
+      "model_tier": "medium",
+      "reasoning_effort": "medium",
+      "output_schema": "schemas/worker-result.schema.json"
+    }
+  },
+  "operations": {
+    "author_coverage": [
+      {"task_id": "plan", "role": "planner", "depends_on": []},
+      {"task_id": "generate", "role": "generator", "depends_on": ["plan"]},
+      {"task_id": "check", "role": "checker", "depends_on": ["generate"]},
+      {"task_id": "apply", "role": "applier", "depends_on": ["check"]}
+    ],
+    "remediate_existing": [
+      {"task_id": "check", "role": "checker", "depends_on": []},
+      {"task_id": "apply", "role": "applier", "depends_on": ["check"]}
+    ]
+  }
+}

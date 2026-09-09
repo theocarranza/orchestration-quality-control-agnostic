@@ -148,12 +148,13 @@ still reach after catching it.
 
 from dataclasses import dataclass
 
+import client_spec as client_spec_module
 from kernel_specs import AgentSpec, RunSpec, SCHEMA_VERSION, TaskDag
 from qc_lib import Blocked, freeze, require_enum, require_fields
 
 STAGE = "compile_workflow"
 
-SHAPES = ("single-agent", "isolated-workers")
+SHAPES = ("single-agent", "isolated-workers", "client-spec")
 PROFILES = ("core", "example-pipeline")
 
 AUTHOR_ROLE_KIND = "author"
@@ -420,3 +421,87 @@ def compile_workflow(decisions):
         })
 
     return CompiledWorkflow(run_spec=run_spec, task_dag=task_dag, agent_specs=agent_specs)
+
+
+# -- client-specification path ------------------------------------------------
+#
+# Everything above generates a topology from `shape` alone and stamps four fixed
+# constants (`tools`, `output_schema`, `model_tier`, `reasoning_effort`) onto
+# every role, because -- as the module docstring records -- no decision surface
+# existed that could drive them. `client_spec.py` is now that surface, and this
+# path uses it. Roles, capabilities, tool grants, model tiers, result schemas and
+# the task graph all come from the specification, so compiling a different
+# specification produces a different engine rather than the same one relabelled.
+#
+# `compile_for_operation` is the whole placeholder fix: no `_MODEL_TIER`,
+# `_REASONING_EFFORT`, `_OUTPUT_SCHEMA` or empty `tools` list appears below.
+
+
+def compile_for_operation(decisions, spec, operation_id):
+    """Compile one operation of a client specification into a `CompiledWorkflow`.
+
+    `decisions` supplies only run identity and the run's objective; every role
+    and task property comes from `spec`. Raises `qc_lib.Blocked` naming the
+    offending field, always before any artifact is constructed.
+    """
+    _require_mapping(decisions)
+    require_fields(decisions, ("run_id", "created_at", "outcome"), stage=STAGE)
+    spec = client_spec_module.validate(spec)
+
+    operations = spec["operations"]
+    if operation_id not in operations:
+        raise Blocked(
+            stage=STAGE,
+            reason_code="malformed_checkpoint",
+            detail=(
+                f"operation '{operation_id}' is not declared by this specification; "
+                f"declared operations are {', '.join(sorted(operations))}"
+            ),
+            recovery_action="pass an operation this specification declares",
+        )
+
+    run_spec = RunSpec.from_dict({
+        "schema_version": SCHEMA_VERSION,
+        "run_id": decisions["run_id"],
+        "goal": decisions["outcome"],
+        "created_at": decisions["created_at"],
+    })
+
+    tasks = operations[operation_id]
+    task_dicts = [
+        {
+            "task_id": task["task_id"],
+            "role": task["role"],
+            "depends_on": list(task.get("depends_on", [])),
+        }
+        for task in tasks
+    ]
+    task_dag = TaskDag.from_list(task_dicts)
+
+    agent_specs = {}
+    for task in tasks:
+        role = task["role"]
+        if role in agent_specs:
+            continue
+        declared = spec["roles"][role]
+        agent_specs[role] = AgentSpec.from_dict({
+            "schema_version": SCHEMA_VERSION,
+            "agent_id": f"agent-{role}",
+            "role": role,
+            "capabilities": list(declared["capabilities"]),
+            "tools": list(declared["tools"]),
+            "output_schema": declared["output_schema"],
+            "model_tier": declared["model_tier"],
+            "reasoning_effort": declared["reasoning_effort"],
+        })
+
+    return CompiledWorkflow(run_spec=run_spec, task_dag=task_dag, agent_specs=agent_specs)
+
+
+def compile_all_operations(decisions, spec):
+    """Compile every operation a specification declares, keyed by operation id."""
+    spec = client_spec_module.validate(spec)
+    return {
+        operation_id: compile_for_operation(decisions, spec, operation_id)
+        for operation_id in sorted(spec["operations"])
+    }
