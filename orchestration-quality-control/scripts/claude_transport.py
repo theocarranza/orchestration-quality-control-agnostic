@@ -4,6 +4,7 @@ This module deliberately does not execute Claude itself.  Callers supply the
 runner, keeping capture policy and process lifecycle outside this small parser.
 """
 
+import hashlib
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -101,6 +102,11 @@ class ClaudeTransportResult:
     raw_stderr: str
     events: tuple
     invocation_count: int
+    argv: tuple
+    settings: object
+    worker_definition: object
+    schema_sha256: str
+    prompt_sha256: str
 
 
 def parse_stream(stdout, worker_name, *, expected_session_id=None, raw_stderr=""):
@@ -223,10 +229,11 @@ class ClaudeTransport:
         schema = _worker_schema()
         if worker_schema is not None and worker_schema != schema:
             raise _blocked("worker_schema must equal the checked-in worker-result schema")
+        settings = generated_settings(worker_name, worker_definition.get("model", model))
         argv = [self._executable, "--print", "--model", model, "--effort", effort,
                 "--tools", "Agent", "--allowed-tools", f"Agent({worker_name})", "--agents",
                 _canonical_json({worker_name: worker_definition}), "--json-schema", _canonical_json(_cli_json_schema(schema)),
-                "--settings", _canonical_json(generated_settings(worker_name, worker_definition.get("model", model))),
+                "--settings", _canonical_json(settings),
                 "--output-format", "stream-json", "--verbose", "--include-hook-events",
                 "--permission-mode", "dontAsk"]
         if session_id is not None:
@@ -250,4 +257,7 @@ class ClaudeTransport:
             raise parsed.error
         return ClaudeTransportResult(parsed.session_id, parsed.worker_tool_use["id"], parsed.worker_tool_use,
                                      parsed.structured_output, stdout, stderr, parsed.events,
-                                     self._invocation_count)
+                                     self._invocation_count, tuple(argv), freeze(settings),
+                                     freeze(worker_definition),
+                                     hashlib.sha256(_SCHEMA_PATH.read_bytes()).hexdigest(),
+                                     hashlib.sha256(prompt.encode()).hexdigest())

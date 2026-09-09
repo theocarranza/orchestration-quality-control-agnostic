@@ -51,6 +51,13 @@ class TransportEvidence:
     native_session_id: str | None = None
     worker_tool_use_id: str | None = None
     adapter_identity: str = "claude-adapter"
+    argv: tuple = ()
+    settings: object = None
+    worker_definition: object = None
+    schema_sha256: str = ""
+    prompt_sha256: str = ""
+    model: str = ""
+    effort: str = ""
 
 class ClaudeAdapter(AdapterPort):
     def __init__(self, runner, *, model, effort, worker_definitions, policy=None, artifact_dir=".", executable="claude", mailbox=None):
@@ -113,7 +120,14 @@ class ClaudeAdapter(AdapterPort):
             result = self._transport.invoke(prompt, self._model, self._effort, agent_id, self._workers[agent_id], session_id=previous)
             self._validate_transport_result(result, agent_id=agent_id, task_id=task_id, attempt=attempt, expected_session=previous)
             self._session_id = result.session_id
-            self._transport_evidence.append(TransportEvidence(self._invocation_count, request, freeze(result), process_tuple=freeze(self._last_process), raw_stdout=result.raw_stdout, raw_stderr=result.raw_stderr, events=freeze(result.events), native_session_id=result.session_id, worker_tool_use_id=result.worker_tool_use_id))
+            self._transport_evidence.append(TransportEvidence(
+                self._invocation_count, request, freeze(result), process_tuple=freeze(self._last_process),
+                raw_stdout=result.raw_stdout, raw_stderr=result.raw_stderr, events=freeze(result.events),
+                native_session_id=result.session_id, worker_tool_use_id=result.worker_tool_use_id,
+                argv=freeze(result.argv), settings=freeze(result.settings),
+                worker_definition=freeze(result.worker_definition), schema_sha256=result.schema_sha256,
+                prompt_sha256=result.prompt_sha256, model=self._model, effort=self._effort,
+            ))
             payload = dict(result.structured_output)
             if payload.get("task_id") != task_id or payload.get("attempt") != attempt:
                 raise Blocked(stage=STAGE, reason_code="malformed_checkpoint", detail="worker result does not match exact request", recovery_action="return the exact task and attempt")

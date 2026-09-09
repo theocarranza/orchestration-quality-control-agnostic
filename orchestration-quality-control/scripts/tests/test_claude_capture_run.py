@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from claude_adapter import ClaudeAdapter
 from claude_capture import compile_task_5b_seam, recorded_test_provenance
+from kernel_specs import TaskDag
 from qc_lib import Blocked
 
 
@@ -45,7 +46,7 @@ class Task5bCaptureControllerTests(unittest.TestCase):
             results = (
                 {"task_id": first, "attempt": 1, "outcome": "failed", "critique": "need approved retry", "question": {"question_id": "task5b-q1", "prompt": "Retry first worker?"}, "artifact": "first artifact"},
                 {"task_id": first, "attempt": 2, "outcome": "passed", "artifact": "second artifact"},
-                {"task_id": second, "attempt": 1, "outcome": "passed"},
+                {"task_id": second, "attempt": 1, "outcome": "passed", "artifact": "third artifact"},
             )
             return 0, _stream("native-task5b", worker, results[len(calls) - 1], f"tool-{len(calls)}"), ""
 
@@ -148,6 +149,42 @@ class Task5bCaptureControllerTests(unittest.TestCase):
                 (seam, artifact_dir, Path(directory) / "capture-provenance", Path(directory) / "capture-provenance", object()),
             )
             tuple(map(lambda case: self._assert_caller_boundary_blocked(case[0], calls, case[1], case[2], case[3], case[4]), cases))
+
+    def test_rejects_non_task5b_dag_before_running_a_worker(self):
+        with tempfile.TemporaryDirectory() as directory:
+            artifact_dir = Path(directory) / "artifacts"
+            seam, calls = self._seam(artifact_dir)
+            first, second = seam.contract.task_dag.tasks
+            invalid_dags = (
+                TaskDag.from_list([
+                    {"task_id": second.task_id, "role": second.role, "depends_on": []},
+                    {"task_id": first.task_id, "role": first.role, "depends_on": [second.task_id]},
+                ]),
+                TaskDag.from_list([
+                    {"task_id": first.task_id, "role": first.role, "depends_on": []},
+                    {"task_id": second.task_id, "role": second.role, "depends_on": []},
+                ]),
+            )
+            for task_dag in invalid_dags:
+                invalid_seam = replace(seam, contract=replace(seam.contract, task_dag=task_dag))
+                self._assert_caller_boundary_blocked(
+                    invalid_seam,
+                    calls,
+                    artifact_dir,
+                    Path(directory) / f"capture-{len(calls)}",
+                    Path(directory) / f"capture-{len(calls)}",
+                    recorded_test_provenance(),
+                )
+
+    def test_cyclic_task_dag_is_rejected_by_its_constructor(self):
+        with tempfile.TemporaryDirectory() as directory:
+            seam, _ = self._seam(Path(directory) / "artifacts")
+            first, second = seam.contract.task_dag.tasks
+            with self.assertRaises(Blocked):
+                TaskDag.from_list((
+                    {"task_id": first.task_id, "role": first.role, "depends_on": [second.task_id]},
+                    {"task_id": second.task_id, "role": second.role, "depends_on": [first.task_id]},
+                ))
 
     def test_rejects_adapter_without_worker_configuration_before_running_a_worker(self):
         from claude_capture_run import run_task_5b_capture
@@ -276,21 +313,35 @@ class Task5bCaptureControllerTests(unittest.TestCase):
                 run_task_5b_capture(replace(seam, fixture=tuple(fixture)), Path(directory) / "artifacts", Path(directory) / "capture", provenance=recorded_test_provenance())
             self.assertEqual(len(calls), 0)
 
-    def test_native_provenance_selects_live_acceptance(self):
+    def test_injected_runner_fails_native_live_acceptance(self):
         from claude_capture_run import run_task_5b_capture
 
         with tempfile.TemporaryDirectory() as directory:
             seam, calls = self._seam(Path(directory) / "artifacts")
             from claude_capture import verify_capture
             observed = []
+
             def verifier(path, *, live_acceptance=False):
                 observed.append(live_acceptance)
                 return verify_capture(path, live_acceptance=live_acceptance)
+
             with patch("claude_capture_run.verify_capture", side_effect=verifier):
-                result = run_task_5b_capture(seam, Path(directory) / "artifacts", Path(directory) / "capture", provenance=None)
-            self.assertEqual(result.verification.state.phase, "completed")
-            self.assertEqual(len(calls), 3)
-            self.assertEqual(observed, [True])
+                with self.assertRaises(Blocked):
+                    run_task_5b_capture(seam, Path(directory) / "artifacts", Path(directory) / "capture", provenance=None)
+
+            self.assertEqual(len(calls), 0)
+            self.assertEqual(observed, [])
+
+    def test_replacing_an_injected_seam_cannot_select_native_acceptance(self):
+        from claude_capture_run import run_task_5b_capture
+
+        with tempfile.TemporaryDirectory() as directory:
+            artifact_dir = Path(directory) / "artifacts"
+            seam, calls = self._seam(artifact_dir)
+            replaced = replace(seam, fixture=seam.fixture)
+            with self.assertRaises(Blocked):
+                run_task_5b_capture(replaced, artifact_dir, Path(directory) / "capture", provenance=None)
+            self.assertEqual(calls, [])
 
 
 if __name__ == "__main__":

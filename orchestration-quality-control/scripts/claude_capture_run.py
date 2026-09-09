@@ -6,7 +6,7 @@ from os import PathLike
 from pathlib import Path
 
 from claude_adapter import ClaudeAdapter
-from claude_capture import Task5bSeam, capture, recorded_test_provenance, verify_capture
+from claude_capture import Task5bSeam, _is_native_task_5b_seam, capture, recorded_test_provenance, verify_capture
 from mailbox import Mailbox
 from oqc import drive, resume
 from orchestrator_contract import OrchestratorContract
@@ -74,6 +74,8 @@ def _has_expected_contract_topology(contract, worker_definitions):
     agent_ids = frozenset(spec.agent_id for spec in specs.values())
     return (
         len(tasks) == 2
+        and not tasks[0].depends_on
+        and tuple(tasks[1].depends_on) == (tasks[0].task_id,)
         and frozenset(specs) == roles
         and len(agent_ids) == 2
         and frozenset(worker_definitions) == agent_ids
@@ -94,6 +96,10 @@ def _require_boundary(seam, artifact_dir, capture_dir, provenance):
     _require(
         provenance is None or type(provenance) is RECORDED_TEST_PROVENANCE_TYPE,
         "Task 5b provenance must be native or the explicit recorded test marker",
+    )
+    _require(
+        provenance is not None or _is_native_task_5b_seam(seam),
+        "Task 5b native acceptance requires the compile-time real subprocess seam",
     )
     _require(
         _has_expected_contract_topology(seam.contract, worker_definitions),

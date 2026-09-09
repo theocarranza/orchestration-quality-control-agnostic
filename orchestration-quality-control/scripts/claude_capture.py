@@ -5,6 +5,9 @@ from pathlib import Path
 from collections.abc import Mapping
 
 from claude_adapter import ClaudeAdapter
+from claude_transport import parse_stream
+from compile_workflow import CompiledWorkflow
+from kernel_specs import TaskDag
 from claude_policy_hook import POLICY_DISCLOSURE
 from compile_workflow import compile_workflow
 from mailbox import Mailbox
@@ -16,7 +19,8 @@ from gate import approve_answer
 
 STAGE = "claude_capture"
 _CORE = ("contract.json", "mailbox.jsonl", "transport.jsonl", "mailbox-head.json", "manifest.json", "COMPLETE")
-_FIELDS = ("invocation", "request", "response", "error", "native_session_id", "worker_tool_use_id", "adapter_identity", "raw_stdout", "raw_stderr", "events", "process_tuple")
+_FIELDS = ("invocation", "request", "response", "error", "native_session_id", "worker_tool_use_id", "adapter_identity", "raw_stdout", "raw_stderr", "events", "process_tuple", "argv", "settings", "worker_definition", "schema_sha256", "prompt_sha256", "model", "effort")
+_WORKER_DISALLOWED_TOOLS = ("Read", "Write", "Edit", "Bash", "Grep", "Glob", "WebFetch", "WebSearch", "Task", "Skill", "NotebookEdit", "TodoWrite", "AskUserQuestion", "EnterPlanMode", "ExitPlanMode")
 
 def _blocked(detail):
     raise Blocked(stage=STAGE, reason_code="malformed_checkpoint", detail=detail, recovery_action="recreate a complete canonical capture")
@@ -162,6 +166,9 @@ def verify_capture(capture_dir, *, live_acceptance=False):
     anchor = _parse(root/"mailbox-head.json", "mailbox anchor")
     if not isinstance(anchor, dict) or set(anchor) != {"head_hash"} or anchor["head_hash"] != result.head_hash: _blocked("mailbox head anchor mismatch")
     records = _read_records(root/"transport.jsonl"); _validate_records(records, contract, mailbox); _validate_root_boundary(mailbox)
+    if live_acceptance:
+        _validate_live_artifacts(root, manifest, records)
+        _validate_native_live_evidence(records, contract)
     identities = [{key: item[key] for key in ("invocation", "native_session_id", "worker_tool_use_id", "adapter_identity")} for item in records]
     if manifest["identities"] != identities: _blocked("manifest identities do not bind transport")
     for item in manifest["artifacts"]:
@@ -169,14 +176,91 @@ def verify_capture(capture_dir, *, live_acceptance=False):
         if payload.get("artifact_hash") != item["sha256"]: _blocked("stored artifact is not bound to response hash")
     return result
 
+def _validate_live_artifacts(root, manifest, records):
+    """A live archive must preserve nonempty bytes for every invocation."""
+    expected = {
+        record["invocation"]: record["response"]["payload"].get("artifact_hash")
+        for record in records
+    }
+    archived = {item["invocation"]: item for item in manifest["artifacts"]}
+    if (
+        len(archived) != len(manifest["artifacts"])
+        or set(archived) != set(expected)
+        or any(not isinstance(digest, str) for digest in expected.values())
+    ):
+        _blocked("native Task 5b acceptance requires one captured artifact per worker result")
+    for invocation, digest in expected.items():
+        artifact = archived[invocation]
+        if artifact["sha256"] != digest or not (root / artifact["path"]).read_bytes():
+            _blocked("native Task 5b acceptance requires nonempty archived artifact bytes")
+
+def _validate_native_live_evidence(records, contract):
+    """A native claim needs host-produced model, policy, argv and process proof."""
+    schema_path = Path(__file__).resolve().parent.parent / "schemas" / "worker-result.schema.json"
+    schema_hash = hashlib.sha256(schema_path.read_bytes()).hexdigest()
+    for record in records:
+        request = record["request"]
+        worker = request["recipient"][6:]
+        argv, settings, definition = record["argv"], record["settings"], record["worker_definition"]
+        if not isinstance(argv, list) or not isinstance(settings, dict) or not isinstance(definition, dict):
+            _blocked("native capture lacks archived argv, settings, or worker definition")
+        if record["schema_sha256"] != schema_hash or not isinstance(record["prompt_sha256"], str) or len(record["prompt_sha256"]) != 64:
+            _blocked("native capture does not bind the checked-in schema and prompt hashes")
+        if len(argv) < 2 or argv[0] != "claude" or argv[-1] == "" or hashlib.sha256(argv[-1].encode()).hexdigest() != record["prompt_sha256"]:
+            _blocked("native argv does not bind the exact invocation prompt")
+        required = {"--model": record.get("model"), "--effort": record.get("effort"), "--tools": "Agent", "--allowed-tools": f"Agent({worker})"}
+        for flag, value in required.items():
+            if flag not in argv or argv[argv.index(flag) + 1] != value:
+                _blocked("native argv does not bind model, effort, or Agent-only registration")
+        if definition.get("tools") != [] or tuple(definition.get("disallowedTools", ())) != _WORKER_DISALLOWED_TOOLS:
+            _blocked("native worker is not host-effectively tool-free")
+        agents = json.loads(argv[argv.index("--agents") + 1]) if "--agents" in argv else None
+        if agents != {worker: definition}:
+            _blocked("native argv worker definition differs from archived definition")
+        if "--settings" not in argv or json.loads(argv[argv.index("--settings") + 1]) != settings:
+            _blocked("native argv settings differ from archived settings")
+        process = record["process_tuple"]
+        if not isinstance(process, list) or process != [0, record["raw_stdout"], record["raw_stderr"]]:
+            _blocked("native capture does not bind the zero-exit process tuple")
+        parsed = parse_stream(record["raw_stdout"], worker, raw_stderr=record["raw_stderr"])
+        if parsed.error is not None or tuple(parsed.events) != tuple(record["events"]):
+            _blocked("native stdout cannot be reparsed into the archived event stream")
+        event_data = [thaw(event) for event in parsed.events]
+        models = [event.get("message", {}).get("model") for event in event_data if isinstance(event.get("message"), dict)]
+        if record.get("model") not in models:
+            _blocked("native event stream lacks the requested host model signal")
+        policy = {(event.get("hook_name"), event.get("outcome")) for event in event_data}
+        if not {("PreToolUse:Agent", "success"), ("PreToolUse:StructuredOutput", "success")} <= policy:
+            _blocked("native event stream lacks Agent and StructuredOutput policy signals")
+        for event in event_data:
+            if event.get("tool_name") in _WORKER_DISALLOWED_TOOLS:
+                _blocked("native event stream shows a disallowed worker tool")
+
 @dataclass(frozen=True)
 class Task5bSeam:
     compiled: object; contract: OrchestratorContract; adapter: ClaudeAdapter; policy_disclosure: object; fixture: tuple
+    native_runner_marker: object = None; native_adapter: object = None
+
+_NATIVE_RUNNER_MARKER = object()
+
+def _is_native_task_5b_seam(seam):
+    return (
+        isinstance(seam, Task5bSeam)
+        and seam.native_runner_marker is _NATIVE_RUNNER_MARKER
+        and seam.native_adapter is seam.adapter
+    )
+
 def real_subprocess_runner(argv):
     run = subprocess.run(argv, text=True, capture_output=True, check=False); return run.returncode, run.stdout, run.stderr
-def compile_task_5b_seam(runner=real_subprocess_runner):
+def compile_task_5b_seam(runner=real_subprocess_runner, *, artifact_dir="."):
     """Build, but never run, the exact isolated-workers Task 5b acceptance seam."""
-    compiled = compile_workflow({"run_id":"task5b-live", "created_at":"2026-09-08T12:00:00Z", "outcome":"live-capture", "shape":"isolated-workers", "named_inputs":["first","second"], "outcome_involves_test_tree":False, "profile":"core"})
+    # This fixture's dependency is acceptance-specific; generic isolated-workers remains independent.
+    base = compile_workflow({"run_id":"task5b-live", "created_at":"2026-09-08T12:00:00Z", "outcome":"live-capture", "shape":"isolated-workers", "named_inputs":["first","second"], "outcome_involves_test_tree":False, "profile":"core"})
+    first_base, second_base = base.task_dag.tasks
+    compiled = CompiledWorkflow(base.run_spec, TaskDag.from_list([
+        {"task_id": first_base.task_id, "role": first_base.role, "depends_on": []},
+        {"task_id": second_base.task_id, "role": second_base.role, "depends_on": [first_base.task_id]},
+    ]), base.agent_specs)
     contract = compile_orchestrator(compiled, 2)
     first_node, second_node = contract.task_dag.tasks
     first, second = first_node.task_id, second_node.task_id
@@ -191,28 +275,32 @@ def compile_task_5b_seam(runner=real_subprocess_runner):
                 "the engine-authorized question "
                 "{question_id: task5b-q1, prompt: Retry first worker?}. "
                 "On attempt 2 must return outcome 'passed' only when answer_context "
-                "contains the approved retry. Return only schema-valid output."
+                "contains the approved retry. Return only schema-valid output with a nonblank artifact string; do not read files or schemas."
             ),
-            "model": "claude-opus-4-6", "effort": "medium", "tools": [],
+            "model": "claude-opus-4-6", "effort": "medium", "tools": [], "disallowedTools": list(_WORKER_DISALLOWED_TOOLS),
         },
         second_spec.agent_id: {
             "description": "generated isolated worker for the dependent second task",
             "prompt": (
                 f"For task_id {second}, return outcome 'passed' on attempt 1 only "
                 f"after task_id {first} has passed; the controller dispatches this "
-                "task only after that dependency completes. Return only "
-                "schema-valid output."
+                "task only after that dependency completes. Return only schema-valid output "
+                "with a nonblank artifact string; do not read files or schemas."
             ),
-            "model": "claude-opus-4-6", "effort": "medium", "tools": [],
+            "model": "claude-opus-4-6", "effort": "medium", "tools": [], "disallowedTools": list(_WORKER_DISALLOWED_TOOLS),
         },
     }
-    adapter = ClaudeAdapter(runner, model="claude-opus-4-6", effort="medium", worker_definitions=workers, policy=lambda **_: dict(POLICY_DISCLOSURE))
+    adapter = ClaudeAdapter(runner, model="claude-opus-4-6", effort="medium", worker_definitions=workers, policy=lambda **_: dict(POLICY_DISCLOSURE), artifact_dir=artifact_dir)
     fixture = (
         {"task_id": first, "attempt": 1, "outcome": "failed", "engine_authorized": True, "question": {"question_id": "task5b-q1", "prompt": "Retry first worker?"}},
         {"task_id": first, "attempt": 1, "outcome": "retry", "answer": {"run_id": contract.run_spec.run_id, "task_id": first, "attempt": 1, "question_id": "task5b-q1", "decision": "retry", "text": "retry"}},
         {"task_id": first, "attempt": 2, "outcome": "passed"},
         {"task_id": second, "attempt": 1, "outcome": "passed"},
     )
-    return Task5bSeam(compiled, contract, adapter, dict(POLICY_DISCLOSURE), fixture)
+    native = runner is real_subprocess_runner
+    return Task5bSeam(
+        compiled, contract, adapter, dict(POLICY_DISCLOSURE), fixture,
+        _NATIVE_RUNNER_MARKER if native else None, adapter if native else None,
+    )
 verify = verify_capture
 archive = capture

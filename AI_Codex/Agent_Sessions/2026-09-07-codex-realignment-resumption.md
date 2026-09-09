@@ -3,7 +3,7 @@ type: agent-session
 date: 2026-09-07
 branch: feature/original-design-realignment
 previous: "[[2026-09-06-065747-outcome-2-completion]]"
-next: null
+next: "[[2026-09-08-145400-task-5b-resumption]]"
 plan: "[[2026-09-04-original-design-realignment-master-plan]]"
 ---
 
@@ -1343,3 +1343,15 @@ commands:
   counts: clean
 commit hash: pending
 next: Task 5b — one authenticated run and offline saved-capture acceptance
+
+### Ruling — Task 5b reviewed-controller preflight — September 8, 2026 (America/Recife, UTC-03:00)
+
+Task 5a committed locally as `ff9d03c`; this substantive Task 5b checkpoint
+backfills that prior hash. Before spending the single authenticated logical run,
+build and independently review a narrow shell-free controller which consumes the
+accepted Task 5b seam, drives question → approved retry → first pass → second
+pass, writes the capture and verifies it offline. Its tests use an injected
+recorded runner and explicit recorded-test provenance. Only after both reviews
+PASS may root invoke the same controller once with `real_subprocess_runner` and
+native provenance. This prevents an unreviewed execution harness from wasting
+the live run; it does not claim live evidence or begin Outcome 4.

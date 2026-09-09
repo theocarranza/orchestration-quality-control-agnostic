@@ -34,7 +34,7 @@ def _fixture():
         elif index == 2:
             result = {"task_id": tasks[0], "attempt": 2, "outcome": "passed", "artifact": "second artifact"}
         else:
-            result = {"task_id": tasks[1], "attempt": 1, "outcome": "passed"}
+            result = {"task_id": tasks[1], "attempt": 1, "outcome": "passed", "artifact": "third artifact"}
         return 0, _stream("native-session", worker, result, f"tool-{index}"), ""
     return contract, workers, runner, tasks
 
@@ -61,6 +61,19 @@ class CaptureArchiveTests(unittest.TestCase):
             root = self._capture(directory)
             self.assertEqual(claude_capture.verify_capture(root).state.phase, "completed")
             with self.assertRaises(Blocked): claude_capture.verify_capture(root, live_acceptance=True)
+
+    def test_live_acceptance_rejects_empty_archived_artifact_bytes(self):
+        import claude_capture
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._capture(directory)
+            manifest = json.loads((root / "manifest.json").read_text())
+            manifest["provenance"] = "native"
+            artifact = root / manifest["artifacts"][0]["path"]
+            artifact.write_bytes(b"")
+            manifest["files"][artifact.name] = hashlib.sha256(artifact.read_bytes()).hexdigest()
+            (root / "manifest.json").write_text(json.dumps(manifest, sort_keys=True, separators=(",", ":")))
+            with self.assertRaises(Blocked):
+                claude_capture.verify_capture(root, live_acceptance=True)
 
     def test_external_anchor_and_final_mailbox_tampering_are_blocked(self):
         import claude_capture
@@ -104,8 +117,17 @@ class CaptureArchiveTests(unittest.TestCase):
         import claude_capture
         calls = []; seam = claude_capture.compile_task_5b_seam(lambda argv: calls.append(argv))
         self.assertEqual(calls, []); self.assertEqual(len(seam.contract.task_dag.tasks), 2)
+        self.assertEqual(seam.contract.task_dag.tasks[1].depends_on, (seam.contract.task_dag.tasks[0].task_id,))
         self.assertTrue(all(spec.tools == () for spec in seam.contract.agent_specs.values()))
         self.assertEqual([step["outcome"] for step in seam.fixture], ["failed", "retry", "passed", "passed"])
+
+    def test_task5b_native_seam_binds_real_runner_and_artifact_directory(self):
+        import claude_capture
+        with tempfile.TemporaryDirectory() as directory:
+            artifact_dir = Path(directory) / "artifacts"
+            seam = claude_capture.compile_task_5b_seam(artifact_dir=artifact_dir)
+            self.assertEqual(seam.adapter._artifact_dir, artifact_dir)
+            self.assertTrue(claude_capture._is_native_task_5b_seam(seam))
 
     def test_task5b_generated_worker_prompt_declares_observable_lifecycle(self):
         import claude_capture
@@ -129,6 +151,8 @@ class CaptureArchiveTests(unittest.TestCase):
         self.assertIn("task5b-q1", prompt)
         self.assertIn("Retry first worker?", prompt)
         self.assertIn("attempt 2 must return outcome 'passed' only when answer_context contains the approved retry", prompt)
+        self.assertIn("nonblank artifact string", prompt)
+        self.assertEqual(agents[worker]["disallowedTools"], list(claude_capture._WORKER_DISALLOWED_TOOLS))
         second_worker = seam.contract.agent_specs[second_node.role].agent_id
         with self.assertRaises(Blocked):
             seam.adapter.spawn(Mailbox(), run_id=seam.contract.run_spec.run_id,
@@ -138,6 +162,7 @@ class CaptureArchiveTests(unittest.TestCase):
         second_prompt = second_agents[second_worker]["prompt"]
         self.assertIn(f"task_id {second}", second_prompt)
         self.assertIn(f"after task_id {first} has passed", second_prompt)
+        self.assertIn("nonblank artifact string", second_prompt)
 
     def test_missing_invalid_and_out_of_order_answers_are_blocked(self):
         import claude_capture
