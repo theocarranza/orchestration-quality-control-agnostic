@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://orchestration-quality-control/schemas/client-delivery.schema.json",
+  "title": "Client orchestration delivery",
+  "description": "manifest.json of a delivered client engine. Distinct from author-proposal.schema.json, which only describes a preview file map and can be satisfied by two Markdown files. This schema describes structure; scripts/check_delivery.py enforces the relationships between the structures (existence, checksums, path containment, task-graph integrity) that a schema cannot express.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "engine_id", "source_revision", "engine_root", "artifact_root", "state_root", "entrypoint", "constants", "operations", "coordinator", "workers", "schemas", "templates", "adapters", "dependencies", "files"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "engine_id": {"type": "string", "minLength": 1},
+    "source_revision": {"type": "string", "minLength": 1},
+    "engine_root": {"$ref": "#/$defs/path"},
+    "artifact_root": {"$ref": "#/$defs/path"},
+    "state_root": {"$ref": "#/$defs/path"},
+    "entrypoint": {"$ref": "#/$defs/path"},
+    "constants": {"const": "constants.json"},
+    "operations": {"$ref": "#/$defs/fileMap"},
+    "coordinator": {"$ref": "#/$defs/path"},
+    "workers": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/worker"}},
+    "schemas": {"$ref": "#/$defs/fileMap"},
+    "templates": {"$ref": "#/$defs/fileMap"},
+    "adapters": {"$ref": "#/$defs/fileMap"},
+    "dependencies": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "files": {
+      "type": "object", "minProperties": 1,
+      "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+    }
+  },
+  "$defs": {
+    "path": {"type": "string", "minLength": 1},
+    "fileMap": {"type": "object", "minProperties": 1, "additionalProperties": {"$ref": "#/$defs/path"}},
+    "worker": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "definition", "input_schema", "output_schema", "capabilities"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "definition": {"$ref": "#/$defs/path"},
+        "input_schema": {"$ref": "#/$defs/path"},
+        "output_schema": {"$ref": "#/$defs/path"},
+        "capabilities": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    }
+  }
+}
