@@ -178,9 +178,35 @@ def compile_task_5b_seam(runner=real_subprocess_runner):
     """Build, but never run, the exact isolated-workers Task 5b acceptance seam."""
     compiled = compile_workflow({"run_id":"task5b-live", "created_at":"2026-09-08T12:00:00Z", "outcome":"live-capture", "shape":"isolated-workers", "named_inputs":["first","second"], "outcome_involves_test_tree":False, "profile":"core"})
     contract = compile_orchestrator(compiled, 2)
-    workers = {spec.agent_id: {"description":"generated isolated worker", "prompt":"return only schema-valid output", "model":"claude-opus-4-6", "effort":"medium", "tools":[]} for spec in contract.agent_specs.values()}
+    first_node, second_node = contract.task_dag.tasks
+    first, second = first_node.task_id, second_node.task_id
+    first_spec = contract.agent_specs[first_node.role]
+    second_spec = contract.agent_specs[second_node.role]
+    workers = {
+        first_spec.agent_id: {
+            "description": "generated isolated worker for the first task",
+            "prompt": (
+                f"For task_id {first}, follow this exact acceptance lifecycle. "
+                "On attempt 1 must return outcome 'failed' with a nonblank critique and "
+                "the engine-authorized question "
+                "{question_id: task5b-q1, prompt: Retry first worker?}. "
+                "On attempt 2 must return outcome 'passed' only when answer_context "
+                "contains the approved retry. Return only schema-valid output."
+            ),
+            "model": "claude-opus-4-6", "effort": "medium", "tools": [],
+        },
+        second_spec.agent_id: {
+            "description": "generated isolated worker for the dependent second task",
+            "prompt": (
+                f"For task_id {second}, return outcome 'passed' on attempt 1 only "
+                f"after task_id {first} has passed; the controller dispatches this "
+                "task only after that dependency completes. Return only "
+                "schema-valid output."
+            ),
+            "model": "claude-opus-4-6", "effort": "medium", "tools": [],
+        },
+    }
     adapter = ClaudeAdapter(runner, model="claude-opus-4-6", effort="medium", worker_definitions=workers, policy=lambda **_: dict(POLICY_DISCLOSURE))
-    first, second = (node.task_id for node in contract.task_dag.tasks)
     fixture = (
         {"task_id": first, "attempt": 1, "outcome": "failed", "engine_authorized": True, "question": {"question_id": "task5b-q1", "prompt": "Retry first worker?"}},
         {"task_id": first, "attempt": 1, "outcome": "retry", "answer": {"run_id": contract.run_spec.run_id, "task_id": first, "attempt": 1, "question_id": "task5b-q1", "decision": "retry", "text": "retry"}},

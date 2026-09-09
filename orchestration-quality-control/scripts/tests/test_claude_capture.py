@@ -107,6 +107,38 @@ class CaptureArchiveTests(unittest.TestCase):
         self.assertTrue(all(spec.tools == () for spec in seam.contract.agent_specs.values()))
         self.assertEqual([step["outcome"] for step in seam.fixture], ["failed", "retry", "passed", "passed"])
 
+    def test_task5b_generated_worker_prompt_declares_observable_lifecycle(self):
+        import claude_capture
+        from mailbox import Mailbox
+        from qc_lib import Blocked
+
+        calls = []
+        seam = claude_capture.compile_task_5b_seam(lambda argv: (calls.append(argv), (1, "", ""))[1])
+        first_node, second_node = seam.contract.task_dag.tasks
+        first, second = first_node.task_id, second_node.task_id
+        worker = seam.contract.agent_specs[first_node.role].agent_id
+        with self.assertRaises(Blocked):
+            seam.adapter.spawn(Mailbox(), run_id=seam.contract.run_spec.run_id,
+                               task_id=first, attempt=1, agent_id=worker,
+                               brief={"task_id": first, "attempt": 1})
+        self.assertEqual(len(calls), 1)
+        agents = json.loads(calls[0][calls[0].index("--agents") + 1])
+        prompt = agents[worker]["prompt"]
+        self.assertIn(f"task_id {first}", prompt)
+        self.assertIn("attempt 1 must return outcome 'failed'", prompt)
+        self.assertIn("task5b-q1", prompt)
+        self.assertIn("Retry first worker?", prompt)
+        self.assertIn("attempt 2 must return outcome 'passed' only when answer_context contains the approved retry", prompt)
+        second_worker = seam.contract.agent_specs[second_node.role].agent_id
+        with self.assertRaises(Blocked):
+            seam.adapter.spawn(Mailbox(), run_id=seam.contract.run_spec.run_id,
+                               task_id=second, attempt=1, agent_id=second_worker,
+                               brief={"task_id": second, "attempt": 1})
+        second_agents = json.loads(calls[1][calls[1].index("--agents") + 1])
+        second_prompt = second_agents[second_worker]["prompt"]
+        self.assertIn(f"task_id {second}", second_prompt)
+        self.assertIn(f"after task_id {first} has passed", second_prompt)
+
     def test_missing_invalid_and_out_of_order_answers_are_blocked(self):
         import claude_capture
         for label, alter in (
