@@ -812,3 +812,34 @@ adopted`; Task 6 passed without them.
 - The prompt is bound only by SHA-256 of `argv[-1]`; nothing offline binds the
   prompt text to the mailbox request's `brief_hash`. Verified by hand this time.
 - The three crash paths in `_validate_native_live_evidence` remain deferred.
+
+### Progress — pushed with evidence withheld — 2026-09-09 09:48:00 -03
+
+The owner authorized a push. Root checked the destination first and found
+`origin` is the **public** GitHub repository
+`theocarranza/orchestration-quality-control-agnostic`, and that
+`AI_Codex/Agent_Evidence/` is explicitly un-ignored by the `!AI_Codex/**`
+negation in `.gitignore`, so adding it would have published it.
+
+The captures' `transport.jsonl` files are raw host output. They carry the
+machine's absolute paths, the full MCP server inventory including Azure DevOps,
+Context7, Linear, Google Drive, AgentMailer, Postman and Stytch, the private
+subagent roster, native session ids, and per-invocation cost figures. Root put
+the choice to the owner rather than pushing the evidence with the code, since
+publishing to a public remote is not reversible by deleting later.
+
+Owner decision: push the fourteen commits only; the evidence stays local. The
+capture therefore remains reproducible on this machine and Task 6's independent
+verdict is recorded here, but no host telemetry was published.
+
+Pushed `ccc51fd..1236d51`; the branch is now in sync with origin. Root scanned
+the pushed range first and found no credentials or tokens — two absolute project
+paths and one `/home/monolith` transcript reference in ledger prose, which is
+minor and left as is.
+
+All owner-owned dirty paths remain untouched and untracked: `.agents/`,
+`.codex/`, `AI_Codex/Agent_Evidence/`, the gpt-5-6 handoff note, the Codex
+execution protocol note, and the schemas permission backup.
+
+This note is uncommitted by design; the protocol forbids a bookkeeping-only
+commit after a task commit, so it will be carried into the next substantive one.
