@@ -898,3 +898,33 @@ Derive move source and destination only from actual move or rename operations �
 `mv`, `git mv`, a rename tool call — rather than from paths recovered anywhere
 in a command string, including redirected or heredoc text. A path appearing in
 content being written is not a move operand.
+
+### Progress — real authoring trial blocked by entrypoint packaging — 2026-09-09 13:09:00 -03
+
+Root installed the Codex adapter at the user-approved Seu MEI Simples project
+scope, repaired one invalid global marketplace entry, and invoked the installed
+`orchestration-author` entrypoint with the real multi-worker Maestro E2E
+outcome. The run reached the entrypoint but stopped before `author_prepare`:
+the standalone packaged entrypoint resolves `references/workflows/...` under
+its own `skills/orchestration-author/` directory, but the referenced files live
+only under the sibling `skills/orchestration-quality-control/` directory.
+
+No `authored-orchestration/` or `.orchestration-qc/` path was created and no
+application file changed. Ruling: this is an executable packaging defect, not
+an Outcome 4 concern or a simulated test result. Repair the entrypoint's
+installed-path contract under TDD, then rerun the identical real case.
+
+### Progress — author entrypoint packaging repair accepted — 2026-09-09 13:17:00 -03
+
+An explicit `gpt-5.6-luna`/medium implementer repaired only the standalone
+author entrypoint and its Codex build test. Its first RED restored the original
+unqualified workflow path; a second RED introduced an unqualified `rules/`
+path. The final regression proves every resource reference uses the sibling
+canonical `../orchestration-quality-control/` root and that no duplicate local
+resource tree is packaged.
+
+Fresh plan-compliance review PASSed. A different fresh `gpt-5.6-terra`/medium
+quality review PASSed after rerunning the Codex builder suite (6 tests, 0
+failures, 0 errors) and `git diff --check` (clean). Next: commit this narrow
+repair, rebuild/reinstall, and repeat the unchanged Seu MEI Simples authoring
+case.

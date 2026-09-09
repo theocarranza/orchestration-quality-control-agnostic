@@ -130,6 +130,13 @@ Then author its bounded packet from verified transport experience: generated
 wrappers, model/effort/tool/sandbox/fallback matrix, contract tests, real smokes
 only on available hosts, unsupported hosts disclosed honestly.
 
+> **2026-09-09 implementation note — under review.** The current adapters are
+> fixed host integrations: their agents, hooks, templates, schemas, packaging,
+> and enforcement mechanisms do not vary with a client's requested workflow.
+> Treat “generated wrappers” as potentially ambiguous wording, not as authority
+> to regenerate adapter structure per workflow. Validate the product on a real
+> client case before authoring an Outcome 4 packet or changing this outcome.
+
 Outcome 5 follows the adapter gate: wire install/discover/interview/build/run,
 generate manifest settings from accepted decisions, fold QC into gates, prove
 equivalence before removing duplicate legacy behavior, and run the complete

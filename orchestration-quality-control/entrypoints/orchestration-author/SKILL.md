@@ -15,10 +15,15 @@ license: MIT
 Explicit host entry for authoring operations in the sibling
 `orchestration-quality-control` skill.
 
-1. Locate the installed skill root. Stop with `adapter_not_installed` if
+1. Resolve the installed canonical skill root as
+   `../orchestration-quality-control/` relative to this entrypoint's installed
+   directory. Use that sibling root for all packaged workflows, rules, schemas,
+   and scripts; do not resolve them from this entrypoint's own directory. Stop with
+   `adapter_not_installed` if the sibling root or its required files are
    unavailable.
-2. Follow `references/workflows/workflows-root-session-interview.md`.
-3. Run `discover_workspace.py` then `plan_interview.py`.
+2. Follow `../orchestration-quality-control/references/workflows/workflows-root-session-interview.md`.
+3. Run `../orchestration-quality-control/scripts/discover_workspace.py` then
+   `../orchestration-quality-control/scripts/plan_interview.py`.
 4. Ask **outcome** only in the root session. Confirm packaged defaults (accept
    or update), then delegate prepare/apply with packaged `decision: approve`.
 5. Never write `output_root` from the root session.

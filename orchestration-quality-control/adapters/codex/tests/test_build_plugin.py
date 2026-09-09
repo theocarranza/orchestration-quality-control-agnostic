@@ -1,6 +1,7 @@
 import hashlib
 import importlib.util
 import json
+import re
 import sys
 import tempfile
 import unittest
@@ -66,6 +67,29 @@ class BuildPluginTest(unittest.TestCase):
     def test_build_excludes_python_bytecode(self):
         BUILDER.build(self.output)
         self.assertFalse(any(path.name == "__pycache__" or path.suffix == ".pyc" for path in self.output.rglob("*")))
+
+    def test_author_entrypoint_routes_to_canonical_sibling_skill_root(self):
+        BUILDER.build(self.output)
+        skills = self.output / "plugins" / BUILDER.PLUGIN_NAME / "skills"
+        author = skills / "orchestration-author"
+        canonical = skills / BUILDER.PLUGIN_NAME
+        workflow = canonical / "references" / "workflows" / "workflows-root-session-interview.md"
+        self.assertTrue(workflow.is_file())
+        entrypoint = (author / "SKILL.md").read_text(encoding="utf-8")
+        for resource_dir in ("references", "rules", "schemas", "scripts"):
+            self.assertFalse((author / resource_dir).exists())
+        self.assertIn(
+            "../orchestration-quality-control/references/workflows/workflows-root-session-interview.md",
+            entrypoint,
+        )
+        self.assertNotIn("`references/workflows/workflows-root-session-interview.md`", entrypoint)
+        self.assertNotIn("`scripts/discover_workspace.py`", entrypoint)
+        self.assertNotIn("`scripts/plan_interview.py`", entrypoint)
+        resource_prefix = "../orchestration-quality-control/"
+        resource_classes = ("references/", "rules/", "schemas/", "scripts/")
+        for path in re.findall(r"`([^`\n]+)`", entrypoint):
+            if any(resource in path for resource in resource_classes):
+                self.assertTrue(path.startswith(resource_prefix), path)
 
     def test_build_manifest_hashes_every_other_file(self):
         BUILDER.build(self.output)
