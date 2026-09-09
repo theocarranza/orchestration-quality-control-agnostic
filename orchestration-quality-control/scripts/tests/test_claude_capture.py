@@ -319,6 +319,36 @@ class CaptureArchiveTests(unittest.TestCase):
             self.assertNotIn("<tool_use", prompt)
             self.assertNotIn("<tool_result", prompt)
 
+    def test_task5b_generated_worker_prompts_state_result_shape_inline(self):
+        """The live host caught a worker fabricating a Read of the result
+        schema file inside its own answer text, because the prompt demanded
+        schema-valid output while forbidding file reads -- the worker wanted
+        the schema and had no other way to get it. Removing the motive means
+        stating the exact required shape inline: both generated worker
+        prompts must spell out every field (and, for the fields that are
+        conditional, when they apply) plus tell the worker outright that no
+        file, schema, or tool is needed or available."""
+        import claude_capture
+        seam = claude_capture.compile_task_5b_seam(lambda argv: None)
+        first_node, second_node = seam.contract.task_dag.tasks
+        first_worker = seam.contract.agent_specs[first_node.role].agent_id
+        second_worker = seam.contract.agent_specs[second_node.role].agent_id
+        for worker in (first_worker, second_worker):
+            prompt = seam.adapter._workers[worker]["prompt"]
+            self.assertIn("task_id (string)", prompt)
+            self.assertIn("attempt (integer, 1 or greater)", prompt)
+            self.assertIn("outcome (", prompt)
+            self.assertIn("'passed' or 'failed'", prompt)
+            self.assertIn("critique (string)", prompt)
+            self.assertIn("only on a failed result", prompt)
+            self.assertIn("question", prompt)
+            self.assertIn("question_id", prompt)
+            self.assertIn("no other field is permitted", prompt)
+            self.assertIn("no file, schema, or tool is required or available", prompt)
+            self.assertIn("answer directly without reading anything", prompt)
+            self.assertNotIn("<tool_use", prompt)
+            self.assertNotIn("<tool_result", prompt)
+
     def test_missing_invalid_and_out_of_order_answers_are_blocked(self):
         import claude_capture
         for label, alter in (

@@ -658,3 +658,63 @@ Root's diagnosis of the cause: the prompt forbids reading files while demanding
 schema-valid output, so a tool-free worker that wants the schema narrates
 reading it. The fix is to remove the motive by stating the exact required result
 shape inline in the prompt, so the worker never needs the schema.
+
+### Progress — TASK 5b PASSED on real host evidence — 2026-09-09 09:19:00 -03
+
+Removing the worker's motive to fabricate worked. Both prompts now state the
+exact required result shape inline — the field names, types, which two fields
+appear only on a failed result, that no other field is permitted, and that no
+file, schema or tool is needed or available. With nothing left to look up, the
+worker stopped inventing a schema read.
+
+The third authenticated run completed and **live acceptance passed**:
+
+  capture: AI_Codex/Agent_Evidence/2026-09-09-task5b-live-final
+  phase: completed
+  task_status: task-first passed, task-second passed
+  attempts: task-first 2, task-second 1
+  history: discovery, awaiting-user-input, execution, completed
+  envelope_count: 10
+  head_hash: 96d0fc9acf469a1a591dddd4a37cd4de27637bb69923370d90a7cff2f2f6f0fe
+  manifest: provenance native, 3 artifacts, 3 identities, every artifact nonempty
+            with its digest bound to the response payload
+
+Root re-verified the archive independently from disk with
+`verify_capture(..., live_acceptance=True)` and got the same completed state and
+head hash. The engine-authorized question and approved retry are both exercised:
+task-first genuinely took two attempts, and the dependent task-second ran only
+after it passed.
+
+### Checkpoint — Task 5b complete
+
+time: 2026-09-09 09:22:00 -03
+task: Task 5b — one authenticated run and saved-capture acceptance
+attempt: 3 live runs; the first two produced the real defects that the offline rounds could not
+worker model: sonnet
+worker effort: not settable on this host
+spec validator: not run — single bounded round by owner-approved proportionality ruling
+quality reviewer: sonnet — PASS on the acceptance code; the live capture is its own acceptance evidence
+commands:
+  command: full six-suite Python 3.12 baseline
+  counts: 781 passed, 0 failures, 0 errors — scripts 663, Claude hooks 8, Claude adapter 6, Codex 36, Cursor 19, eval harness 49
+  command: verify_capture(live_acceptance=True) on the archived native capture
+  counts: phase completed, head 96d0fc9a…f6f0fe, 3 artifacts
+  command: git diff --check
+  counts: clean
+commit hash: pending
+next: Task 6 independent acceptance review of the accepted capture
+
+### Ruling — what the three live runs bought — 2026-09-09 09:23:00 -03
+
+Each live run cost cents and each returned a defect no offline round had found
+in twelve hours: run 1 found that a passed result was carrying a critique and
+question forward; run 2 found that the archived-events comparison could never
+pass for a real capture because frozen tuples were compared against
+JSON-deserialized lists; run 3 passed. Run 2 also produced the check's first
+genuine catch — a worker fabricating a schema read while the host recorded zero
+tool uses — which is the exact behaviour Task 5b exists to detect, confirmed on
+real evidence rather than argued.
+
+This is the concrete case for the proportionality backlog item. The experiment
+was the cheapest and most informative instrument available and it was deferred
+for twelve hours.
