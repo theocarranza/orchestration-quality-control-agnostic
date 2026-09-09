@@ -565,3 +565,96 @@ commands:
   counts: clean
 commit hash: pending
 next: spend the one authorized authenticated Task 5b capture into a fresh evidence directory; never overwrite the 2026-09-08 capture
+
+### Progress — authorized live run spent, real failure captured — 2026-09-09 09:05:00 -03
+
+Root spent the authorized authenticated run: `compile_task_5b_seam` with the
+default real subprocess runner, artifacts into a scratchpad directory, target
+`AI_Codex/Agent_Evidence/2026-09-09-task5b-live`. The 2026-09-08 evidence was
+untouched.
+
+Real progress first. The prompt hardening worked: the workers returned nonblank
+artifacts for the first time. `task5b-live__task-first__attempt-1.artifact` (83
+bytes) and `attempt-2.artifact` (250 bytes) were both written with coherent
+content. The empty-manifest defect that sank the previous capture is resolved.
+
+The run then failed in `resume`, at `gate.py:176`, with `passed result cannot
+carry critique or question`. Diagnosis: worker one's prompt instructs attempt 1
+to return `failed` with a nonblank critique and the engine-authorized question,
+and attempt 2 to return `passed` — but never tells it to drop those two fields.
+The model carried them forward, and `gate_result` forbids either on a passed
+result. The archive was never written, so no partial evidence directory exists.
+
+This is exactly the failure class the offline rounds could not have found: it is
+a property of how a real model responds to this prompt, not of the verifier.
+Ruling: fix the prompt, run once more, per the owner-approved plan step 4.
+
+### Progress — prompt lifecycle fix dispatch — 2026-09-09 09:08:00 -03
+
+Dispatched one `sonnet` implementer. Root does not edit; the no-root-code rule
+holds. Scope is only the missing instruction in both generated worker prompts
+that a passed result must carry no critique and no question.
+
+### Progress — second live run: full orchestration succeeded — 2026-09-09 09:10:00 -03
+
+The prompt fix worked. The second authenticated run drove the entire Task 5b
+lifecycle to completion and wrote all three artifacts — task-first attempt 1
+(103 bytes), task-first attempt 2 (149 bytes) and task-second attempt 1 (58
+bytes). The archive at `AI_Codex/Agent_Evidence/2026-09-09-task5b-live` is
+complete: `COMPLETE` marker written, manifest provenance `native`, three
+artifacts and three identities. Every failure inherited from the 2026-09-08
+capture is now resolved by real host evidence rather than by argument.
+
+It failed only in root's own added verification, at `claude_capture.py:227`,
+`native stdout cannot be reparsed into the archived event stream`.
+
+### Progress — root reproduction: a wrong-reject in the hardening — 2026-09-09 09:14:00 -03
+
+Root diagnosed it against the real archive. `parse_stream` returns `freeze()`d
+events, whose lists are tuples, while `record["events"]` is read back from JSON
+as plain lists. `('Task', ...) != ['Task', ...]`, so
+`tuple(parsed.events) != tuple(record["events"])` is unconditionally true for
+every genuine capture. The check could never pass on real data.
+
+Root confirmed the fix by construction across all three invocations: comparing
+`parsed.events` against `freeze()` of each archived event returns equal for
+1, 2 and 3, with `parsed.error` None throughout.
+
+This is precisely the wrong-reject failure mode the quality brief asked for and
+it still slipped through, because every test feeds `_validate_native_live_evidence`
+in-memory frozen events and none exercises the JSON round-trip that a real
+archive always performs. Recording that as the concrete lesson: unit tests that
+bypass serialization cannot prove a serialization boundary.
+
+Ruling: no third live run is needed. `verify_capture` is offline and the archive
+is complete, so once the comparison normalizes both sides the existing real
+capture can be re-verified in place.
+
+### Progress — normalization fix dispatch — 2026-09-09 09:16:00 -03
+
+Dispatched one `sonnet` implementer for the comparison normalization plus a
+regression test that round-trips events through JSON, the gap that hid this.
+Root does not edit.
+
+### Progress — normalization fixed; live acceptance rejects on a TRUE positive — 2026-09-09 09:25:00 -03
+
+The normalization landed: `freeze()` is now applied to archived events before
+comparison, 94 focused and 662 full tests pass, `git diff --check` clean.
+Re-verifying the real archive offline moved past the reparse check.
+
+It then rejected with `native worker result fabricates tool-call markup it never
+executed`. Root inspected the real evidence: this is a **true positive**, not a
+false one. Invocation 2's worker emitted
+`<tool_use>{"type":"tool_use","name":"Read","input":{"file_path":".../worker-result.schema.json"}}</tool_use>`
+followed by a fabricated `<tool_result>`, while the host's own
+`totalToolUseCount` is 0 for that invocation. The worker invented reading the
+schema file and invented the result.
+
+This is the defect the entire Task 5b hardening exists to catch, and it caught it
+on real host evidence. The verifier is correct; the worker behaviour is the
+problem. Ruling: do not weaken the check. The capture is honestly rejected.
+
+Root's diagnosis of the cause: the prompt forbids reading files while demanding
+schema-valid output, so a tool-free worker that wants the schema narrates
+reading it. The fix is to remove the motive by stating the exact required result
+shape inline in the prompt, so the worker never needs the schema.

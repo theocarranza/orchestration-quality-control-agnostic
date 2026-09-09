@@ -13,7 +13,7 @@ from compile_workflow import compile_workflow
 from mailbox import Mailbox
 from oqc import verify as oqc_verify
 from orchestrator_contract import OrchestratorContract, compile_orchestrator
-from qc_lib import Blocked, thaw
+from qc_lib import Blocked, freeze, thaw
 from run_state import reduce
 from gate import approve_answer
 
@@ -223,7 +223,12 @@ def _validate_native_live_evidence(records, contract):
         if not isinstance(process, list) or process != [0, record["raw_stdout"], record["raw_stderr"]]:
             _blocked("native capture does not bind the zero-exit process tuple")
         parsed = parse_stream(record["raw_stdout"], worker, raw_stderr=record["raw_stderr"])
-        if parsed.error is not None or tuple(parsed.events) != tuple(record["events"]):
+        # record["events"] is read back from transport.jsonl as plain JSON (lists/dicts);
+        # parsed.events are freeze()d (tuples/MappingProxyType) by parse_stream. Normalize
+        # the archived side through freeze() too so a genuine capture is compared on value,
+        # not container type -- freeze() is idempotent on already-frozen input, so this still
+        # rejects an archived event stream that actually differs from a fresh reparse.
+        if parsed.error is not None or tuple(parsed.events) != tuple(freeze(event) for event in record["events"]):
             _blocked("native stdout cannot be reparsed into the archived event stream")
         event_data = [thaw(event) for event in parsed.events]
         models = [event.get("message", {}).get("model") for event in event_data if isinstance(event.get("message"), dict)]
@@ -329,7 +334,10 @@ def compile_task_5b_seam(runner=real_subprocess_runner, *, artifact_dir="."):
                 "the engine-authorized question "
                 "{question_id: task5b-q1, prompt: Retry first worker?}. "
                 "On attempt 2 must return outcome 'passed' only when answer_context "
-                "contains the approved retry. Return only schema-valid output with a nonblank artifact string; do not read files or schemas. "
+                "contains the approved retry; a passed result must include only "
+                "task_id, attempt, outcome, and artifact, and must never include "
+                "critique or question, even one carried from an earlier failed attempt. "
+                "Return only schema-valid output with a nonblank artifact string; do not read files or schemas. "
                 "Never fabricate or transcribe any tool-call or tool-output markup and never narrate, simulate, or invent a tool call or its output; "
                 "answer directly from this prompt with a schema-valid result and nothing else."
             ),
@@ -340,7 +348,9 @@ def compile_task_5b_seam(runner=real_subprocess_runner, *, artifact_dir="."):
             "prompt": (
                 f"For task_id {second}, return outcome 'passed' on attempt 1 only "
                 f"after task_id {first} has passed; the controller dispatches this "
-                "task only after that dependency completes. Return only schema-valid output "
+                "task only after that dependency completes; a passed result must "
+                "include only task_id, attempt, outcome, and artifact, and must "
+                "never include critique or question. Return only schema-valid output "
                 "with a nonblank artifact string; do not read files or schemas. "
                 "Never fabricate or transcribe any tool-call or tool-output markup and never narrate, simulate, or invent a tool call or its output; "
                 "answer directly from this prompt with a schema-valid result and nothing else."

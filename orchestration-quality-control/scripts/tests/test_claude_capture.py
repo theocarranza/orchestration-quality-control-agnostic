@@ -277,6 +277,27 @@ class CaptureArchiveTests(unittest.TestCase):
         self.assertIn(f"after task_id {first} has passed", second_prompt)
         self.assertIn("nonblank artifact string", second_prompt)
 
+    def test_task5b_generated_worker_prompts_forbid_critique_and_question_on_passed_result(self):
+        """gate.py's gate_result rejects any passed result that still carries
+        'critique' or 'question' (gate.py:174-178). The real live run proved
+        a compliant worker will carry both fields forward from a prior failed
+        attempt unless the prompt explicitly tells it to drop them. Both
+        generated worker prompts -- worker one, which fails then passes, and
+        worker two, which always passes -- must state that a passing result
+        contains only task_id, attempt, outcome, and artifact."""
+        import claude_capture
+        seam = claude_capture.compile_task_5b_seam(lambda argv: None)
+        first_node, second_node = seam.contract.task_dag.tasks
+        first_worker = seam.contract.agent_specs[first_node.role].agent_id
+        second_worker = seam.contract.agent_specs[second_node.role].agent_id
+        for worker in (first_worker, second_worker):
+            prompt = seam.adapter._workers[worker]["prompt"]
+            self.assertIn(
+                "a passed result must include only task_id, attempt, outcome, "
+                "and artifact, and must never include critique or question",
+                prompt,
+            )
+
     def test_task5b_generated_worker_prompts_forbid_fabricated_tool_call_markup(self):
         """Both generated worker prompts must explicitly forbid the exact
         hallucination the real archived capture caught two workers doing:
@@ -513,6 +534,18 @@ class NativeLiveEvidenceTests(unittest.TestCase):
         drifted_events = list(base["events"])[:-1]
         with self.assertRaises(Blocked):
             self._validate([{**base, "events": drifted_events}])
+
+    def test_accepts_archived_events_that_have_round_tripped_through_json(self):
+        """transport.jsonl always stores events as plain JSON: writing thaws frozen
+        MappingProxyType/tuple containers to dict/list, and reading back parses
+        that JSON, so every real archived record's "events" arrive as plain
+        containers rather than the frozen ones a fresh in-memory parse_stream
+        call produces. A genuine, unmodified capture must still be accepted once
+        its events have taken that same JSON round trip -- container-type alone
+        (list vs. tuple, dict vs. MappingProxyType) must not cause rejection."""
+        base = self._clean_record()
+        json_round_tripped_events = json.loads(json.dumps(thaw(base["events"])))
+        self._validate([{**base, "events": json_round_tripped_events}])
 
     def test_rejects_event_stream_missing_the_requested_host_model_signal(self):
         base = self._clean_record()
