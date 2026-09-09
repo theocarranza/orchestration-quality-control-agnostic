@@ -5,30 +5,95 @@
   "oneOf": [
     {
       "type": "object",
-      "required": ["operation", "output_root", "outcome"],
+      "required": [
+        "operation",
+        "output_root",
+        "outcome"
+      ],
       "additionalProperties": false,
       "properties": {
-        "operation": { "const": "author_prepare" },
-        "outcome": { "type": "string", "minLength": 1 },
-        "output_root": { "type": "string", "minLength": 1 },
-        "profile": { "type": "string", "default": "core" },
-        "language": { "enum": ["en", "pt-br"], "default": "en" },
-        "shape": { "enum": ["single-agent", "multi-worker"] },
-        "approval": { "enum": ["required", "none"] },
-        "state": { "type": "object" },
-        "stop": { "type": "string" },
-        "named_inputs": { "type": "array", "items": { "type": "string" } },
-        "intent": { "enum": ["author", "upgrade"] }
+        "operation": {
+          "const": "author_prepare"
+        },
+        "outcome": {
+          "type": "string",
+          "minLength": 1
+        },
+        "output_root": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Folder the authored process is written into."
+        },
+        "profile": {
+          "type": "string",
+          "default": "core"
+        },
+        "language": {
+          "enum": [
+            "en",
+            "pt-br"
+          ],
+          "default": "en"
+        },
+        "shape": {
+          "enum": [
+            "single-agent",
+            "multi-worker"
+          ]
+        },
+        "approval": {
+          "enum": [
+            "required",
+            "none"
+          ]
+        },
+        "state": {
+          "type": "object"
+        },
+        "stop": {
+          "type": "string"
+        },
+        "named_inputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "intent": {
+          "enum": [
+            "author",
+            "upgrade"
+          ]
+        },
+        "outcome_involves_test_tree": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the authored outcome drives an existing end-to-end or integration test tree. Declared here because references/defaults/gate-defaults.json lists it and scripts/gate_defaults.py author-fields emits it; with additionalProperties false and no declaration, a strictly validated input carrying it was rejected."
+        }
       }
     },
     {
       "type": "object",
-      "required": ["operation", "checkpoint_path", "decision"],
+      "required": [
+        "operation",
+        "checkpoint_path",
+        "decision"
+      ],
       "additionalProperties": false,
       "properties": {
-        "operation": { "const": "author_apply" },
-        "checkpoint_path": { "type": "string", "minLength": 1 },
-        "decision": { "enum": ["approve", "decline"] }
+        "operation": {
+          "const": "author_apply"
+        },
+        "checkpoint_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "decision": {
+          "enum": [
+            "approve",
+            "decline"
+          ]
+        }
       }
     }
   ]

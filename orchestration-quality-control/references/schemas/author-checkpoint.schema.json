@@ -2,19 +2,166 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://orchestration-quality-control/schemas/author-checkpoint.schema.json",
   "title": "Greenfield orchestration authoring checkpoint",
-  "description": "Shares pending_approval with ordinary QC and upgrade checkpoints.",
+  "description": "Shares pending_approval with ordinary QC and upgrade checkpoints. `findings` and `validation` are required: before 2026-09-09 this schema defined neither, so a checkpoint could carry findings: [] while its own plain_language_report described three findings, and anything reading the structured record would conclude the run passed clean.",
   "type": "object",
-  "required": ["schema_version", "run_type", "run_id", "status", "targets", "output_root", "workspace_brief", "preview_files", "plain_language_report", "created_at"],
+  "required": [
+    "created_at",
+    "findings",
+    "output_root",
+    "plain_language_report",
+    "preview_files",
+    "run_id",
+    "run_type",
+    "schema_version",
+    "status",
+    "targets",
+    "validation",
+    "workspace_brief"
+  ],
   "properties": {
-    "schema_version": { "const": 1 },
-    "run_type": { "const": "author" },
-    "run_id": { "type": "string" },
-    "status": { "enum": ["pending_approval", "consumed", "aborted"] },
-    "targets": { "type": "array", "minItems": 1, "items": { "type": "string" } },
-    "output_root": { "type": "string" },
-    "workspace_brief": { "type": "object" },
-    "preview_files": { "type": "object", "additionalProperties": { "type": "string" } },
-    "plain_language_report": { "type": "string" },
-    "created_at": { "type": "string" }
+    "schema_version": {
+      "const": 1
+    },
+    "run_type": {
+      "const": "author"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "pending_approval",
+        "consumed",
+        "aborted"
+      ]
+    },
+    "targets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "output_root": {
+      "type": "string"
+    },
+    "workspace_brief": {
+      "type": "object"
+    },
+    "preview_files": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "plain_language_report": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "findings": {
+      "type": "array",
+      "description": "The checking worker's exact returned findings, read from the run's mailbox by scripts/validation_evidence.py. Never supplied by a caller.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "severity",
+          "summary"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "severity": {
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "template_gaps": {
+      "type": "array",
+      "description": "Template gaps, kept distinct from findings so a gap is never counted as a rule violation nor silently dropped.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "invariant"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "invariant": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "description": "Provenance of the check this checkpoint rests on. Binds the verdict to the exact content: apply_author refuses when the preview no longer digests to inspected_digest.",
+      "required": [
+        "worker",
+        "envelope_id",
+        "inspected_digest",
+        "all_passed"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "worker": {
+          "type": "string",
+          "minLength": 1
+        },
+        "envelope_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inspected_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "head_hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "all_passed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "description": "The recorded human decision. approved_digest pins approval to content, so approval can never stand in for a check nor authorise different content.",
+      "additionalProperties": true,
+      "properties": {
+        "decision": {
+          "enum": [
+            "approve",
+            "decline"
+          ]
+        },
+        "decided_at": {
+          "type": "string"
+        },
+        "approved_digest": {
+          "type": "string"
+        }
+      }
+    }
   }
 }

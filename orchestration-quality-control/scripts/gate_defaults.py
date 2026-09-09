@@ -142,6 +142,45 @@ def defaults_confirmation(scope: str, fields: dict) -> dict:
     }
 
 
+def _overrides(raw):
+    """Parse an inline --overrides-json argument, failing closed.
+
+    This used to be a bare json.loads. Malformed input escaped run_main as an
+    uncaught JSONDecodeError traceback and a non-2 exit code, breaking the
+    exit-code contract every other script in this package honours. The realistic
+    trigger is not exotic: the sibling --brief-json argument takes a *path*,
+    this one takes an inline JSON *string*, so passing a path here is the
+    natural mistake and produced a raw traceback instead of a recovery action.
+    """
+    if raw is None or raw == "":
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        hint = ""
+        if not raw.lstrip().startswith(("{", "[")):
+            hint = (
+                f" '{raw}' looks like a path; --overrides-json takes inline JSON, "
+                "unlike --brief-json which takes a path."
+            )
+        raise qc_lib.Blocked(
+            stage=STAGE,
+            reason_code="invalid_decision",
+            detail=f"--overrides-json is not valid JSON: {exc}.{hint}",
+            recovery_action=(
+                "pass an inline JSON object, e.g. --overrides-json '{\"shape\": \"multi-worker\"}'"
+            ),
+        ) from exc
+    if not isinstance(parsed, dict):
+        raise qc_lib.Blocked(
+            stage=STAGE,
+            reason_code="invalid_decision",
+            detail=f"--overrides-json must be a JSON object, got {type(parsed).__name__}",
+            recovery_action="pass an inline JSON object of field -> value overrides",
+        )
+    return parsed
+
+
 def main() -> None:
     import argparse
 
@@ -171,21 +210,21 @@ def main() -> None:
     def body():
         brief = qc_lib.load_json_file(args.brief_json, stage=STAGE)
         if args.command == "author-fields":
-            overrides = json.loads(args.overrides_json)
+            overrides = _overrides(args.overrides_json)
             fields = author_fields(brief, overrides)
             return {
                 "fields": fields,
                 "defaults_confirmation": defaults_confirmation("author", fields),
             }
         if args.command == "validate-fields":
-            overrides = json.loads(args.overrides_json)
+            overrides = _overrides(args.overrides_json)
             fields = validate_fields(brief, overrides)
             return {
                 "fields": fields,
                 "defaults_confirmation": defaults_confirmation("validate", fields),
             }
         if args.command == "upgrade-fields":
-            overrides = json.loads(args.overrides_json)
+            overrides = _overrides(args.overrides_json)
             fields = upgrade_fields(brief, args.mechanism_path, overrides)
             return {
                 "fields": fields,

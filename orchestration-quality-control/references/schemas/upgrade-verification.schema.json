@@ -3,15 +3,104 @@
   "$id": "https://orchestration-quality-control/schemas/upgrade-verification.schema.json",
   "title": "Post-apply upgrade verification",
   "type": "object",
-  "required": ["schema_version", "run_id", "status", "findings", "template_gaps", "report", "verified_at"],
+  "required": [
+    "schema_version",
+    "run_id",
+    "status",
+    "findings",
+    "template_gaps",
+    "report",
+    "verified_at"
+  ],
   "additionalProperties": false,
   "properties": {
-    "schema_version": { "const": 1 },
-    "run_id": { "type": "string" },
-    "status": { "enum": ["all_passed", "failed"] },
-    "findings": { "type": "array" },
-    "template_gaps": { "type": "array" },
-    "report": { "type": "string" },
-    "verified_at": { "type": "string" }
-  }
+    "schema_version": {
+      "const": 1
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "all_passed",
+        "failed"
+      ]
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "location",
+          "violation"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "violation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "location": {
+            "type": "object",
+            "required": [
+              "path"
+            ],
+            "additionalProperties": true,
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "section": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "template_gaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "template_id",
+          "invariant"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "template_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "invariant": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "report": {
+      "type": "string"
+    },
+    "verified_at": {
+      "type": "string"
+    }
+  },
+  "description": "Array contents are defined explicitly: an unrestricted array cannot distinguish a well-formed finding from an empty object, and extra nested fields are permitted rather than rejected, so their presence is never on its own evidence of a schema violation."
 }
