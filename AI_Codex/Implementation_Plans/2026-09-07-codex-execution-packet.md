@@ -64,10 +64,10 @@ Push to the verified origin feature branch; do not merge, release or tag.
   - [x] Task 4a: deterministic Claude CLI/session transport contract.
   - [x] Task 4b: Claude AdapterPort composition and request/identity binding.
   - [x] Task 4c: native pre-tool policy hook and local capability smoke.
-- [ ] Task 5: captured real run with externally anchored hashes.
+- [x] Task 5: captured real run with externally anchored hashes.
   - [x] Task 5a: model-free capture writer and offline verifier.
-  - [ ] Task 5b: one authenticated run and saved-capture acceptance.
-- [ ] Task 6: full gate and independent acceptance review.
+  - [x] Task 5b: one authenticated run and saved-capture acceptance.
+- [x] Task 6: full gate and independent acceptance review.
 
 ### Task 2 bounded decision
 

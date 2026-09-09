@@ -718,3 +718,97 @@ real evidence rather than argued.
 This is the concrete case for the proportionality backlog item. The experiment
 was the cheapest and most informative instrument available and it was deferred
 for twelve hours.
+
+### Progress — Task 6 acceptance review dispatch — 2026-09-09 09:30:00 -03
+
+Task 6 is the full gate plus an independent acceptance review. The full gate is
+already satisfied: the complete six-suite Python 3.12 baseline ran once at this
+tree and returned 781 passed with zero failures and zero errors, with
+`git diff --check` clean.
+
+Dispatched the independent acceptance review to a fresh `quality-validator` on
+`opus`, the tier reserved for this gate in the first owner report; effort is not
+settable on this host. It judges the archived native capture at
+`2026-09-09-task5b-live-final` against the packet's Task 5 requirements and must
+decide whether the evidence genuinely proves a live host orchestration.
+
+Bounded per the F1/F2 lesson: blocking only if the capture fails to prove a Task
+5 requirement or is not genuinely live. Everything else is a follow-up. The
+previous unbounded round took thirteen minutes and the bounded one seventy
+seconds, so the bound is applied deliberately, not for convenience.
+
+### Progress — Task 6 acceptance review PASS — 2026-09-09 09:37:00 -03
+
+The `opus` acceptance reviewer returned PASS with zero blocking findings, and it
+did not take the capture on trust.
+
+It reran the complete six-suite baseline — scripts 663, Claude hooks 8, Claude
+adapter 6, Codex 36, Cursor 19, eval harness 49 — with `git diff --check` clean,
+and reverified all three archives. It confirmed the real lifecycle rather than a
+shortcut: `task-first` attempt 1 failed carrying the engine-authorized question
+`task5b-q1`, root relayed one schema-valid `retry` answer, and a **second host
+invocation** whose argv prompt literally carries `"answer_context":"retry"` plus
+the attempt-1 critique produced the attempt-2 pass, after which the dependent
+`task-second` passed. Three real invocations, three distinct Agent tool-use ids,
+one native session `cc392b63…` established at `SessionStart:startup` and resumed
+under `--resume` with `SessionStart:resume` on invocations 2 and 3, two distinct
+worker identities, `totalToolUseCount` 0 and no fabricated markup.
+
+On liveness it was appropriately careful. Nothing is vendor-signed, so a capture
+is forgeable in principle; what makes forgery implausible here is the incidental
+environmental fingerprinting a forger would have to reproduce self-consistently
+— host version 2.1.234, real cwd, MCP tool inventories that differ between
+invocations, rate-limit utilization drifting 0.57 to 0.58 against a correct
+seven-day reset, non-round cumulative cost 0.406, 0.632, 0.901 across the
+resumed session, and per-subagent usage blocks. The three archives also carry
+three different session ids and a host agent roster that visibly changed between
+the 8th and the 9th: an environment evolving over time, not a template.
+
+It also proved the gate is not vacuous. The 2026-09-08 archive is rejected on
+unknown or missing transport fields; the first 2026-09-09 archive verifies
+offline but is rejected under live acceptance for fabricated tool-call markup;
+and nine hand-built tamper variants — artifact bytes, artifact bytes with a
+rehashed manifest, mailbox bytes, an outcome flip with full manifest rehash, a
+deleted answer envelope, an artifact rebind across mailbox, transport and
+manifest, a duplicated tool-use id, and synthetic minimal stdout — were all
+blocked. The repository and `AI_Codex/` were untouched.
+
+### Checkpoint — Outcome 3 complete
+
+time: 2026-09-09 09:38:00 -03
+task: Task 6 — full gate and independent acceptance review
+attempt: 1 of 3
+worker model: opus
+worker effort: not settable on this host
+spec validator: not run — acceptance review judged the capture against the packet directly
+quality reviewer: opus — PASS, zero blocking findings
+commands:
+  command: full six-suite Python 3.12 baseline, rerun independently by the reviewer
+  counts: 781 passed, 0 failures, 0 errors
+  command: verify_capture(live_acceptance=True) on 2026-09-09-task5b-live-final
+  counts: phase completed, head 96d0fc9a…f6f0fe
+  command: nine independent tamper injections
+  counts: 9 of 9 blocked
+  command: git diff --check
+  counts: clean
+commit hash: pending
+next: Outcome 3 is closed. Outcome 4 broad host migration is now unblocked but is NOT started; it needs its own bounded packet authored from this verified transport experience.
+
+## Backlog / tech debt — verifier hardening (from the Task 6 review)
+
+Non-blocking follow-ups the acceptance reviewer raised. All `proposed, not
+adopted`; Task 6 passed without them.
+
+- `_validate_native_live_evidence` reparses `raw_stdout` but never compares
+  `parse_stream(...).session_id` and `.worker_tool_use["id"]` against the
+  record's `native_session_id` and `worker_tool_use_id`. The reviewer confirmed
+  by hand that all three match; a mismatch would not be caught. Cheap to assert.
+- The verifier does not assert `--resume <session_id>` on invocations after the
+  first, so "resume never silently starts a new session" rests on archived argv
+  and the `SessionStart:resume` hooks rather than an executable check.
+- No test is pinned to the accepted archive. A future regression that made
+  `verify_capture` reject the real capture would not be caught by discovery. One
+  offline regression test pointing at `2026-09-09-task5b-live-final` closes it.
+- The prompt is bound only by SHA-256 of `argv[-1]`; nothing offline binds the
+  prompt text to the mailbox request's `brief_hash`. Verified by hand this time.
+- The three crash paths in `_validate_native_live_evidence` remain deferred.
