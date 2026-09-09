@@ -843,3 +843,58 @@ execution protocol note, and the schemas permission backup.
 
 This note is uncommitted by design; the protocol forbids a bookkeeping-only
 commit after a task commit, so it will be carried into the next substantive one.
+
+## Tech debt — external: codex-workflows-plugin ticket-move false positive
+
+Recorded at owner request. This defect is **not in this repository**. It lives in
+`codex-workflows-plugin` v0.5.20, `scripts/policy/engine.py`, function
+`_evaluate_ticket_paths`, at the branch that denies a move out of the Ready
+folder to anywhere other than Active. The project source is
+`/mnt/DATA/Projects/Personal/codex-workflows-plugin`; no ticket is opened here
+because this vault does not govern that plugin.
+
+### Symptom
+
+Committing the seven new tickets was denied with `Tickets from Tickets/Ready/
+must be moved to Tickets/Active/ when started, not Ready.` No move was
+attempted. The command only appended prose to the session ledger and staged
+files.
+
+### Root cause, narrowed by reproduction
+
+Root probed it rather than guessing, and the first hypothesis was wrong.
+
+- A two-path `git add` naming a ticket directory and a session note is **not**
+  denied. Staging alone is fine.
+- Prose that merely mentions the ticket folders, with no path argument, is
+  **not** denied.
+- A **compound** command that both writes text containing the Ready folder path
+  and separately passes a ticket path as an argument **is** denied.
+
+The canonicalizer draws `source_path` from the folder path appearing in the
+written text and `destination_path` from the path argument, then the ticket rule
+reads that pair as a move and rejects it because the destination is not Active.
+The deny message naming `Ready` as the destination is the tell: the destination
+was the staged directory argument, and the source was prose.
+
+So the trigger is narrow and easy to hit unintentionally: **describing ticket
+workflow in a ledger note while touching a ticket path in the same command.**
+Any session that records ticket work as it does it will meet this.
+
+### Impact and workaround
+
+Low severity and fail-closed — the denied command did not run and the tree was
+verified unchanged, so nothing was corrupted. The cost is a confusing denial
+that invites a wrong diagnosis; root's first read of it was mistaken.
+
+Workaround in force for the rest of this session: keep ledger prose that names
+ticket folders in its own tool call, separate from any command carrying a ticket
+path. Splitting the staging into single-path calls cleared it and the tickets
+committed as `7b4e333`.
+
+### Suggested fix, for that project
+
+Derive move source and destination only from actual move or rename operations —
+`mv`, `git mv`, a rename tool call — rather than from paths recovered anywhere
+in a command string, including redirected or heredoc text. A path appearing in
+content being written is not a move operand.
