@@ -232,9 +232,34 @@ def _validate_native_live_evidence(records, contract):
         policy = {(event.get("hook_name"), event.get("outcome")) for event in event_data}
         if not {("PreToolUse:Agent", "success"), ("PreToolUse:StructuredOutput", "success")} <= policy:
             _blocked("native event stream lacks Agent and StructuredOutput policy signals")
+        # Grounded against the real archived capture (AI_Codex/Agent_Evidence/2026-09-08-task5b-live):
+        # no event carries a top-level "tool_name", so that key can never be a disallowed-tool signal.
+        # Real tool calls appear as message.content[i] blocks with {"type": "tool_use", "name": ...},
+        # and worker results appear as a dict tool_use_result carrying totalToolUseCount. In that real
+        # capture two of three tool-free workers still hallucinated tool use as plain narrated text
+        # inside tool_use_result content, fabricating <tool_use>/<tool_result> markup and answering
+        # from content they invented rather than ever actually reading. All three checks below are
+        # grounded in that evidence, not in a key the host never emits.
         for event in event_data:
-            if event.get("tool_name") in _WORKER_DISALLOWED_TOOLS:
-                _blocked("native event stream shows a disallowed worker tool")
+            message = event.get("message")
+            content = message.get("content") if isinstance(message, Mapping) else None
+            if isinstance(content, (list, tuple)):
+                for block in content:
+                    if isinstance(block, Mapping) and block.get("type") == "tool_use" and block.get("name") not in ("Agent", "StructuredOutput"):
+                        _blocked("native Orchestrator stream calls a tool other than Agent or StructuredOutput")
+            worker_result = event.get("tool_use_result")
+            if isinstance(worker_result, Mapping) and "agentId" in worker_result:
+                if worker_result.get("totalToolUseCount") != 0:
+                    _blocked("native worker result reports nonzero tool use despite the tool-free contract")
+                result_content = worker_result.get("content")
+                if isinstance(result_content, (list, tuple)):
+                    for block in result_content:
+                        text = block.get("text") if isinstance(block, Mapping) else None
+                        if isinstance(text, str) and (
+                            ("<tool_use" in text and "</tool_use>" in text)
+                            or ("<tool_result" in text and "</tool_result>" in text)
+                        ):
+                            _blocked("native worker result fabricates tool-call markup it never executed")
 
 @dataclass(frozen=True)
 class Task5bSeam:
@@ -243,11 +268,40 @@ class Task5bSeam:
 
 _NATIVE_RUNNER_MARKER = object()
 
+def _closure_cell(func, name):
+    """Look through one layer of closure for a free variable's bound value.
+
+    ``ClaudeAdapter`` wraps every injected runner in its own ``recording_runner``
+    closure, so ``adapter._transport._runner`` is never the caller's runner object
+    itself -- it is that closure. Reading the closure cell is the only way to see
+    what the adapter actually calls.
+    """
+    code = getattr(func, "__code__", None)
+    closure = getattr(func, "__closure__", None)
+    if code is None or closure is None or name not in code.co_freevars:
+        return None
+    return closure[code.co_freevars.index(name)].cell_contents
+
+def _adapter_wraps_real_subprocess_runner(adapter):
+    """Verify the adapter's actual wrapped runner, not a copyable marker field.
+
+    ``Task5bSeam.native_runner_marker``/``native_adapter`` are plain dataclass
+    fields: any caller holding a genuine native seam can read the sentinel off
+    it and graft both fields onto a seam built over an injected runner via
+    ``dataclasses.replace``, using only public API. Trusting those fields alone
+    makes native eligibility forgeable. The adapter's transport closure over the
+    runner it was actually constructed with cannot be forged the same way.
+    """
+    recording_runner = getattr(getattr(adapter, "_transport", None), "_runner", None)
+    return _closure_cell(recording_runner, "runner") is real_subprocess_runner
+
 def _is_native_task_5b_seam(seam):
     return (
         isinstance(seam, Task5bSeam)
         and seam.native_runner_marker is _NATIVE_RUNNER_MARKER
         and seam.native_adapter is seam.adapter
+        and isinstance(seam.adapter, ClaudeAdapter)
+        and _adapter_wraps_real_subprocess_runner(seam.adapter)
     )
 
 def real_subprocess_runner(argv):
@@ -275,7 +329,9 @@ def compile_task_5b_seam(runner=real_subprocess_runner, *, artifact_dir="."):
                 "the engine-authorized question "
                 "{question_id: task5b-q1, prompt: Retry first worker?}. "
                 "On attempt 2 must return outcome 'passed' only when answer_context "
-                "contains the approved retry. Return only schema-valid output with a nonblank artifact string; do not read files or schemas."
+                "contains the approved retry. Return only schema-valid output with a nonblank artifact string; do not read files or schemas. "
+                "Never fabricate or transcribe any tool-call or tool-output markup and never narrate, simulate, or invent a tool call or its output; "
+                "answer directly from this prompt with a schema-valid result and nothing else."
             ),
             "model": "claude-opus-4-6", "effort": "medium", "tools": [], "disallowedTools": list(_WORKER_DISALLOWED_TOOLS),
         },
@@ -285,7 +341,9 @@ def compile_task_5b_seam(runner=real_subprocess_runner, *, artifact_dir="."):
                 f"For task_id {second}, return outcome 'passed' on attempt 1 only "
                 f"after task_id {first} has passed; the controller dispatches this "
                 "task only after that dependency completes. Return only schema-valid output "
-                "with a nonblank artifact string; do not read files or schemas."
+                "with a nonblank artifact string; do not read files or schemas. "
+                "Never fabricate or transcribe any tool-call or tool-output markup and never narrate, simulate, or invent a tool call or its output; "
+                "answer directly from this prompt with a schema-valid result and nothing else."
             ),
             "model": "claude-opus-4-6", "effort": "medium", "tools": [], "disallowedTools": list(_WORKER_DISALLOWED_TOOLS),
         },

@@ -1,3 +1,4 @@
+import hashlib
 import json
 import tempfile
 import unittest
@@ -32,6 +33,105 @@ def _stream(session, worker, result, tool_id):
             {"type": "result", "session_id": session, "structured_output": result},
         )
     )
+
+
+def _native_event_stream(session, worker, structured_output, *, tool_use_id, structured_tool_id,
+                          model="claude-opus-4-6", total_tool_use_count=0):
+    """One invocation's raw_stdout: the real host's event vocabulary, trimmed to
+    the subset that drives parse_stream and _validate_native_live_evidence.
+
+    Modeled on test_claude_capture.py's own ``_native_event_stream`` helper (same
+    approach, not imported -- that file is under concurrent review and must not
+    be touched or depended on here). Both are grounded in the real archived
+    Claude Code 2.1.234 capture at
+    AI_Codex/Agent_Evidence/2026-09-08-task5b-live/transport.jsonl: a
+    system/init record carrying model, an assistant tool_use block named
+    "Agent", a flat hook_name/hook_event/outcome/exit_code PreToolUse:Agent hook
+    pair, a user event carrying a dict tool_use_result with
+    agentId/agentType/status/totalToolUseCount/content, an assistant tool_use
+    block named "StructuredOutput", its own PreToolUse:StructuredOutput hook
+    pair, and a terminal result event carrying structured_output. Confirmed
+    directly against that same real transport.jsonl's three invocation
+    payloads: none of them ever carried an "artifact" field -- exactly the
+    defect the negative test below reproduces and proves is rejected under
+    live acceptance.
+    """
+    worker_text = "Grounded analysis with no tool calls."
+    events = [
+        {"type": "system", "subtype": "init", "session_id": session, "model": model},
+        {"type": "assistant", "session_id": session, "message": {
+            "role": "assistant", "model": model,
+            "content": [{"type": "text", "text": "Dispatching to the worker."}],
+        }},
+        {"type": "assistant", "session_id": session, "message": {
+            "role": "assistant", "model": model,
+            "content": [{"type": "tool_use", "id": tool_use_id, "name": "Agent",
+                          "input": {"subagent_type": worker, "description": "Execute worker task", "prompt": "worker brief"}}],
+        }},
+        {"type": "system", "hook_name": "PreToolUse:Agent", "hook_event": "PreToolUse", "session_id": session, "subtype": "hook_started"},
+        {"type": "system", "hook_name": "PreToolUse:Agent", "hook_event": "PreToolUse", "outcome": "success", "exit_code": 0, "session_id": session, "subtype": "hook_response"},
+        {"type": "user", "session_id": session, "message": {"role": "user", "content": [
+            {"type": "tool_result", "tool_use_id": tool_use_id, "content": [{"type": "text", "text": worker_text}]},
+        ]}, "tool_use_result": {
+            "agentId": "worker-run-1", "agentType": worker, "status": "completed",
+            "totalToolUseCount": total_tool_use_count,
+            "content": [{"type": "text", "text": worker_text}],
+            "usage": {"input_tokens": 10, "output_tokens": 20},
+        }},
+        {"type": "assistant", "session_id": session, "message": {
+            "role": "assistant", "model": model,
+            "content": [{"type": "text", "text": "Worker completed with a grounded schema-valid result."}],
+        }},
+        {"type": "assistant", "session_id": session, "message": {
+            "role": "assistant", "model": model,
+            "content": [{"type": "tool_use", "id": structured_tool_id, "name": "StructuredOutput", "input": dict(structured_output)}],
+        }},
+        {"type": "system", "hook_name": "PreToolUse:StructuredOutput", "hook_event": "PreToolUse", "session_id": session, "subtype": "hook_started"},
+        {"type": "system", "hook_name": "PreToolUse:StructuredOutput", "hook_event": "PreToolUse", "outcome": "success", "exit_code": 0, "session_id": session, "subtype": "hook_response"},
+        {"type": "user", "session_id": session, "message": {"role": "user", "content": [
+            {"type": "tool_result", "tool_use_id": structured_tool_id, "content": "Structured output provided successfully"},
+        ]}, "tool_use_result": "Structured output provided successfully"},
+        {"type": "result", "session_id": session, "structured_output": structured_output},
+    ]
+    return "\n".join(json.dumps(event, sort_keys=True) for event in events)
+
+
+def _native_seam(artifact_dir, make_results, *, session="native-task5b-session"):
+    """Build a Task 5b seam whose recorded runner emits realistic native-shaped
+    stdout (see ``_native_event_stream``) instead of the minimal three-line
+    shape ``_stream`` above produces, so the controller is driven against the
+    same event vocabulary the real host emits. ``make_results(first, second)``
+    returns the three per-invocation ``structured_output`` payloads, in
+    dispatch order: task one attempt one, task one attempt two, task two
+    attempt one.
+    """
+    template = compile_task_5b_seam(lambda argv: None)
+    first, second = (node.task_id for node in template.contract.task_dag.tasks)
+    results = make_results(first, second)
+    calls = []
+
+    def runner(argv):
+        calls.append(argv)
+        index = len(calls)
+        worker = argv[argv.index("--allowed-tools") + 1][6:-1]
+        raw_stdout = _native_event_stream(
+            session, worker, results[index - 1],
+            tool_use_id=f"toolu_agent_{index}", structured_tool_id=f"toolu_structured_{index}",
+        )
+        return 0, raw_stdout, ""
+
+    adapter = ClaudeAdapter(
+        runner, model="claude-opus-4-6", effort="medium",
+        worker_definitions={
+            spec.agent_id: {
+                "description": "generated isolated worker", "prompt": "return only schema-valid output",
+                "model": "claude-opus-4-6", "effort": "medium", "tools": [],
+            }
+            for spec in template.contract.agent_specs.values()
+        },
+        artifact_dir=artifact_dir,
+    )
+    return replace(template, adapter=adapter), calls
 
 
 class Task5bCaptureControllerTests(unittest.TestCase):
@@ -342,6 +442,118 @@ class Task5bCaptureControllerTests(unittest.TestCase):
             with self.assertRaises(Blocked):
                 run_task_5b_capture(replaced, artifact_dir, Path(directory) / "capture", provenance=None)
             self.assertEqual(calls, [])
+
+
+class Task5bNativeShapedLifecycleTests(unittest.TestCase):
+    """Dress rehearsal for the one remaining authenticated live run.
+
+    Drives run_task_5b_capture through the complete three-invocation Task 5b
+    lifecycle over a recorded runner whose stdout is realistic native-shaped
+    JSONL (see ``_native_event_stream`` above), so a controller defect surfaces
+    here, offline, before that run is spent. Uses recorded_test_provenance()
+    only -- never native provenance -- this is an offline rehearsal and must
+    not claim live evidence.
+    """
+
+    def _results_with_artifacts(self, first, second):
+        return (
+            {"task_id": first, "attempt": 1, "outcome": "failed", "critique": "need approved retry",
+             "question": {"question_id": "task5b-q1", "prompt": "Retry first worker?"},
+             "artifact": "first artifact"},
+            {"task_id": first, "attempt": 2, "outcome": "passed", "artifact": "second artifact"},
+            {"task_id": second, "attempt": 1, "outcome": "passed", "artifact": "third artifact"},
+        )
+
+    def _results_without_artifacts(self, first, second):
+        """Exactly what the real workers did (confirmed against
+        AI_Codex/Agent_Evidence/2026-09-08-task5b-live/transport.jsonl): schema-valid
+        results that never carry an "artifact" field at all."""
+        return (
+            {"task_id": first, "attempt": 1, "outcome": "failed", "critique": "need approved retry",
+             "question": {"question_id": "task5b-q1", "prompt": "Retry first worker?"}},
+            {"task_id": first, "attempt": 2, "outcome": "passed"},
+            {"task_id": second, "attempt": 1, "outcome": "passed"},
+        )
+
+    def test_full_lifecycle_over_native_shaped_stream_archives_three_artifacts_and_verifies(self):
+        from claude_capture_run import run_task_5b_capture
+
+        with tempfile.TemporaryDirectory() as directory:
+            artifact_dir = Path(directory) / "artifacts"
+            capture_dir = Path(directory) / "capture"
+            seam, calls = _native_seam(artifact_dir, self._results_with_artifacts)
+
+            result = run_task_5b_capture(seam, artifact_dir, capture_dir, provenance=recorded_test_provenance())
+
+            self.assertEqual(len(calls), 3)
+            self.assertEqual(result.capture_path, capture_dir)
+            self.assertEqual(result.verification.state.phase, "completed")
+
+            for name in ("contract.json", "mailbox.jsonl", "transport.jsonl", "mailbox-head.json", "manifest.json", "COMPLETE"):
+                self.assertTrue((capture_dir / name).is_file(), name)
+            self.assertEqual((capture_dir / "COMPLETE").read_bytes(), b"complete\n")
+
+            manifest = json.loads((capture_dir / "manifest.json").read_text())
+            self.assertEqual(len(manifest["artifacts"]), 3)
+            self.assertEqual({item["invocation"] for item in manifest["artifacts"]}, {1, 2, 3})
+
+            records = {}
+            for line in (capture_dir / "transport.jsonl").read_text().splitlines():
+                record = json.loads(line)
+                records[record["invocation"]] = record
+
+            for item in manifest["artifacts"]:
+                artifact_path = capture_dir / item["path"]
+                self.assertTrue(artifact_path.is_file())
+                data = artifact_path.read_bytes()
+                self.assertGreater(len(data), 0)
+                self.assertEqual(hashlib.sha256(data).hexdigest(), item["sha256"])
+                response_hash = records[item["invocation"]]["response"]["payload"]["artifact_hash"]
+                self.assertEqual(item["sha256"], response_hash)
+
+            anchor = json.loads((capture_dir / "mailbox-head.json").read_text())
+            self.assertEqual(set(anchor), {"head_hash"})
+            self.assertTrue(isinstance(anchor["head_hash"], str) and anchor["head_hash"])
+            self.assertEqual(anchor["head_hash"], result.verification.head_hash)
+
+    def test_workers_returning_no_artifact_field_are_rejected_not_accepted_as_complete(self):
+        """Reproduce the exact production failure: schema-valid worker results
+        with no artifact field at all archive with manifest["artifacts"] == [],
+        matching the real blocked live run's evidence. The offline rehearsal
+        itself (recorded_test_provenance()) only ever requests
+        live_acceptance=False from run_task_5b_capture, so it cannot by itself
+        exercise the live gate without spending the one remaining authenticated
+        run -- so this proves the actual gate the same way
+        test_claude_capture.py's own live-acceptance tests do: flip the on-disk
+        provenance label to "native" (the only way live_acceptance=True is ever
+        requested) and call verify_capture directly, asserting it rejects the
+        artifact-free archive rather than accepting it as a completed live
+        capture."""
+        from claude_capture_run import run_task_5b_capture
+        from claude_capture import verify_capture
+
+        with tempfile.TemporaryDirectory() as directory:
+            artifact_dir = Path(directory) / "artifacts"
+            capture_dir = Path(directory) / "capture"
+            seam, calls = _native_seam(artifact_dir, self._results_without_artifacts)
+
+            result = run_task_5b_capture(seam, artifact_dir, capture_dir, provenance=recorded_test_provenance())
+            self.assertEqual(len(calls), 3)
+            self.assertEqual(result.verification.state.phase, "completed")
+
+            manifest = json.loads((capture_dir / "manifest.json").read_text())
+            self.assertEqual(manifest["artifacts"], [])
+            self.assertFalse(tuple(capture_dir.glob("artifact-*.bin")))
+
+            manifest["provenance"] = "native"
+            (capture_dir / "manifest.json").write_text(json.dumps(manifest, sort_keys=True, separators=(",", ":")))
+
+            with self.assertRaises(Blocked) as cm:
+                verify_capture(capture_dir, live_acceptance=True)
+            self.assertEqual(
+                cm.exception.detail,
+                "native Task 5b acceptance requires one captured artifact per worker result",
+            )
 
 
 if __name__ == "__main__":

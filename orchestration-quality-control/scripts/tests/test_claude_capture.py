@@ -3,14 +3,16 @@ import hashlib
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from claude_adapter import ClaudeAdapter
+from claude_transport import ClaudeTransport
 from compile_workflow import compile_workflow
 from gate import approve_answer
 from mailbox import Mailbox
 from oqc import drive, resume
 from orchestrator_contract import compile_orchestrator
-from qc_lib import Blocked
+from qc_lib import Blocked, thaw
 
 
 def _stream(session, worker, result, tool_id):
@@ -37,6 +39,95 @@ def _fixture():
             result = {"task_id": tasks[1], "attempt": 1, "outcome": "passed", "artifact": "third artifact"}
         return 0, _stream("native-session", worker, result, f"tool-{index}"), ""
     return contract, workers, runner, tasks
+
+
+def _native_event_stream(*, worker, session_id, model, tool_use_id="toolu_agent_1",
+                          structured_tool_id="toolu_structured_1", total_tool_use_count=0,
+                          worker_text="Grounded analysis with no tool calls.",
+                          orchestrator_extra_tool_use=None, structured_output=None,
+                          hook_agent_outcome="success", hook_structured_outcome="success"):
+    """Build one invocation's raw_stdout JSONL text.
+
+    Event vocabulary (types, keys, tool_use/tool_use_result shapes, and the flat
+    hook_name/hook_event/outcome/exit_code keys) is grounded in the real archived
+    Claude Code 2.1.234 stream at
+    AI_Codex/Agent_Evidence/2026-09-08-task5b-live/transport.jsonl, trimmed to the
+    subset that drives parse_stream and _validate_native_live_evidence. That real
+    stream is also where the two fabricated-tool-call markers this helper can
+    inject ("<tool_use" and "<tool_result") were themselves observed: two of its
+    three worker invocations hallucinated exactly this markup inside their own
+    tool_use_result text instead of actually calling a tool.
+    """
+    structured_output = structured_output or {"task_id": "task-first", "attempt": 1, "outcome": "passed"}
+    events = [
+        {"type": "system", "subtype": "init", "session_id": session_id, "model": model},
+        {"type": "assistant", "session_id": session_id, "message": {
+            "role": "assistant", "model": model,
+            "content": [{"type": "text", "text": "Dispatching to the worker."}],
+        }},
+    ]
+    if orchestrator_extra_tool_use is not None:
+        events.append({"type": "assistant", "session_id": session_id, "message": {
+            "role": "assistant", "model": model, "content": [orchestrator_extra_tool_use],
+        }})
+    events += [
+        {"type": "assistant", "session_id": session_id, "message": {
+            "role": "assistant", "model": model,
+            "content": [{"type": "tool_use", "id": tool_use_id, "name": "Agent",
+                          "input": {"subagent_type": worker, "description": "Execute worker task", "prompt": "worker brief"}}],
+        }},
+        {"type": "system", "hook_name": "PreToolUse:Agent", "hook_event": "PreToolUse", "session_id": session_id, "subtype": "hook_started"},
+        {"type": "system", "hook_name": "PreToolUse:Agent", "hook_event": "PreToolUse", "outcome": hook_agent_outcome, "exit_code": 0, "session_id": session_id, "subtype": "hook_response"},
+        {"type": "user", "session_id": session_id, "message": {"role": "user", "content": [
+            {"type": "tool_result", "tool_use_id": tool_use_id, "content": [{"type": "text", "text": worker_text}]},
+        ]}, "tool_use_result": {
+            "agentId": "worker-run-1", "agentType": worker, "status": "completed",
+            "totalToolUseCount": total_tool_use_count,
+            "content": [{"type": "text", "text": worker_text}],
+            "usage": {"input_tokens": 10, "output_tokens": 20},
+        }},
+        {"type": "assistant", "session_id": session_id, "message": {
+            "role": "assistant", "model": model,
+            "content": [{"type": "text", "text": "Worker completed with a grounded schema-valid result."}],
+        }},
+        {"type": "assistant", "session_id": session_id, "message": {
+            "role": "assistant", "model": model,
+            "content": [{"type": "tool_use", "id": structured_tool_id, "name": "StructuredOutput", "input": dict(structured_output)}],
+        }},
+        {"type": "system", "hook_name": "PreToolUse:StructuredOutput", "hook_event": "PreToolUse", "session_id": session_id, "subtype": "hook_started"},
+        {"type": "system", "hook_name": "PreToolUse:StructuredOutput", "hook_event": "PreToolUse", "outcome": hook_structured_outcome, "exit_code": 0, "session_id": session_id, "subtype": "hook_response"},
+        {"type": "user", "session_id": session_id, "message": {"role": "user", "content": [
+            {"type": "tool_result", "tool_use_id": structured_tool_id, "content": "Structured output provided successfully"},
+        ]}, "tool_use_result": "Structured output provided successfully"},
+        {"type": "result", "session_id": session_id, "structured_output": structured_output},
+    ]
+    return "\n".join(json.dumps(event, sort_keys=True) for event in events)
+
+
+def _native_record(raw_stdout, *, worker, model, effort, worker_definition):
+    """Drive the real ClaudeTransport over a canned raw_stdout to get an internally
+    consistent native-shaped transport record (argv/settings/schema and prompt
+    hashes are all host-generated, not hand-typed, so they cannot silently drift
+    from what _validate_native_live_evidence itself recomputes)."""
+    def runner(argv):
+        return 0, raw_stdout, ""
+    result = ClaudeTransport(runner).invoke(
+        json.dumps({"engine_brief": True}, sort_keys=True), model, effort, worker, worker_definition,
+    )
+    return {
+        "request": {"recipient": f"agent:{worker}"},
+        "argv": list(result.argv),
+        "settings": thaw(result.settings),
+        "worker_definition": thaw(result.worker_definition),
+        "schema_sha256": result.schema_sha256,
+        "prompt_sha256": result.prompt_sha256,
+        "raw_stdout": result.raw_stdout,
+        "raw_stderr": result.raw_stderr,
+        "process_tuple": [0, result.raw_stdout, result.raw_stderr],
+        "model": model,
+        "effort": effort,
+        "events": list(result.events),
+    }
 
 
 class CaptureArchiveTests(unittest.TestCase):
@@ -74,6 +165,28 @@ class CaptureArchiveTests(unittest.TestCase):
             (root / "manifest.json").write_text(json.dumps(manifest, sort_keys=True, separators=(",", ":")))
             with self.assertRaises(Blocked):
                 claude_capture.verify_capture(root, live_acceptance=True)
+
+    def test_live_acceptance_with_native_provenance_actually_invokes_native_evidence_validation(self):
+        """Guard against _validate_native_live_evidence going unreachable again.
+
+        A prior version of this function was pure dead code: every existing
+        live_acceptance=True test was rejected earlier (provenance label or
+        _validate_live_artifacts), so nothing ever called it. This spies on the
+        real function (wraps=, not a stub) so it still runs its real checks and
+        still blocks this non-native-shaped recorded fixture -- the point is
+        proving the call happens at all, not what it decides.
+        """
+        import claude_capture
+        with tempfile.TemporaryDirectory() as directory:
+            root = self._capture(directory)
+            manifest = json.loads((root / "manifest.json").read_text())
+            manifest["provenance"] = "native"
+            (root / "manifest.json").write_text(json.dumps(manifest, sort_keys=True, separators=(",", ":")))
+            original = claude_capture._validate_native_live_evidence
+            with patch("claude_capture._validate_native_live_evidence", wraps=original) as spy:
+                with self.assertRaises(Blocked):
+                    claude_capture.verify_capture(root, live_acceptance=True)
+            self.assertEqual(spy.call_count, 1)
 
     def test_external_anchor_and_final_mailbox_tampering_are_blocked(self):
         import claude_capture
@@ -164,6 +277,27 @@ class CaptureArchiveTests(unittest.TestCase):
         self.assertIn(f"after task_id {first} has passed", second_prompt)
         self.assertIn("nonblank artifact string", second_prompt)
 
+    def test_task5b_generated_worker_prompts_forbid_fabricated_tool_call_markup(self):
+        """Both generated worker prompts must explicitly forbid the exact
+        hallucination the real archived capture caught two workers doing:
+        fabricating tool-call/tool-output markup and narrating invented tool
+        output instead of answering directly. The prompt text itself must
+        never contain the literal '<tool_use' / '<tool_result' character
+        sequences -- writing them into the prompt primes a compliant worker
+        to echo the very substring the anti-fabrication check watches for."""
+        import claude_capture
+        seam = claude_capture.compile_task_5b_seam(lambda argv: None)
+        first_node, second_node = seam.contract.task_dag.tasks
+        first_worker = seam.contract.agent_specs[first_node.role].agent_id
+        second_worker = seam.contract.agent_specs[second_node.role].agent_id
+        for worker in (first_worker, second_worker):
+            prompt = seam.adapter._workers[worker]["prompt"]
+            self.assertIn("Never fabricate or transcribe any tool-call or tool-output markup", prompt)
+            self.assertIn("never narrate, simulate, or invent a tool call or its output", prompt)
+            self.assertIn("answer directly from this prompt with a schema-valid result", prompt)
+            self.assertNotIn("<tool_use", prompt)
+            self.assertNotIn("<tool_result", prompt)
+
     def test_missing_invalid_and_out_of_order_answers_are_blocked(self):
         import claude_capture
         for label, alter in (
@@ -204,6 +338,262 @@ class CaptureArchiveTests(unittest.TestCase):
             with self.subTest(label=label), tempfile.TemporaryDirectory() as directory:
                 root = self._capture(directory); alter(root)
                 with self.assertRaises(Blocked): claude_capture.verify_capture(root)
+
+
+class NativeLiveEvidenceTests(unittest.TestCase):
+    """Direct coverage for _validate_native_live_evidence.
+
+    Its only caller (verify_capture with live_acceptance=True) was never reached
+    by any existing test: every prior fixture was rejected earlier, at the
+    provenance-label check or inside _validate_live_artifacts. These tests call
+    it directly with a realistic native-shaped record -- built by driving the
+    real ClaudeTransport (so argv/settings/schema and prompt hashes are
+    host-generated, not hand-typed) over a raw_stdout event stream modeled on
+    the real archived capture -- so every branch actually executes.
+    """
+
+    WORKER = "agent-author-first"
+    MODEL = "claude-opus-4-6"
+    EFFORT = "medium"
+    SESSION = "native-golden-session"
+
+    def _contract(self):
+        import claude_capture
+        return claude_capture.compile_task_5b_seam(lambda argv: None).contract
+
+    def _definition(self):
+        import claude_capture
+        return {
+            "description": "generated isolated worker for the first task",
+            "prompt": "Return only schema-valid output; do not read files or schemas.",
+            "model": self.MODEL,
+            "effort": self.EFFORT,
+            "tools": [],
+            "disallowedTools": list(claude_capture._WORKER_DISALLOWED_TOOLS),
+        }
+
+    def _record(self, **stream_overrides):
+        stream_overrides.setdefault("worker", self.WORKER)
+        stream_overrides.setdefault("session_id", self.SESSION)
+        stream_overrides.setdefault("model", self.MODEL)
+        raw_stdout = _native_event_stream(**stream_overrides)
+        return _native_record(raw_stdout, worker=stream_overrides["worker"], model=self.MODEL,
+                               effort=self.EFFORT, worker_definition=self._definition())
+
+    def _clean_record(self):
+        return self._record()
+
+    def _validate(self, records):
+        import claude_capture
+        claude_capture._validate_native_live_evidence(records, self._contract())
+
+    def test_accepts_a_realistic_grounded_native_record(self):
+        self._validate([self._clean_record()])
+
+    def test_rejects_non_list_argv_or_non_mapping_settings_or_definition(self):
+        base = self._clean_record()
+        cases = (
+            ("argv-not-list", {"argv": tuple(base["argv"])}),
+            ("settings-not-dict", {"settings": None}),
+            ("worker-definition-not-dict", {"worker_definition": None}),
+        )
+        for label, override in cases:
+            with self.subTest(label=label):
+                with self.assertRaises(Blocked):
+                    self._validate([{**base, **override}])
+
+    def test_rejects_schema_or_prompt_hash_binding_mismatch(self):
+        base = self._clean_record()
+        cases = (
+            ("wrong-schema-hash", {"schema_sha256": "0" * 64}),
+            ("prompt-hash-wrong-length", {"prompt_sha256": "short"}),
+            ("prompt-hash-not-string", {"prompt_sha256": 12345}),
+        )
+        for label, override in cases:
+            with self.subTest(label=label):
+                with self.assertRaises(Blocked):
+                    self._validate([{**base, **override}])
+
+    def test_rejects_argv_not_binding_the_exact_invocation_prompt(self):
+        base = self._clean_record()
+        argv_wrong_executable = list(base["argv"]); argv_wrong_executable[0] = "not-claude"
+        argv_blank_prompt = list(base["argv"]); argv_blank_prompt[-1] = ""
+        argv_unbound_prompt = list(base["argv"]); argv_unbound_prompt[-1] = "a prompt the hash was never computed from"
+        cases = (
+            ("too-short", {"argv": ["claude"]}),
+            ("wrong-executable", {"argv": argv_wrong_executable}),
+            ("blank-prompt", {"argv": argv_blank_prompt}),
+            ("unbound-prompt", {"argv": argv_unbound_prompt}),
+        )
+        for label, override in cases:
+            with self.subTest(label=label):
+                with self.assertRaises(Blocked):
+                    self._validate([{**base, **override}])
+
+    def test_rejects_argv_not_binding_model_effort_or_agent_only_registration(self):
+        base = self._clean_record()
+        argv_wrong_model = list(base["argv"]); argv_wrong_model[argv_wrong_model.index("--model") + 1] = "wrong-model"
+        argv_wrong_allowed = list(base["argv"]); argv_wrong_allowed[argv_wrong_allowed.index("--allowed-tools") + 1] = "Agent(someone-else)"
+        cases = (
+            ("model-flag", {"argv": argv_wrong_model}),
+            ("allowed-tools-flag", {"argv": argv_wrong_allowed}),
+        )
+        for label, override in cases:
+            with self.subTest(label=label):
+                with self.assertRaises(Blocked):
+                    self._validate([{**base, **override}])
+
+    def test_rejects_worker_definition_that_is_not_host_effectively_tool_free(self):
+        base = self._clean_record()
+        definition_with_tools = dict(base["worker_definition"]); definition_with_tools["tools"] = ["Bash"]
+        definition_wrong_disallowed = dict(base["worker_definition"]); definition_wrong_disallowed["disallowedTools"] = []
+        cases = (
+            ("tools-nonempty", {"worker_definition": definition_with_tools}),
+            ("disallowedTools-wrong", {"worker_definition": definition_wrong_disallowed}),
+        )
+        for label, override in cases:
+            with self.subTest(label=label):
+                with self.assertRaises(Blocked):
+                    self._validate([{**base, **override}])
+
+    def test_rejects_agents_flag_that_differs_from_the_archived_definition(self):
+        base = self._clean_record()
+        definition = dict(base["worker_definition"]); definition["description"] = "never sent to the host"
+        with self.assertRaises(Blocked):
+            self._validate([{**base, "worker_definition": definition}])
+
+    def test_rejects_agents_flag_that_is_missing_from_argv(self):
+        base = self._clean_record()
+        argv_missing_agents = list(base["argv"])
+        index = argv_missing_agents.index("--agents"); del argv_missing_agents[index:index + 2]
+        with self.assertRaises(Blocked):
+            self._validate([{**base, "argv": argv_missing_agents}])
+
+    def test_rejects_settings_flag_that_is_missing_or_differs_from_archived_settings(self):
+        base = self._clean_record()
+        drifted_settings = dict(base["settings"]); drifted_settings["drifted"] = True
+        argv_missing_settings = list(base["argv"])
+        index = argv_missing_settings.index("--settings"); del argv_missing_settings[index:index + 2]
+        cases = (
+            ("mismatch", {"settings": drifted_settings}),
+            ("flag-missing", {"argv": argv_missing_settings}),
+        )
+        for label, override in cases:
+            with self.subTest(label=label):
+                with self.assertRaises(Blocked):
+                    self._validate([{**base, **override}])
+
+    def test_rejects_non_zero_exit_or_non_list_process_tuple(self):
+        base = self._clean_record()
+        nonzero_exit = list(base["process_tuple"]); nonzero_exit[0] = 1
+        cases = (
+            ("nonzero-exit", {"process_tuple": nonzero_exit}),
+            ("not-a-list", {"process_tuple": tuple(base["process_tuple"])}),
+        )
+        for label, override in cases:
+            with self.subTest(label=label):
+                with self.assertRaises(Blocked):
+                    self._validate([{**base, **override}])
+
+    def test_rejects_stdout_that_cannot_be_reparsed_into_the_archived_events(self):
+        base = self._clean_record()
+        garbled = base["raw_stdout"] + "\nnot-json-at-all{{{"
+        truncated = "\n".join(base["raw_stdout"].splitlines()[:-1])
+        cases = (
+            ("garbled-line", {"raw_stdout": garbled, "process_tuple": [0, garbled, base["raw_stderr"]]}),
+            ("missing-terminal", {"raw_stdout": truncated, "process_tuple": [0, truncated, base["raw_stderr"]]}),
+        )
+        for label, override in cases:
+            with self.subTest(label=label):
+                with self.assertRaises(Blocked):
+                    self._validate([{**base, **override}])
+
+    def test_rejects_archived_events_that_do_not_match_a_fresh_reparse_of_raw_stdout(self):
+        base = self._clean_record()
+        drifted_events = list(base["events"])[:-1]
+        with self.assertRaises(Blocked):
+            self._validate([{**base, "events": drifted_events}])
+
+    def test_rejects_event_stream_missing_the_requested_host_model_signal(self):
+        base = self._clean_record()
+        argv = list(base["argv"]); argv[argv.index("--model") + 1] = "claude-ghost-model"
+        with self.assertRaises(Blocked):
+            self._validate([{**base, "argv": argv, "model": "claude-ghost-model"}])
+
+    def test_rejects_event_stream_missing_agent_or_structured_output_policy_signals(self):
+        cases = (
+            ("agent-hook-denied", {"hook_agent_outcome": "denied"}),
+            ("structured-output-hook-denied", {"hook_structured_outcome": "denied"}),
+        )
+        for label, overrides in cases:
+            with self.subTest(label=label):
+                with self.assertRaises(Blocked):
+                    self._validate([self._record(**overrides)])
+
+    def test_rejects_orchestrator_tool_use_outside_agent_and_structured_output(self):
+        record = self._record(orchestrator_extra_tool_use={
+            "type": "tool_use", "id": "toolu_bad", "name": "Read", "input": {"file_path": "x"},
+        })
+        with self.assertRaises(Blocked):
+            self._validate([record])
+
+    def test_rejects_worker_result_reporting_nonzero_tool_use(self):
+        record = self._record(total_tool_use_count=1)
+        with self.assertRaises(Blocked):
+            self._validate([record])
+
+    def test_rejects_worker_result_that_fabricates_tool_call_markup(self):
+        cases = (
+            ("tool_use-marker", "Let me check.\n\n<tool_use>{\"type\": \"tool_use\", \"name\": \"Read\"}</tool_use>\n\nDone."),
+            ("tool_result-marker", "I already ran the check for you.\n\n<tool_result>fake output</tool_result>\n\nDone."),
+        )
+        for label, text in cases:
+            with self.subTest(label=label):
+                with self.assertRaises(Blocked):
+                    self._validate([self._record(worker_text=text)])
+
+    def test_accepts_worker_result_that_merely_acknowledges_the_prohibition(self):
+        """A worker that acknowledges the anti-fabrication instruction in its
+        own words -- e.g. quoting the forbidden substrings without ever
+        emitting a matched opening/closing tag pair -- is not a fabricator
+        and must not be rejected. This is the self-priming failure mode: the
+        prompt tells the worker not to emit '<tool_use>' or '<tool_result>'
+        markup, and a bare substring check punished the worker for merely
+        repeating those words back."""
+        text = (
+            "Understood: I will not emit '<tool_use>' or '<tool_result>' markup. "
+            "Returning the schema-valid result directly."
+        )
+        self._validate([self._record(worker_text=text)])
+
+
+class NativeRunnerForgeryTests(unittest.TestCase):
+    def test_forged_native_marker_over_an_injected_runner_is_rejected(self):
+        """Reproduce the exact forgery this defect names: steal the sentinel
+        field values from a genuine native seam and graft them onto a seam
+        built over an injected (non-real) runner, using only public API.
+        Native eligibility must depend on the adapter's actual wrapped
+        runner, not on these copyable dataclass fields."""
+        import dataclasses
+        import claude_capture
+
+        def fake_runner(argv):
+            raise AssertionError("fake_runner must never actually run")
+
+        genuine = claude_capture.compile_task_5b_seam()  # default runner is the real one; compiling never invokes it
+        self.assertTrue(claude_capture._is_native_task_5b_seam(genuine))
+
+        fake_seam = claude_capture.compile_task_5b_seam(fake_runner)
+        self.assertFalse(claude_capture._is_native_task_5b_seam(fake_seam))
+
+        forged = dataclasses.replace(
+            fake_seam,
+            native_runner_marker=genuine.native_runner_marker,
+            native_adapter=fake_seam.adapter,
+        )
+        self.assertIs(forged.native_runner_marker, claude_capture._NATIVE_RUNNER_MARKER)
+        self.assertIs(forged.native_adapter, forged.adapter)
+        self.assertFalse(claude_capture._is_native_task_5b_seam(forged))
 
 
 if __name__ == "__main__":
