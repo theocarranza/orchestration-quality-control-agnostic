@@ -850,7 +850,9 @@ def _rules(spec):
   unresolved item is never reported as done.
 - At most {spec.get('max_attempts', 3)} attempts per task, including corrections
   for an unusable response. The producing role makes its own corrections.
-"""
+- Extend the tree that already exists. Never create a second one beside it.
+
+{_conventions_section(spec)}"""
 
 
 def _workflows(spec):
@@ -877,19 +879,120 @@ def _workflows(spec):
     return "# Workflows\n\n" + "\n".join(steps)
 
 
+def _conventions(spec):
+    return spec.get("conventions") or {}
+
+
+def _sentence(text):
+    """Render a specification fragment as a standalone sentence.
+
+    Specification fields are written as fragments so they can be composed into
+    several documents. Pasting a fragment straight after a full stop produced
+    "... a password. the app renders blank ...", which reads as sloppy in a
+    document whose whole job is to be obeyed precisely.
+    """
+    text = text.strip()
+    if not text:
+        return ""
+    text = text[0].upper() + text[1:]
+    if text[-1] not in ".!?":
+        text += "."
+    return text
+
+
+def _conventions_section(spec):
+    """Render the client's own test-tree conventions.
+
+    A generated engine that does not know how the existing tree is laid out will
+    quietly build a second one beside it. These facts come from the
+    specification, never from this module: they are statements about one
+    client's tree, not about how engines are built.
+    """
+    conventions = _conventions(spec)
+    if not conventions:
+        return ""
+    lines = ["## Conventions of the existing tree", ""]
+    if conventions.get("config_file"):
+        lines.append(f"- Shared configuration lives in `{conventions['config_file']}`. Do not duplicate it.")
+    if conventions.get("flow_glob"):
+        lines.append(
+            f"- That configuration collects flows with `{conventions['flow_glob']}`. A file that does "
+            "not match it will never run."
+        )
+    if conventions.get("environment_variables"):
+        names = ", ".join(f"`{name}`" for name in conventions["environment_variables"])
+        lines.append(f"- Values supplied by the environment: {names}. Reference them; never inline them.")
+    layout = conventions.get("layout") or {}
+    if layout:
+        lines.append("- Expected files:")
+        for level, expected in sorted(layout.items()):
+            listed = ", ".join(f"`{name}`" for name in expected) if isinstance(expected, list) else f"`{expected}`"
+            lines.append(f"  - {level}: {listed}")
+    if conventions.get("runner_commands"):
+        lines.append("- The tree is run by:")
+        for command in conventions["runner_commands"]:
+            lines.append(f"  - `{command}`")
+    if conventions.get("selector_preference"):
+        lines += ["", "### Selecting elements", "", _sentence(conventions["selector_preference"])]
+    unsafe = conventions.get("unsafe_commands") or []
+    if unsafe:
+        lines += ["", "### Commands known to be unsafe here", ""]
+        for entry in unsafe:
+            where = f" on {entry['where']}" if entry.get("where") else ""
+            lines.append(f"- **Never call `{entry['command']}`**{where}.")
+            lines.append(f"  - What happens: {_sentence(entry['effect'])}")
+            lines.append(f"  - Do this instead: {_sentence(entry['instead'])}")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def _templates(spec):
+    conventions = _conventions(spec)
+    header = conventions.get("flow_header", "")
+    layout = conventions.get("layout") or {}
+    scenario_files = layout.get("scenario") or []
+
+    flow_lines = ["# Flow", "", "One scenario per file."]
+    if header:
+        flow_lines += ["", "Every flow file starts exactly like this:", "", "```yaml", header, "```"]
+    if conventions.get("selector_preference"):
+        flow_lines += ["", _sentence(conventions["selector_preference"])]
+    for entry in conventions.get("unsafe_commands") or []:
+        where = f" on {entry['where']}" if entry.get("where") else ""
+        flow_lines += [
+            "",
+            f"Never call `{entry['command']}`{where}. {_sentence(entry['effect'])} "
+            f"Instead: {_sentence(entry['instead'])}",
+        ]
+    if conventions.get("flow_glob"):
+        flow_lines += [
+            "",
+            f"The file must match `{conventions['flow_glob']}` or it will never be collected.",
+        ]
+    flow_lines.append("")
+
+    plan_lines = ["# Test plan", "", "## Scope", "", "What this covers, in one paragraph.", ""]
+    if scenario_files:
+        plan_lines += [
+            "## Files this scenario needs",
+            "",
+            *[f"- `{name}`" for name in scenario_files],
+            "",
+        ]
+    plan_lines += [
+        "## Steps",
+        "",
+        "1. First observable step.",
+        "",
+        "## Expected",
+        "",
+        "What proves it worked.",
+        "",
+    ]
+
     return {
-        "test-plan.md": (
-            "# Test plan\n\n"
-            "## Scope\n\nWhat this covers, in one paragraph.\n\n"
-            "## Steps\n\n1. First observable step.\n\n"
-            "## Expected\n\nWhat proves it worked.\n"
-        ),
-        "flow.md": (
-            "# Flow\n\n"
-            "One scenario per file. Prefer stable identifiers over visible text when\n"
-            "selecting elements. Record any host command known to be unsafe here.\n"
-        ),
+        "test-plan.md": "\n".join(plan_lines),
+        "flow.md": "\n".join(flow_lines),
         "report.md": (
             "# Report\n\n"
             "## What ran\n\n## What passed\n\n## What did not\n\n## What was skipped, and why\n"

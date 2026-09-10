@@ -64,6 +64,23 @@ _ROLE_REQUIRED = (
     "output_schema",
 )
 
+#: Client facts a generated engine must carry into its own documents: the
+#: layout it writes into, how a flow file starts, how elements are selected, and
+#: which host commands are known to be unsafe here. These live in the
+#: specification rather than in compile_delivery, because they are statements
+#: about one client's test tree, not about how engines are built. A generator
+#: that hardcoded them would produce the same engine for every client.
+_CONVENTION_FIELDS = (
+    "config_file",
+    "flow_glob",
+    "flow_header",
+    "runner_commands",
+    "environment_variables",
+    "layout",
+    "selector_preference",
+    "unsafe_commands",
+)
+
 _SPEC_REQUIRED = (
     "schema_version",
     "engine_id",
@@ -341,7 +358,65 @@ def validate(spec):
         )
 
     _validate_operations(spec["operations"], set(roles))
+    _validate_conventions(spec.get("conventions"))
     return spec
+
+
+def _validate_conventions(conventions):
+    """Validate the optional conventions block.
+
+    Optional because not every client has an established tree to conform to. But
+    when a client does have one, silence here would mean the generated engine
+    invents its own layout beside the real one -- which is exactly the "second
+    stack" outcome this whole delivery is meant to avoid.
+    """
+    if conventions is None:
+        return None
+    if not isinstance(conventions, dict):
+        raise Blocked(
+            stage=STAGE,
+            reason_code="malformed_checkpoint",
+            detail=f"'conventions' must be an object, got {type(conventions).__name__}",
+            recovery_action="describe conventions as an object, or omit the block entirely",
+        )
+    for field in sorted(set(conventions) - set(_CONVENTION_FIELDS)):
+        raise Blocked(
+            stage=STAGE,
+            reason_code="malformed_checkpoint",
+            detail=f"'conventions' has unknown field '{field}'",
+            recovery_action=f"use only: {', '.join(_CONVENTION_FIELDS)}",
+        )
+    for field in ("config_file", "flow_glob", "flow_header", "selector_preference"):
+        if field in conventions:
+            _require_str(conventions[field], f"conventions.{field}")
+    for field in ("runner_commands", "environment_variables"):
+        if field in conventions and not isinstance(conventions[field], list):
+            raise Blocked(
+                stage=STAGE,
+                reason_code="malformed_checkpoint",
+                detail=f"'conventions.{field}' must be an array",
+                recovery_action=f"set conventions.{field} to an array of strings",
+            )
+    layout = conventions.get("layout")
+    if layout is not None and not isinstance(layout, dict):
+        raise Blocked(
+            stage=STAGE,
+            reason_code="malformed_checkpoint",
+            detail="'conventions.layout' must be an object of level -> expected files",
+            recovery_action="describe the layout as an object",
+        )
+    for index, unsafe in enumerate(conventions.get("unsafe_commands", []) or []):
+        if not isinstance(unsafe, dict):
+            raise Blocked(
+                stage=STAGE,
+                reason_code="malformed_checkpoint",
+                detail=f"conventions.unsafe_commands[{index}] must be an object",
+                recovery_action="describe each unsafe command as an object",
+            )
+        qc_lib.require_fields(unsafe, ("command", "effect", "instead"), stage=STAGE)
+        for field in ("command", "effect", "instead"):
+            _require_str(unsafe[field], f"conventions.unsafe_commands[{index}].{field}")
+    return conventions
 
 
 def writing_roles(spec):
