@@ -1,8 +1,22 @@
 {
   "schema_version": 1,
-  "engine_id": "maestro-e2e",
+  "engine_id": "example-e2e",
   "artifact_root": "e2e_test/modules",
-  "state_root": ".orchestration-state/maestro-e2e",
+  "state_root": "e2e_test/orchestration/state",
+  "interview": {
+    "owner": "client repository owner",
+    "outcome": "Maintain end-to-end coverage through the existing test tree.",
+    "requirements": [
+      "Plan, create, check, and repair end-to-end test artifacts."
+    ],
+    "constraints": [
+      "Keep runtime state separate from test artifacts.",
+      "Apply changes only after checking and approval."
+    ],
+    "evidence": [
+      "The repository's existing end-to-end test tree and conventions."
+    ]
+  },
   "max_attempts": 3,
   "coordinator": {
     "responsibilities": "Runs one operation from start to finish. Delegates every unit of work to exactly one role at a time, checks each returned result against that role's declared shape before anything downstream reads it, saves each accepted result immediately, puts the change set forward for approval, and delegates application only after approval. Authors no target content and never replaces a worker's returned result with its own account of it.",
@@ -24,7 +38,7 @@
       "output_schema": "schemas/worker-result.schema.json"
     },
     "generator": {
-      "responsibilities": "Turns an approved plan into flow files and shared flow fragments, following the conventions already present in the test tree. Denied application source on purpose: a generator that can read the code will drift towards describing the implementation rather than the agreed plan.",
+      "responsibilities": "Turns an approved plan into test artifacts and shared fragments, following the conventions already present in the test tree. Denied application source on purpose: a generator that can read the code will drift towards describing the implementation rather than the agreed plan.",
       "capabilities": ["generate"],
       "tools": ["read", "glob"],
       "denied_tools": ["write", "edit", "bash", "grep"],
@@ -33,7 +47,7 @@
       "output_schema": "schemas/worker-result.schema.json"
     },
     "checker": {
-      "responsibilities": "Judges drafted and existing flows against the test tree's own conventions and returns structured findings bound to the digest of exactly what it read. Holds no writing tool at all, so it can never repair what it judges.",
+      "responsibilities": "Judges drafted and existing test artifacts against the test tree's own conventions and returns structured findings bound to the digest of exactly what it read. Holds no writing tool at all, so it can never repair what it judges.",
       "capabilities": ["verify"],
       "tools": ["read", "grep", "glob"],
       "denied_tools": ["write", "edit", "bash"],

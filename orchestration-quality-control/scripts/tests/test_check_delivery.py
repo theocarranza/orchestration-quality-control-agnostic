@@ -53,11 +53,23 @@ class DeliveryCheckerTestCase(unittest.TestCase):
             json.dumps(
                 {
                     "artifact_root": "e2e_test/modules",
-                    "state_root": ".orchestration-state/maestro-e2e",
+                    "state_root": "e2e_test/orchestration/state",
                     "max_attempts": 3,
                     "operations": ["author_coverage", "remediate_existing"],
                 }
             ),
+        )
+        _write(
+            root / "client-spec.json",
+            json.dumps(
+                {"interview": {"owner": "client repository owner", "outcome": "Maintain coverage."}}
+            ),
+        )
+        _write(
+            root / "IMPLEMENTATION_PLAN.md",
+            "# Implementation plan\n\n## Client interview\n\nRecorded.\n\n"
+            "## Requirements\n\nRecorded.\n\n## Implementation steps\n\nRecorded.\n\n"
+            "## Validation\n\nRecorded.\n",
         )
         _write(
             root / "scripts" / "run.py",
@@ -85,15 +97,15 @@ class DeliveryCheckerTestCase(unittest.TestCase):
                 json.dumps(
                     {
                         "$schema": "https://json-schema.org/draft/2020-12/schema",
-                        "$id": f"https://seu-mei-simples/maestro-e2e/{name}.schema.json",
+                        "$id": f"https://example.invalid/example-engine/{name}.schema.json",
                         "type": "object",
                     }
                 ),
             )
         for name in ("test-plan", "flow", "report"):
             _write(root / "templates" / f"{name}.md", f"# {name}\n\nBody.\n")
-        _write(root / "rules" / "rules-maestro-e2e.md", "- Keep writes inside the artifact root.\n")
-        _write(root / "workflows" / "workflows-maestro-e2e.md", "1. Plan.\n2. Generate.\n")
+        _write(root / "rules" / "rules-engine.md", "- Keep writes inside the artifact root.\n")
+        _write(root / "workflows" / "workflows-engine.md", "1. Plan.\n2. Generate.\n")
         for op in ("author_coverage", "remediate_existing"):
             _write(root / "operations" / f"{op}.json", json.dumps(self._operation(op)))
         self._write_manifest()
@@ -133,11 +145,13 @@ class DeliveryCheckerTestCase(unittest.TestCase):
     def _manifest_body(self):
         return {
             "schema_version": 1,
-            "engine_id": "maestro-e2e",
+            "engine_id": "example-engine",
             "source_revision": "7cfff86",
             "engine_root": "e2e_test/orchestration",
             "artifact_root": "e2e_test/modules",
-            "state_root": ".orchestration-state/maestro-e2e",
+            "state_root": "e2e_test/orchestration/state",
+            "client_specification": "client-spec.json",
+            "implementation_plan": "IMPLEMENTATION_PLAN.md",
             "entrypoint": "scripts/run.py",
             "constants": "constants.json",
             "operations": {
@@ -211,7 +225,7 @@ class ValidPackageTest(DeliveryCheckerTestCase):
         verdict = self._check()
         self.assertEqual(verdict["status"], "passed", verdict["problems"])
         self.assertEqual(verdict["problems"], [])
-        self.assertEqual(verdict["engine_id"], "maestro-e2e")
+        self.assertEqual(verdict["engine_id"], "example-engine")
 
     def test_passing_verdict_names_every_check_it_ran(self):
         verdict = self._check()
@@ -231,16 +245,16 @@ class DocumentOnlyDeliveryTest(unittest.TestCase):
         names = [
             "ARCHITECTURE.md",
             "orchestrator.md",
-            "rules/rules-maestro-e2e.md",
-            "rules/rules-maestro-e2e-planner.md",
-            "rules/rules-maestro-e2e-generator.md",
-            "rules/rules-maestro-e2e-validator.md",
-            "rules/rules-maestro-e2e-remediator.md",
-            "workflows/workflows-maestro-e2e.md",
-            "workflows/workflows-maestro-e2e-planner.md",
-            "workflows/workflows-maestro-e2e-generator.md",
-            "workflows/workflows-maestro-e2e-validator.md",
-            "workflows/workflows-maestro-e2e-remediator.md",
+            "rules/rules-engine.md",
+            "rules/rules-engine-planner.md",
+            "rules/rules-engine-generator.md",
+            "rules/rules-engine-validator.md",
+            "rules/rules-engine-remediator.md",
+            "workflows/workflows-engine.md",
+            "workflows/workflows-engine-planner.md",
+            "workflows/workflows-engine-generator.md",
+            "workflows/workflows-engine-validator.md",
+            "workflows/workflows-engine-remediator.md",
         ]
         for name in names:
             _write(self.engine_root / name, f"# {name}\n\nProse only.\n")
@@ -293,6 +307,19 @@ class ManifestStructureTest(DeliveryCheckerTestCase):
         verdict = self._check()
         self.assertEqual(verdict["status"], "rejected")
         self.assertIn("manifest_schema_violation", self._codes(verdict))
+
+    def test_missing_implementation_plan_is_rejected(self):
+        self._rewrite_manifest(lambda manifest: manifest.pop("implementation_plan"))
+        verdict = self._check()
+        self.assertEqual(verdict["status"], "rejected")
+        self.assertIn("manifest_schema_violation", self._codes(verdict))
+
+    def test_incomplete_implementation_plan_is_rejected(self):
+        _write(self.engine_root / "IMPLEMENTATION_PLAN.md", "# Implementation plan\n")
+        self._write_manifest()
+        verdict = self._check()
+        self.assertEqual(verdict["status"], "rejected")
+        self.assertIn("implementation_plan_incomplete", self._codes(verdict))
 
     def test_empty_worker_list_is_rejected(self):
         self._rewrite_manifest(lambda manifest: manifest.update({"workers": []}))

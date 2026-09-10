@@ -70,8 +70,8 @@ PLUGIN_MODULE_NAMES = frozenset(
 )
 
 #: Text that means a template or role document still carries an unfilled slot.
-#: `${...}` is deliberately absent: e2e_test flows legitimately ship
-#: `appId: ${APP_ID}`, which Maestro itself expands at run time.
+#: `${...}` is deliberately absent: client test artifacts may legitimately use
+#: their own runtime variables.
 PLACEHOLDER_PATTERNS = (
     re.compile(r"\{\{[^}]*\}\}"),
     re.compile(r"<TODO[^>]*>"),
@@ -88,6 +88,13 @@ ROLE_REQUIRED_MARKERS = (
     ("responsibilities", re.compile(r"responsibilit", re.IGNORECASE)),
     ("model settings", re.compile(r"model[_ ]?tier|model\s*:", re.IGNORECASE)),
     ("tool settings", re.compile(r"\btools?\s*:", re.IGNORECASE)),
+)
+
+IMPLEMENTATION_PLAN_REQUIRED_MARKERS = (
+    ("client interview", re.compile(r"client interview", re.IGNORECASE)),
+    ("requirements", re.compile(r"requirements", re.IGNORECASE)),
+    ("implementation steps", re.compile(r"implementation steps", re.IGNORECASE)),
+    ("validation", re.compile(r"validation", re.IGNORECASE)),
 )
 
 _CHECKSUM_RE = re.compile(r"^[a-f0-9]{64}$")
@@ -178,6 +185,8 @@ def _check_manifest_schema(manifest, problems):
         "engine_root",
         "artifact_root",
         "state_root",
+        "client_specification",
+        "implementation_plan",
         "entrypoint",
         "constants",
         "operations",
@@ -205,6 +214,15 @@ def _check_manifest_schema(manifest, problems):
             "manifest_schema_violation",
             f"constants must be 'constants.json', got {manifest.get('constants')!r}",
         )
+    for field, expected in (
+        ("client_specification", "client-spec.json"),
+        ("implementation_plan", "IMPLEMENTATION_PLAN.md"),
+    ):
+        if manifest.get(field) != expected:
+            problems.add(
+                "manifest_schema_violation",
+                f"{field} must be '{expected}', got {manifest.get(field)!r}",
+            )
 
     for field in ("engine_id", "source_revision"):
         value = manifest.get(field)
@@ -328,7 +346,7 @@ def _check_path_containment(manifest, engine_rel, problems):
         )
 
     # Every other declared path is engine-relative and must stay inside it.
-    for field in ("entrypoint", "constants", "coordinator"):
+    for field in ("client_specification", "implementation_plan", "entrypoint", "constants", "coordinator"):
         _safe_relative(manifest.get(field, ""), problems=problems, field=field)
     for group in ("operations", "schemas", "templates", "adapters"):
         entries = manifest.get(group)
@@ -346,7 +364,19 @@ def _check_path_containment(manifest, engine_rel, problems):
                 )
 
 
-def _shipped_files(engine_root, problems):
+def _runtime_state_subtree(manifest, engine_root, project_root):
+    """Return an engine-relative runtime state root when the client places it inside the engine."""
+    state_root = manifest.get("state_root")
+    if not isinstance(state_root, str):
+        return None
+    try:
+        candidate = (project_root / PurePosixPath(state_root)).resolve()
+        return candidate.relative_to(engine_root.resolve()).as_posix()
+    except ValueError:
+        return None
+
+
+def _shipped_files(engine_root, problems, runtime_state_subtree=None):
     """Every regular file under the engine root, keyed by engine-relative path.
 
     A symlink pointing outside the engine root is reported and excluded: the
@@ -365,6 +395,8 @@ def _shipped_files(engine_root, problems):
             continue
         rel = path.relative_to(engine_root).as_posix()
         if rel == _MANIFEST_NAME:
+            continue
+        if runtime_state_subtree and (rel == runtime_state_subtree or rel.startswith(runtime_state_subtree + "/")):
             continue
         shipped[rel] = path
     return shipped
@@ -402,7 +434,7 @@ def _check_file_set(manifest, engine_root, shipped, problems):
 def _referenced_paths(manifest):
     """Every engine-relative path the manifest points at, with its field label."""
     references = []
-    for field in ("entrypoint", "constants", "coordinator"):
+    for field in ("client_specification", "implementation_plan", "entrypoint", "constants", "coordinator"):
         value = manifest.get(field)
         if isinstance(value, str) and value:
             references.append((field, value))
@@ -605,6 +637,19 @@ def _check_content_integrity(manifest, engine_root, shipped, problems):
                 )
                 break
 
+    plan_path = manifest.get("implementation_plan")
+    if isinstance(plan_path, str) and plan_path in shipped:
+        plan_text = shipped[plan_path].read_text(encoding="utf-8")
+        missing = [
+            label for label, pattern in IMPLEMENTATION_PLAN_REQUIRED_MARKERS if not pattern.search(plan_text)
+        ]
+        if missing:
+            problems.add(
+                "implementation_plan_incomplete",
+                f"'{plan_path}' does not state: {', '.join(missing)}",
+                plan_path,
+            )
+
     schemas = manifest.get("schemas")
     if isinstance(schemas, dict):
         for key, rel in sorted(schemas.items()):
@@ -750,7 +795,11 @@ def check_delivery(*, engine_root, project_root):
 
     _check_manifest_schema(manifest, problems)
     _check_path_containment(manifest, engine_rel, problems)
-    shipped = _shipped_files(engine_root, problems)
+    shipped = _shipped_files(
+        engine_root,
+        problems,
+        _runtime_state_subtree(manifest, engine_root, project_root),
+    )
     _check_file_set(manifest, engine_root, shipped, problems)
     _check_references_exist(manifest, shipped, problems)
     _check_task_graph(manifest, engine_root, shipped, problems)

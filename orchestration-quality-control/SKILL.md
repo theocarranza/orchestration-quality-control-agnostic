@@ -52,6 +52,15 @@ it judges the documents that define and coordinate an agentic process.
 - **`author_apply`** — packaged default `approve` into an empty `output_root`
   unless `blocked`.
 
+`author_prepare` and `author_apply` deliver process documents only. They are
+not a client-engine compiler and must never be selected when the requested
+deliverable is a runnable, self-contained engine. Use the
+`orchestration-engine` entrypoint for that outcome. That workflow begins with
+the client repository owner's interview, records the resulting client decisions
+inside the client engine root, and generates an `IMPLEMENTATION_PLAN.md` there
+before compiling the engine. Client-specific requirements never belong in this
+package.
+
 The interview is the only decision point. The root session collects the
 outcome (author only), targets, profile, `language` and the apply decision,
 then hands the run to the engine; nested agents never ask the user

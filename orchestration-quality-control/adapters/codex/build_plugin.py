@@ -79,6 +79,11 @@ def build(output: Path) -> Path:
         plugin_root / "skills" / "orchestration-author",
         ignore=_ignore,
     )
+    shutil.copytree(
+        _package_root() / "entrypoints" / "orchestration-engine",
+        plugin_root / "skills" / "orchestration-engine",
+        ignore=_ignore,
+    )
 
     manifest = json.loads((_adapter_root() / "plugin.template.json").read_text(encoding="utf-8"))
     if manifest.get("name") != PLUGIN_NAME or manifest.get("version") != VERSION:

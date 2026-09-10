@@ -5,7 +5,7 @@
   "description": "manifest.json of a delivered client engine. Distinct from author-proposal.schema.json, which only describes a preview file map and can be satisfied by two Markdown files. This schema describes structure; scripts/check_delivery.py enforces the relationships between the structures (existence, checksums, path containment, task-graph integrity) that a schema cannot express.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "engine_id", "source_revision", "engine_root", "artifact_root", "state_root", "entrypoint", "constants", "operations", "coordinator", "workers", "schemas", "templates", "adapters", "dependencies", "files"],
+  "required": ["schema_version", "engine_id", "source_revision", "engine_root", "artifact_root", "state_root", "client_specification", "implementation_plan", "entrypoint", "constants", "operations", "coordinator", "workers", "schemas", "templates", "adapters", "dependencies", "files"],
   "properties": {
     "schema_version": {"const": 1},
     "engine_id": {"type": "string", "minLength": 1},
@@ -13,6 +13,8 @@
     "engine_root": {"$ref": "#/$defs/path"},
     "artifact_root": {"$ref": "#/$defs/path"},
     "state_root": {"$ref": "#/$defs/path"},
+    "client_specification": {"const": "client-spec.json"},
+    "implementation_plan": {"const": "IMPLEMENTATION_PLAN.md"},
     "entrypoint": {"$ref": "#/$defs/path"},
     "constants": {"const": "constants.json"},
     "operations": {"$ref": "#/$defs/fileMap"},

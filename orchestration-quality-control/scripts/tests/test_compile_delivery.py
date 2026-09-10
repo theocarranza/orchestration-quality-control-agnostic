@@ -22,7 +22,7 @@ import compile_workflow
 from qc_lib import Blocked
 
 SCRIPTS = Path(__file__).resolve().parents[1]
-MAESTRO_SPEC = SCRIPTS.parent / "profiles" / "maestro-e2e" / "client-spec.json"
+EXAMPLE_SPEC = SCRIPTS / "tests" / "fixtures" / "example-client-spec.json"
 
 DECISIONS = {
     "run_id": "run-1",
@@ -32,14 +32,28 @@ DECISIONS = {
 
 
 def _spec():
-    return json.loads(MAESTRO_SPEC.read_text(encoding="utf-8"))
+    return json.loads(EXAMPLE_SPEC.read_text(encoding="utf-8"))
 
 
 class SpecValidationTest(unittest.TestCase):
-    def test_the_shipped_maestro_specification_is_valid(self):
+    def test_the_example_client_specification_is_valid(self):
         spec = client_spec.validate(_spec())
-        self.assertEqual(spec["engine_id"], "maestro-e2e")
+        self.assertEqual(spec["engine_id"], "example-e2e")
         self.assertEqual(client_spec.writing_roles(spec), ["applier"])
+
+    def test_a_missing_owner_interview_is_refused(self):
+        spec = _spec()
+        spec.pop("interview")
+        with self.assertRaises(Blocked) as caught:
+            client_spec.validate(spec)
+        self.assertEqual(caught.exception.reason_code, "malformed_checkpoint")
+
+    def test_an_incomplete_owner_interview_is_refused(self):
+        spec = _spec()
+        spec["interview"]["requirements"] = []
+        with self.assertRaises(Blocked) as caught:
+            client_spec.validate(spec)
+        self.assertIn("interview.requirements", caught.exception.detail)
 
     def test_a_coordinator_that_can_write_is_refused(self):
         spec = _spec()
@@ -210,11 +224,22 @@ class EmittedPackageTest(unittest.TestCase):
         )
         self.assertEqual(verdict["status"], "passed", verdict["problems"])
 
+    def test_runtime_state_inside_engine_does_not_change_the_delivery_manifest(self):
+        state_root = self.engine_root / "state"
+        state_root.mkdir()
+        (state_root / "run-after-delivery.json").write_text("{}\n", encoding="utf-8")
+        verdict = check_delivery.check_delivery(
+            engine_root=self.engine_root, project_root=self.project_root
+        )
+        self.assertEqual(verdict["status"], "passed", verdict["problems"])
+
     def test_the_package_has_every_required_part(self):
         for expected in (
             "README.md",
             "SKILL.md",
             "ARCHITECTURE.md",
+            "IMPLEMENTATION_PLAN.md",
+            "client-spec.json",
             "manifest.json",
             "constants.json",
             "scripts/run.py",
@@ -229,6 +254,30 @@ class EmittedPackageTest(unittest.TestCase):
             "workflows/workflows-engine.md",
         ):
             self.assertTrue((self.engine_root / expected).is_file(), expected)
+
+    def test_the_interview_produces_a_client_owned_implementation_plan(self):
+        plan = (self.engine_root / "IMPLEMENTATION_PLAN.md").read_text(encoding="utf-8")
+        self.assertIn("## Client interview", plan)
+        self.assertIn(_spec()["interview"]["outcome"], plan)
+        self.assertIn("## Implementation steps", plan)
+
+    def test_the_engine_root_may_be_seeded_only_with_the_interview_specification(self):
+        self._tmp.cleanup()
+        self._tmp = tempfile.TemporaryDirectory()
+        self.project_root = Path(self._tmp.name)
+        (self.project_root / "e2e_test" / "modules").mkdir(parents=True)
+        self.engine_root = self.project_root / "e2e_test" / "orchestration"
+        self.engine_root.mkdir(parents=True)
+        seed = self.engine_root / "client-spec.json"
+        seed.write_text(json.dumps(_spec()), encoding="utf-8")
+        result = compile_delivery.emit(
+            client_spec.load(seed),
+            engine_root=self.engine_root,
+            project_root=self.project_root,
+            source_revision="7cfff86",
+            specification_path=seed,
+        )
+        self.assertEqual(result["delivery_check"], "passed")
 
     def test_the_engine_imports_nothing_from_the_authoring_plugin(self):
         for path in self.engine_root.rglob("*.py"):
@@ -277,7 +326,7 @@ class GeneratedEngineAcceptanceTest(unittest.TestCase):
             project_root=self.project_root,
             source_revision="7cfff86",
         )
-        self.state_root = self.project_root / ".orchestration-state" / "maestro-e2e"
+        self.state_root = self.engine_root / "state"
         self.changes = [
             {
                 "path": "login/scenarios/happy/happy.flow.yaml",

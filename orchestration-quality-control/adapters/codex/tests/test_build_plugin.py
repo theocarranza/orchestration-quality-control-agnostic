@@ -53,6 +53,23 @@ class BuildPluginTest(unittest.TestCase):
         self.assertTrue(
             (plugin / "skills" / "orchestration-author" / "SKILL.md").is_file()
         )
+        self.assertTrue(
+            (plugin / "skills" / "orchestration-engine" / "SKILL.md").is_file()
+        )
+
+    def test_engine_entrypoint_distinguishes_runnable_delivery_from_document_authoring(self):
+        BUILDER.build(self.output)
+        engine = (
+            self.output
+            / "plugins"
+            / BUILDER.PLUGIN_NAME
+            / "skills"
+            / "orchestration-engine"
+            / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("compile_delivery.py", engine)
+        self.assertIn("check_delivery.py", engine)
+        self.assertIn("orchestration-author", engine)
 
     def test_build_injects_overlay_without_mutating_canonical_skill(self):
         canonical = BUILDER._package_root() / "SKILL.md"

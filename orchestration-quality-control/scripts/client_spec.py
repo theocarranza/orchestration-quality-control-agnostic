@@ -21,7 +21,7 @@ demonstrable rather than asserted:
 
   * **A relevant spec change changes the compiled process.** Roles, capabilities,
     tools, model tiers, result schemas and the task graph are all read from the
-    spec. Nothing about the Maestro engine is hardcoded here, so compiling a
+    spec. Nothing about a particular client is hardcoded here, so compiling a
     different spec produces a different engine, not the same one with a new name.
   * **Tool grants are vendor-neutral.** `tools` are abstract lowercase tokens
     (`read`, `grep`, `edit`, `bash`), never host tool names. `adapters/` maps
@@ -69,10 +69,13 @@ _SPEC_REQUIRED = (
     "engine_id",
     "artifact_root",
     "state_root",
+    "interview",
     "coordinator",
     "roles",
     "operations",
 )
+
+_INTERVIEW_REQUIRED = ("owner", "outcome", "requirements", "constraints", "evidence")
 
 
 def _require_str(value, field):
@@ -131,6 +134,40 @@ def _require_token_list(value, field, *, allowed=None, allow_empty=True):
                 ),
             )
     return list(value)
+
+
+def _require_text_list(value, field, *, allow_empty=False):
+    if not isinstance(value, list) or (not value and not allow_empty):
+        raise Blocked(
+            stage=STAGE,
+            reason_code="malformed_checkpoint",
+            detail=f"'{field}' must be a non-empty array of non-empty strings",
+            recovery_action=f"record at least one concrete item in '{field}' from the client interview",
+        )
+    if not all(isinstance(item, str) and item.strip() for item in value):
+        raise Blocked(
+            stage=STAGE,
+            reason_code="malformed_checkpoint",
+            detail=f"'{field}' must contain only non-empty strings",
+            recovery_action=f"replace empty or non-text entries in '{field}' with interview evidence",
+        )
+    return list(value)
+
+
+def _validate_interview(interview):
+    if not isinstance(interview, dict):
+        raise Blocked(
+            stage=STAGE,
+            reason_code="malformed_checkpoint",
+            detail="'interview' must be an object recorded from the client repository owner's interview",
+            recovery_action="conduct the initial client interview and record its owner, outcome, requirements, constraints, and evidence",
+        )
+    qc_lib.require_fields(interview, _INTERVIEW_REQUIRED, stage=STAGE)
+    _require_str(interview["owner"], "interview.owner")
+    _require_str(interview["outcome"], "interview.outcome")
+    for field in ("requirements", "constraints", "evidence"):
+        _require_text_list(interview[field], f"interview.{field}")
+    return interview
 
 
 def _validate_role(role_id, role):
@@ -307,6 +344,7 @@ def validate(spec):
     _require_str(spec["engine_id"], "engine_id")
     qc_lib.normalize_path(_require_str(spec["artifact_root"], "artifact_root"), stage=STAGE)
     qc_lib.normalize_path(_require_str(spec["state_root"], "state_root"), stage=STAGE)
+    _validate_interview(spec["interview"])
 
     roles = spec["roles"]
     if not isinstance(roles, dict) or not roles:

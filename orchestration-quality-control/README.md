@@ -57,6 +57,13 @@ apply into an empty directory after approval. See
 [`docs/authoring.md`](../docs/authoring.md). Host entry points: Claude
 `/oqc-author`, Cursor `/oqc-author`, Codex `orchestration-author`.
 
+**`orchestration-engine`** — deliver a runnable client engine. The workflow
+starts with an interview of the client repository owner. Its recorded decisions
+are kept in the client's `orchestration/client-spec.json`, and the compiler
+creates an interview-backed `orchestration/IMPLEMENTATION_PLAN.md` before
+emitting and checking the engine. The package carries no client-specific
+profiles or requirements.
+
 ```mermaid
 sequenceDiagram
   participant U as You

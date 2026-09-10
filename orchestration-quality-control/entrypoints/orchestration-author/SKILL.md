@@ -15,6 +15,12 @@ license: MIT
 Explicit host entry for authoring operations in the sibling
 `orchestration-quality-control` skill.
 
+This entrypoint produces Markdown process documents. It does not emit an
+entrypoint, runtime scripts, worker definitions, schemas, templates, adapters,
+or a delivery manifest. A request for any of those components is a
+client-engine request and must use `orchestration-engine`, not
+`author_prepare`.
+
 1. Resolve the installed canonical skill root as
    `../orchestration-quality-control/` relative to this entrypoint's installed
    directory. Use that sibling root for all packaged workflows, rules, schemas,

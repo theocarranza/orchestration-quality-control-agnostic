@@ -80,6 +80,74 @@ def _constants(spec):
     ) + "\n"
 
 
+def _client_specification(spec):
+    """Return the validated client-owned decision record shipped with its engine."""
+    return json.dumps(spec, indent=2, sort_keys=True) + "\n"
+
+
+def _markdown_list(items):
+    return "\n".join(f"- {item.strip()}" for item in items)
+
+
+def _implementation_plan(spec, *, source_revision, engine_root_rel):
+    """Turn the owner interview and accepted design into the client plan of record."""
+    interview = spec["interview"]
+    operations = "\n".join(
+        f"- `{operation_id}`: "
+        + " -> ".join(task["task_id"] for task in tasks)
+        for operation_id, tasks in sorted(spec["operations"].items())
+    )
+    roles = "\n".join(
+        f"- `{role_id}`: {role['responsibilities'].strip()}"
+        for role_id, role in sorted(spec["roles"].items())
+    )
+    return f"""# Implementation plan: {spec['engine_id']}
+
+## Client interview
+
+- Repository owner: {interview['owner'].strip()}
+- Desired outcome: {interview['outcome'].strip()}
+- Source revision assessed: `{source_revision}`
+- Engine location: `{engine_root_rel}`
+
+## Requirements
+
+{_markdown_list(interview['requirements'])}
+
+## Constraints
+
+{_markdown_list(interview['constraints'])}
+
+## Evidence reviewed
+
+{_markdown_list(interview['evidence'])}
+
+## Implementation steps
+
+1. Keep the client specification and this plan under `{engine_root_rel}/`.
+2. Use the generated coordinator and role contracts; do not add client policy to the authoring plugin.
+3. Run the declared operations against `{spec['artifact_root']}/` and record runtime state only under `{spec['state_root']}/`.
+4. Apply artifact changes only after the engine's check and approval gates pass.
+
+## Engine design
+
+### Roles
+
+{roles}
+
+### Operations
+
+{operations}
+
+## Validation
+
+1. Validate `client-spec.json` before compilation.
+2. Run `check_delivery.py` after emission; it must pass.
+3. Run the generated-engine acceptance test without access to the authoring plugin.
+4. Before a live client run, confirm the plan still matches the assessed source revision.
+"""
+
+
 def _role_document(role_id, role, spec, *, is_coordinator=False):
     granted = ", ".join(role["tools"]) or "none"
     denied = ", ".join(role.get("denied_tools", [])) or "none"
@@ -212,6 +280,8 @@ waiting for. `resume` continues an approved run.
 
 ## Layout
 
+- `IMPLEMENTATION_PLAN.md` — the client owner's interview-backed plan of record.
+- `client-spec.json` — the validated client decisions that generated this engine.
 - `agents/` — what each role is for, and what it may and may not use.
 - `operations/` — the task graph each operation runs.
 - `schemas/` — the shape of every request, result, and record.
@@ -907,6 +977,10 @@ def build_files(spec, *, source_revision, engine_root_rel):
         "README.md": _readme(spec),
         "SKILL.md": _skill(spec),
         "ARCHITECTURE.md": _architecture(spec),
+        "IMPLEMENTATION_PLAN.md": _implementation_plan(
+            spec, source_revision=source_revision, engine_root_rel=engine_root_rel
+        ),
+        "client-spec.json": _client_specification(spec),
         "constants.json": _constants(spec),
         "scripts/run.py": _RUN_PY,
         "scripts/engine_lib.py": _ENGINE_LIB,
@@ -940,6 +1014,8 @@ def _manifest(spec, files, *, source_revision, engine_root_rel):
         "engine_root": engine_root_rel,
         "artifact_root": spec["artifact_root"],
         "state_root": spec["state_root"],
+        "client_specification": "client-spec.json",
+        "implementation_plan": "IMPLEMENTATION_PLAN.md",
         "entrypoint": "scripts/run.py",
         "constants": "constants.json",
         "operations": {
@@ -971,16 +1047,35 @@ def _manifest(spec, files, *, source_revision, engine_root_rel):
     return json.dumps(manifest, indent=2, sort_keys=True) + "\n"
 
 
-def emit(spec, *, engine_root, project_root, source_revision):
+def _is_seed_specification(engine_root, specification_path):
+    """True only for the single interview record permitted before compilation."""
+    if specification_path is None or not engine_root.exists():
+        return False
+    candidate = Path(specification_path).resolve()
+    expected = (engine_root / "client-spec.json").resolve()
+    return (
+        candidate == expected
+        and candidate.is_file()
+        and not candidate.is_symlink()
+        and [entry.resolve() for entry in engine_root.iterdir()] == [candidate]
+    )
+
+
+def emit(spec, *, engine_root, project_root, source_revision, specification_path=None):
     """Write the engine to disk, then check it with check_delivery before returning."""
     engine_root = Path(engine_root)
     project_root = Path(project_root).resolve()
-    if engine_root.exists() and any(engine_root.rglob("*")):
+    if engine_root.exists() and any(engine_root.rglob("*")) and not _is_seed_specification(
+        engine_root, specification_path
+    ):
         raise Blocked(
             stage=STAGE,
             reason_code="destination_exists",
             detail=f"engine root is not empty: {engine_root}",
-            recovery_action="choose a missing or empty engine root",
+            recovery_action=(
+                "choose a missing or empty engine root, or retain only the interview-backed "
+                "client-spec.json in that root"
+            ),
         )
     try:
         engine_root_rel = engine_root.resolve().relative_to(project_root).as_posix()
@@ -1031,6 +1126,7 @@ def main():
             engine_root=args.engine_root,
             project_root=args.project_root,
             source_revision=args.source_revision,
+            specification_path=args.spec,
         )
 
     qc_lib.run_main(STAGE, body)
