@@ -1,0 +1,16 @@
+{
+  "oqc-guard": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "python3 hooks/oqc_agy_guard.py",
+            "timeout": 10,
+            "type": "command"
+          }
+        ],
+        "matcher": "replace_file_content|write_to_file|run_command"
+      }
+    ]
+  }
+}

@@ -13,14 +13,16 @@ AI_Codex/.obsidian/
 !AI_Codex/
 !AI_Codex/**
 
+# The user global gitignore excludes **/.claude/, **/.cursor/, and **/hooks/, but
+# this repo ships its skills, agents, adapters, and lifecycle hooks there.
+# Re-include them so new files are tracked normally instead of needing git add -f.
+!.claude/
+!.cursor/
+!**/hooks/
+!**/hooks/**
+*.local.json
+.claude/settings.local.json
+
 # Python bytecode cache
 __pycache__/
 *.pyc
-
-# The user global gitignore excludes **/.claude/ and **/.cursor/, but this
-# repo ships its skills, agents and adapters there. Re-include them so new
-# files are tracked normally instead of needing git add -f.
-!.claude/
-!.cursor/
-*.local.json
-.claude/settings.local.json
