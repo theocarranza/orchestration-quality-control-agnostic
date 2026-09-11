@@ -1,4 +1,5 @@
 import json
+import shutil
 import subprocess
 import sys
 import unittest
@@ -97,6 +98,7 @@ class ClaudePolicyHookTests(unittest.TestCase):
         self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "allow")
         self.assertEqual(len(proc.stdout.strip().splitlines()), 1)
 
+    @unittest.skipUnless(shutil.which("claude"), "claude CLI not installed in environment")
     def test_local_cli_smoke_is_help_version_only_and_runs_real_hook_fixtures(self):
         result = local_cli_smoke()
         self.assertTrue(result["flags"])
