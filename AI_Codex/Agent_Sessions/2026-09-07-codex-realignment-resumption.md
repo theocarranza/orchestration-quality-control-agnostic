@@ -118,8 +118,8 @@ its evidence. A later partial-success policy would need an explicit run decision
 Claude CLI 2.1.234 is installed and authenticated. Local help now exposes
 --effort and explicit tools/model/schema controls; old host capability notes
 are stale. Official subagent and headless documentation consulted at
-https://code.claude.com/docs/en/sub-agents and
-https://code.claude.com/docs/en/headless. No model call made yet.
+<https://code.claude.com/docs/en/sub-agents> and
+<https://code.claude.com/docs/en/headless>. No model call made yet.
 
 ### Checkpoint — Outcome 3 Task 1 PASS
 

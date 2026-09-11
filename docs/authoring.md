@@ -1,9 +1,28 @@
-# Greenfield authoring
+---
+title: "Greenfield Process Document Authoring"
+id: "authoring"
+description: "User guide for discovering workspace topology and authoring agent workflows, rules, and orchestrator documents."
+doc_type: "guide"
+status: "active"
+audience: "user"
+version: "3.1.0"
+created: 2026-09-02
+last_updated: 2026-09-11
+related_adrs:
+  - "ADR 0012"
+tags:
+  - "authoring"
+  - "greenfield"
+  - "workflows"
+  - "rules"
+---
+
+# Greenfield Authoring
 
 This skill can **write** the documents that run an agentic process, not
 only check or upgrade ones that already exist.
 
-Use `/oqc-author` (Codex: `orchestration-author`).
+Use `/oqc-author` (Codex / AGY: `/orchestration-author`).
 
 ```mermaid
 flowchart TD
@@ -37,7 +56,7 @@ flowchart TD
 5. **Write** the tree under the default or overridden `output_root`
    (`authored-orchestration` by default).
 
-It does not install Claude/Cursor/Codex agents. That is still guided
+It does not install Claude/Cursor/Codex/AGY agents. That is still guided
 upgrade. It does not guess the outcome from the README.
 
 ```mermaid
@@ -55,11 +74,11 @@ flowchart LR
   end
 ```
 
-## Root session UI (Cursor)
+## Root session UI
 
-Nested Task subagents cannot surface `AskQuestion` to the parent chat. The
-**outcome** question and defaults confirmation must run in the root Cursor
-session before spawning `oqc_cursor_upgrade_orchestrator`. See
+Nested Task subagents cannot surface `AskQuestion` or user input to the parent chat.
+The **outcome** question and defaults confirmation must run in the root host
+session before spawning the author orchestrator. See
 `references/workflows/workflows-root-session-interview.md`.
 
 ## Planned host entry
@@ -68,6 +87,7 @@ session before spawning `oqc_cursor_upgrade_orchestrator`. See
 | --- | --- |
 | Claude Code, Cursor | `/oqc-author` |
 | Codex | `orchestration-author` |
+| Antigravity (AGY) | `/orchestration-author` |
 
 ## Authority
 

@@ -22,3 +22,5 @@ __pycache__/
 # files are tracked normally instead of needing git add -f.
 !.claude/
 !.cursor/
+*.local.json
+.claude/settings.local.json

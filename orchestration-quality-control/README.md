@@ -49,13 +49,14 @@ Two operations, always in this order:
    draft a complete replacement plus `ARCHITECTURE.md`, checkpoint the literal
    preview, and apply only an atomic approve/decline decision. Host entry
    points: Claude `/oqc-upgrade`, Cursor `/oqc-upgrade`, Codex
-   `orchestration-upgrade`.
+   `orchestration-upgrade`, AGY `/orchestration-upgrade`.
 
 **`author_prepare` / `author_apply`** — audit the workspace, interview only
 what the audit cannot answer, draft process documents, QC them internally,
 apply into an empty directory after approval. See
 [`docs/authoring.md`](../docs/authoring.md). Host entry points: Claude
-`/oqc-author`, Cursor `/oqc-author`, Codex `orchestration-author`.
+`/oqc-author`, Cursor `/oqc-author`, Codex `orchestration-author`, AGY
+`/orchestration-author`.
 
 **`orchestration-engine`** — deliver a runnable client engine. The workflow
 starts with an interview of the client repository owner. Its recorded decisions
@@ -131,6 +132,9 @@ that:
 - `adapters/cursor/` — a native Cursor plugin build with the same three-role
   topology, bundled subagents, an approval-enforcement hook, and a local
   installer for `~/.cursor/plugins/local/`.
+- `adapters/agy/` — a native Antigravity (AGY) plugin build with the same three-role
+  topology, bundled subagents, lifecycle hook guard (`PreToolUse`), rules, and
+  a local installer for `~/.gemini/antigravity-cli/plugins/` or `.agents/plugins/`.
 
 ## Where runtime data lives
 

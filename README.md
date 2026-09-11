@@ -10,7 +10,7 @@
 
 | Start here | Host install |
 | --- | --- |
-| [`orchestration-quality-control/SKILL.md`](orchestration-quality-control/SKILL.md) | [Claude](orchestration-quality-control/adapters/claude/README.md) · [Cursor](orchestration-quality-control/adapters/cursor/README.md) · [Codex](orchestration-quality-control/adapters/codex/README.md) |
+| [`orchestration-quality-control/SKILL.md`](orchestration-quality-control/SKILL.md) | [Claude](orchestration-quality-control/adapters/claude/README.md) · [Cursor](orchestration-quality-control/adapters/cursor/README.md) · [Codex](orchestration-quality-control/adapters/codex/README.md) · [AGY](orchestration-quality-control/adapters/agy/README.md) |
 
 ---
 
@@ -60,6 +60,7 @@ flowchart TD
     ADAPTERS --> CLAUDE["Claude — 3-role isolation + hook"]
     ADAPTERS --> CURSOR["Cursor — nested subagents + hook"]
     ADAPTERS --> CODEX["Codex — nested custom agents + hook"]
+    ADAPTERS --> AGY["AGY — nested subagents + hook"]
 ```
 
 The core separates **policy** (what good orchestration looks like) from **enforcement** (how a host prevents bypass). Mechanical decisions run in dependency-free Python under `orchestration-quality-control/scripts/`; a language model is used only to judge whether a passage violates a rule and to write the human-facing report. Every proposed fix must quote verbatim text from the target file — if the anchor is missing, the finding is rejected before review.
