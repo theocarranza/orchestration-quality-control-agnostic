@@ -741,7 +741,16 @@ def _check_independence(manifest, shipped, problems):
     dependencies = manifest.get("dependencies")
     if isinstance(dependencies, list):
         joined = " ".join(str(item).lower() for item in dependencies)
-        missing = [hint for hint in REQUIRED_DEPENDENCY_HINTS if hint not in joined]
+        missing = []
+        if "python" not in joined:
+            missing.append("python")
+        adapters = manifest.get("adapters")
+        if isinstance(adapters, dict) and adapters:
+            for host_name in sorted(adapters.keys()):
+                if host_name.lower() not in joined:
+                    missing.append(host_name.lower())
+        elif "claude" not in joined:
+            missing.append("claude")
         if missing:
             problems.add(
                 "dependency_incomplete",

@@ -73,7 +73,8 @@ def _canonical_records(evidence, mailbox):
 
 def _validate_records(records, contract, mailbox):
     task_nodes = {node.task_id: node for node in contract.task_dag.tasks}
-    if len(task_nodes) != 2 or len(contract.agent_specs) != 2: _blocked("capture requires exactly two generated workers")
+    if not task_nodes or not contract.agent_specs:
+        _blocked("capture requires at least one task and generated worker")
     sessions, tools, task_agents = set(), set(), {}
     requests = {(e.payload.get("task_id"), e.payload.get("attempt")): e.to_dict() for e in mailbox.read_all() if e.kind == "request"}
     for expected, record in enumerate(records, 1):
@@ -98,8 +99,12 @@ def _validate_records(records, contract, mailbox):
         if not isinstance(evidence, dict) or set(evidence) != set(expected_evidence) or evidence != expected_evidence: _blocked("execution evidence does not bind immutable transport")
         task_agents.setdefault(task_id, agent_id)
         if task_agents[task_id] != agent_id: _blocked("task worker identity changed")
-    if len(sessions) != 1 or len(tools) != len(records): _blocked("native session or Agent tool-use identities are not unique")
-    if set(task_agents) != set(task_nodes) or len(set(task_agents.values())) != 2: _blocked("two tasks must use distinct worker identities")
+    if set(task_agents) != set(task_nodes):
+        _blocked("all tasks in the DAG must be executed")
+    if len(set(task_agents.values())) != len(contract.agent_specs):
+        _blocked("tasks must use distinct worker identities")
+    if len(sessions) != 1 or len(tools) != len(records):
+        _blocked("native session or Agent tool-use identities are not unique")
 
 def _validate_root_boundary(mailbox):
     prior, saw_question, approved_retries = [], False, set()

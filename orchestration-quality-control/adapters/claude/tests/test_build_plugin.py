@@ -48,6 +48,7 @@ class BuildPluginTest(unittest.TestCase):
         self.assertEqual(command_stems, ["oqc-author", "oqc-execute", "oqc-upgrade", "oqc-validate"])
         self.assertTrue((plugin / "skills" / "orchestration-upgrade" / "SKILL.md").is_file())
         self.assertTrue((plugin / "skills" / "orchestration-author" / "SKILL.md").is_file())
+        self.assertTrue((plugin / "skills" / "orchestration-engine" / "SKILL.md").is_file())
         self.assertTrue((self.output / "README.md").is_file())
 
     def test_build_injects_claude_overlay_without_mutating_canonical_skill(self):

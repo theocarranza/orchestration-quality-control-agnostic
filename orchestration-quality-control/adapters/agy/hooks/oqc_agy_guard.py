@@ -37,9 +37,17 @@ ALLOWED_SCRIPTS = {
 }
 WRITE_TOOLS = {
     "replace_file_content",
+    "replace_file",
+    "edit_file",
     "write_to_file",
+    "write_file",
+    "create_file",
+    "save_file",
+    "overwrite_file",
     "edit",
     "write",
+    "str_replace",
+    "replace",
     "applypatch",
     "delete",
     "move",
@@ -99,18 +107,44 @@ def _normalize_target(raw_path: str, workspace: Path) -> str:
 
 def _extract_change(tool_name: str, tool_input: dict) -> tuple[str, str, str] | None:
     # 1. Antigravity replace_file_content tool
-    if tool_name in {"replace_file_content", "replace_file"}:
-        target = tool_input.get("TargetFile") or tool_input.get("target_file") or tool_input.get("path")
-        before = tool_input.get("TargetContent") or tool_input.get("target_content") or tool_input.get("old_string")
-        after = tool_input.get("ReplacementContent") or tool_input.get("replacement_content") or tool_input.get("new_string")
+    if tool_name in {"replace_file_content", "replace_file", "edit_file"}:
+        target = (
+            tool_input.get("TargetFile")
+            or tool_input.get("target_file")
+            or tool_input.get("path")
+            or tool_input.get("file")
+        )
+        before = (
+            tool_input.get("TargetContent")
+            or tool_input.get("target_content")
+            or tool_input.get("old_string")
+        )
+        after = (
+            tool_input.get("ReplacementContent")
+            or tool_input.get("replacement_content")
+            or tool_input.get("new_string")
+        )
         if target and before is not None and after is not None:
             return str(target), str(before), str(after)
 
     # 2. Generic edit tool (Cursor/Codex style)
     if tool_name in {"edit", "str_replace", "replace"}:
-        target = tool_input.get("path") or tool_input.get("TargetFile") or tool_input.get("file")
-        before = tool_input.get("old_string") or tool_input.get("TargetContent")
-        after = tool_input.get("new_string") or tool_input.get("ReplacementContent")
+        target = (
+            tool_input.get("path")
+            or tool_input.get("TargetFile")
+            or tool_input.get("file")
+            or tool_input.get("target_file")
+        )
+        before = (
+            tool_input.get("old_string")
+            or tool_input.get("TargetContent")
+            or tool_input.get("target_content")
+        )
+        after = (
+            tool_input.get("new_string")
+            or tool_input.get("ReplacementContent")
+            or tool_input.get("replacement_content")
+        )
         if target and before is not None and after is not None:
             return str(target), str(before), str(after)
 
@@ -161,7 +195,7 @@ def _authorization_matches(
 
 
 def _allowed_script_command(command: str, plugin_root: Path) -> bool:
-    if any(token in command for token in ("&&", "||", ";", "|", ">", "<", "`", "$(")):
+    if any(token in command for token in ("&&", "||", ";", "|", ">", "<", "`", "$(", "\n", "\r")):
         return False
     try:
         tokens = shlex.split(command)
@@ -169,7 +203,12 @@ def _allowed_script_command(command: str, plugin_root: Path) -> bool:
         return False
     if len(tokens) < 2 or Path(tokens[0]).name not in {"python", "python3"}:
         return False
-    script = Path(tokens[1])
+    arg_idx = 1
+    while arg_idx < len(tokens) and tokens[arg_idx].startswith("-"):
+        arg_idx += 1
+    if arg_idx >= len(tokens):
+        return False
+    script = Path(tokens[arg_idx])
     if not script.is_absolute():
         script = (Path.cwd() / script).resolve()
     else:
@@ -178,8 +217,12 @@ def _allowed_script_command(command: str, plugin_root: Path) -> bool:
         return False
     roots = {
         (plugin_root / "hooks").resolve(),
+        (plugin_root / "scripts").resolve(),
+        (plugin_root / "orchestration-quality-control/scripts").resolve(),
         (plugin_root / "skills/orchestration-quality-control/scripts").resolve(),
+        (plugin_root / "adapters/agy/hooks").resolve(),
         (plugin_root / "skills/orchestration-quality-control/adapters/agy/hooks").resolve(),
+        _HERE.resolve(),
     }
     return script.parent in roots
 
@@ -220,9 +263,13 @@ def main() -> int:
     ).resolve()
 
     # 1. Shell / run_command tool
-    is_shell = tool_name in {"run_command", "shell", "bash", "terminal", "command"}
+    is_shell = tool_name in {
+        "run_command", "shell", "bash", "terminal", "command", "execute_command", "exec_command", "sh"
+    }
     if is_shell:
-        command = tool_args if isinstance(tool_args, str) else (tool_args.get("CommandLine") or tool_args.get("command") or "")
+        command = tool_args if isinstance(tool_args, str) else (
+            tool_args.get("CommandLine") or tool_args.get("command") or tool_args.get("cmd") or ""
+        )
         if command and _allowed_script_command(command, plugin_root):
             return _emit("allow", "Allowed deterministic orchestration-QC script invocation.")
         return _emit(
@@ -231,8 +278,14 @@ def main() -> int:
         )
 
     # 2. Write tool (overwrite)
-    if tool_name in {"write_to_file", "write"}:
-        raw_target = tool_args.get("TargetFile") or tool_args.get("path") or ""
+    if tool_name in {"write_to_file", "write", "write_file", "create_file", "save_file", "overwrite_file"}:
+        raw_target = (
+            tool_args.get("TargetFile")
+            or tool_args.get("target_file")
+            or tool_args.get("path")
+            or tool_args.get("file")
+            or ""
+        )
         if not raw_target:
             return _emit("deny", "File write cannot be authorized: missing TargetFile.")
         target = _normalize_target(raw_target, workspace)
@@ -240,12 +293,14 @@ def main() -> int:
         if target in protected:
             return _emit(
                 "deny",
-                f"Direct write to protected target \x27{target}\x27 is blocked while orchestration-QC approval is pending.",
+                f"Direct write to protected target '{target}' is blocked while orchestration-QC approval is pending.",
             )
         return _emit("allow", "File write does not touch an active orchestration-QC target.")
 
     # 3. Replace content / Edit tool
-    if tool_name in {"replace_file_content", "edit", "str_replace", "applypatch"}:
+    if tool_name in {
+        "replace_file_content", "replace_file", "edit_file", "edit", "str_replace", "replace", "applypatch"
+    }:
         change = _extract_change(tool_name, tool_args)
         if change is None:
             return _emit("deny", "File change cannot be authorized: missing target and exact before/after change.")
@@ -256,7 +311,7 @@ def main() -> int:
             return _emit("allow", "File change does not touch an active orchestration-QC target.")
         if _authorization_matches(checkpoint_path, checkpoint, target, before, after):
             return _emit("allow", "File change exactly matches an approved orchestration-QC change.")
-        return _emit("deny", f"Change to protected target \x27{target}\x27 is not an exact authorized change.")
+        return _emit("deny", f"Change to protected target '{target}' is not an exact authorized change.")
 
     # 4. Other tools (e.g. read-only, discovery)
     if tool_name not in WRITE_TOOLS:

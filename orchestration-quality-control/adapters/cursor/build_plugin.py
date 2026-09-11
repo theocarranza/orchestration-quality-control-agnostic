@@ -81,6 +81,13 @@ def build(output: Path) -> Path:
         plugin_root / "skills" / "oqc-author",
         ignore=_ignore,
     )
+    engine_entry = _package_root() / "entrypoints" / "orchestration-engine"
+    if engine_entry.is_dir():
+        shutil.copytree(
+            engine_entry,
+            plugin_root / "skills" / "orchestration-engine",
+            ignore=_ignore,
+        )
 
     manifest = json.loads((_adapter_root() / "plugin.template.json").read_text(encoding="utf-8"))
     if manifest.get("name") != PLUGIN_NAME or manifest.get("version") != VERSION:

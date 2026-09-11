@@ -47,15 +47,15 @@ def _validate_execution_evidence(evidence):
     if not isinstance(count, int) or isinstance(count, bool) or count < 1:
         raise Blocked(stage=STAGE, reason_code="malformed_checkpoint", detail="execution evidence invocation_count must be a positive integer", recovery_action="provide a positive invocation count")
 
-def _split_artifact_metadata(worker_result):
+def _validate_artifact_metadata(worker_result):
     has_path = "artifact_path" in worker_result
     has_hash = "artifact_hash" in worker_result
     if has_path != has_hash:
         raise Blocked(stage=STAGE, reason_code="malformed_checkpoint", detail="artifact metadata must provide path and hash together", recovery_action="provide both artifact_path and artifact_hash")
     if not has_path:
         return
-    path = worker_result.pop("artifact_path")
-    digest = worker_result.pop("artifact_hash")
+    path = worker_result["artifact_path"]
+    digest = worker_result["artifact_hash"]
     if not isinstance(path, str) or not path.strip():
         raise Blocked(stage=STAGE, reason_code="malformed_checkpoint", detail="artifact_path must be a nonblank string", recovery_action="provide a nonblank artifact path")
     if not isinstance(digest, str) or not _SHA256.fullmatch(digest):
@@ -116,10 +116,14 @@ def gate_result(result):
         raise Blocked(stage=STAGE, reason_code="malformed_checkpoint", detail="result must be a mapping", recovery_action="provide a worker result mapping")
     worker_result = dict(result)
     if "execution_evidence" in worker_result:
-        _validate_execution_evidence(worker_result.pop("execution_evidence"))
-    _split_artifact_metadata(worker_result)
+        _validate_execution_evidence(worker_result["execution_evidence"])
+    _validate_artifact_metadata(worker_result)
+    cleaned_result = {
+        k: v for k, v in worker_result.items()
+        if k != "execution_evidence" and k not in _ARTIFACT_METADATA_KEYS
+    }
     try:
-        validate_worker_result(worker_result)
+        validate_worker_result(cleaned_result)
     except Blocked as exc:
         raise Blocked(stage=STAGE, reason_code=exc.reason_code, detail=exc.detail,
                       recovery_action=exc.recovery_action) from exc
@@ -133,7 +137,7 @@ def gate_result(result):
             recovery_action="set result['task_id'] to a non-empty string",
         )
 
-    outcome = worker_result.get("outcome")
+    outcome = result.get("outcome")
     if outcome not in GATE_OUTCOMES:
         raise Blocked(
             stage=STAGE,
@@ -142,7 +146,7 @@ def gate_result(result):
             recovery_action=f"set result['outcome'] to one of {GATE_OUTCOMES}",
         )
 
-    attempt = worker_result["attempt"]
+    attempt = result["attempt"]
     if attempt < 1:
         raise Blocked(stage=STAGE, reason_code="malformed_checkpoint", detail=f"result['attempt'] must be a positive integer, got {attempt!r}", recovery_action="set result['attempt'] to an integer greater than zero")
 

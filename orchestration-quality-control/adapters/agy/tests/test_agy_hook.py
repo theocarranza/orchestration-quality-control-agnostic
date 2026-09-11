@@ -192,6 +192,49 @@ class AgyHookTest(unittest.TestCase):
             AUTHORIZATION.create(self.checkpoint, ["UNKNOWN_ID"])
         self.assertIn("unknown approved finding id", str(context.exception))
 
+    def test_write_file_alias_denies_protected_target(self):
+        payload = self._tool_call("write_file", {
+            "path": str(self.root / "rules.md"),
+            "content": "overwrite content",
+        })
+        result = self._run(payload)
+        decision = self._decision(result)
+        self.assertEqual(decision["decision"], "deny")
+        self.assertIn("Direct write to protected target", decision["reason"])
+
+    def test_edit_file_alias_allows_authorized_change(self):
+        AUTHORIZATION.create(self.checkpoint, ["F-1"])
+        payload = self._tool_call("edit_file", {
+            "target_file": str(self.root / "rules.md"),
+            "old_string": "old text",
+            "new_string": "new text",
+        })
+        result = self._run(payload)
+        decision = self._decision(result)
+        self.assertEqual(decision["decision"], "allow")
+        self.assertTrue(decision["continue"])
+
+    def test_multiline_shell_command_denies(self):
+        script = ADAPTER / "hooks" / "agy_authorization.py"
+        payload = self._tool_call("run_command", {
+            "CommandLine": f"python3 {script} --checkpoint {self.checkpoint}\nrm -rf rules.md",
+            "Cwd": str(self.root),
+        })
+        result = self._run(payload)
+        decision = self._decision(result)
+        self.assertEqual(decision["decision"], "deny")
+        self.assertIn("Shell commands are blocked", decision["reason"])
+
+    def test_python_flag_invocation_allows_valid_script(self):
+        script = ADAPTER / "hooks" / "agy_authorization.py"
+        payload = self._tool_call("run_command", {
+            "CommandLine": f"python3 -u {script} --checkpoint {self.checkpoint}",
+            "Cwd": str(self.root),
+        })
+        result = self._run(payload)
+        decision = self._decision(result)
+        self.assertEqual(decision["decision"], "allow")
+
 
 if __name__ == "__main__":
     unittest.main()

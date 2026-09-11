@@ -52,26 +52,25 @@ def _require_envelope(value):
     return value
 
 
-def _require_unique_envelope_id(envelope, existing):
+def _require_unique_envelope_id(envelope, existing_ids):
     """Raise Blocked naming the duplicate if envelope.envelope_id already
-    appears among `existing` -- shared by the constructor and `append` so
+    appears among `existing_ids` -- shared by the constructor and `append` so
     both construction paths enforce the schema's uniqueness contract
-    identically, the same way `_require_envelope` is shared by both.
+    identically in O(1) time per append.
     """
-    for prior in existing:
-        if prior.envelope_id == envelope.envelope_id:
-            raise Blocked(
-                stage=STAGE,
-                reason_code="malformed_checkpoint",
-                detail=(
-                    f"duplicate envelope_id {envelope.envelope_id!r}: already "
-                    "present in this run's mailbox"
-                ),
-                recovery_action=(
-                    "use a new envelope_id that has not already appeared in "
-                    "this run's mailbox"
-                ),
-            )
+    if envelope.envelope_id in existing_ids:
+        raise Blocked(
+            stage=STAGE,
+            reason_code="malformed_checkpoint",
+            detail=(
+                f"duplicate envelope_id {envelope.envelope_id!r}: already "
+                "present in this run's mailbox"
+            ),
+            recovery_action=(
+                "use a new envelope_id that has not already appeared in "
+                "this run's mailbox"
+            ),
+        )
     return envelope
 
 
@@ -97,11 +96,14 @@ class Mailbox:
 
     def __init__(self, envelopes=()):
         events = []
+        seen_ids = set()
         for envelope in envelopes:
             envelope = _require_envelope(envelope)
-            _require_unique_envelope_id(envelope, events)
+            _require_unique_envelope_id(envelope, seen_ids)
+            seen_ids.add(envelope.envelope_id)
             events.append(envelope)
         self._events = events
+        self._seen_ids = seen_ids
 
     def append(self, envelope):
         """Append one envelope after the current end of the log.
@@ -113,7 +115,8 @@ class Mailbox:
         (see the module docstring).
         """
         envelope = _require_envelope(envelope)
-        _require_unique_envelope_id(envelope, self._events)
+        _require_unique_envelope_id(envelope, self._seen_ids)
+        self._seen_ids.add(envelope.envelope_id)
         self._events.append(envelope)
 
     def read_all(self):

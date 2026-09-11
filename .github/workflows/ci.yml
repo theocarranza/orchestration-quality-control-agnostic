@@ -15,13 +15,14 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: Run unit tests
         run: |
           python3 -m unittest discover -s orchestration-quality-control/scripts/tests -t orchestration-quality-control/scripts -p 'test_*.py'
           python3 -m unittest discover -s orchestration-quality-control/adapters/codex/tests -p 'test_*.py'
           python3 -m unittest discover -s orchestration-quality-control/adapters/claude/tests -p 'test_*.py'
+          python3 -m unittest discover -s orchestration-quality-control/adapters/claude/hooks/tests -p 'test_*.py'
           python3 -m unittest discover -s orchestration-quality-control/adapters/cursor/tests -p 'test_*.py'
           python3 -m unittest discover -s orchestration-quality-control/adapters/agy/tests -p 'test_*.py'
           python3 -m unittest discover -s eval-harness/tests -p 'test_*.py'

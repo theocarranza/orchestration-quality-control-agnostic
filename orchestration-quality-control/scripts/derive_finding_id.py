@@ -99,12 +99,13 @@ def derive(workspace, rel_path, rule, kind, anchor, existing_ids):
     hash10 = compute_hash10(rel_path, rule, kind, anchor)
     base_id = f"{rule_code}-{kind_short}-{hash10}"
 
-    occurrence = 1
-    for existing in existing_ids:
-        if existing == base_id or existing.startswith(base_id + "-"):
-            occurrence += 1
-    finding_id = base_id if occurrence == 1 else f"{base_id}-{occurrence}"
-    return {"id": finding_id}
+    existing_set = set(existing_ids)
+    if base_id not in existing_set:
+        return {"id": base_id}
+    occurrence = 2
+    while f"{base_id}-{occurrence}" in existing_set:
+        occurrence += 1
+    return {"id": f"{base_id}-{occurrence}"}
 
 
 def verify(workspace, checkpoint_path):

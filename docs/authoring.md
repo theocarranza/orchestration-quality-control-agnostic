@@ -91,5 +91,5 @@ session before spawning the author orchestrator. See
 
 ## Authority
 
-- [ADR 0012](../AI_Codex/Architecture/ADR/0012-greenfield-orchestration-authoring.md)
-- `references/defaults/gate-defaults.json`
+- Packaged defaults: `references/defaults/gate-defaults.json`
+- Delivery schema: `schemas/client-delivery.schema.json`

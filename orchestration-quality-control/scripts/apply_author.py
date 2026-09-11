@@ -116,23 +116,29 @@ def apply(workspace: Path, checkpoint_path: Path, now: str = "") -> dict:
             ),
             recovery_action="obtain approval for the current package",
         )
+    # Phase 1: Pre-validate all target paths and confinement before writing anything
+    planned_writes: list[tuple[Path, str, str]] = []
+    for relative, content in preview_files.items():
+        rel = normalize_path(relative, stage=STAGE)
+        destination = (destination_root / rel).resolve()
+        if not _within(destination, workspace):
+            raise Blocked(
+                stage=STAGE,
+                reason_code="unsafe_path",
+                detail=f"preview path escapes workspace: {rel}",
+                recovery_action="rebuild the preview with workspace-relative paths",
+            )
+        planned_writes.append((destination, content, rel))
+
+    # Phase 2: Atomic writes with guaranteed rollback on any error
     created: list[Path] = []
     applied = []
     try:
-        for relative, content in preview_files.items():
-            rel = normalize_path(relative, stage=STAGE)
-            destination = (destination_root / rel).resolve()
-            if not _within(destination, workspace):
-                raise Blocked(
-                    stage=STAGE,
-                    reason_code="unsafe_path",
-                    detail=f"preview path escapes workspace: {rel}",
-                    recovery_action="rebuild the preview with workspace-relative paths",
-                )
+        for destination, content, rel in planned_writes:
             _atomic_bytes(destination, content.encode("utf-8"))
             created.append(destination)
             applied.append({"path": f"{output_root}/{rel}", "action": "create"})
-    except OSError as error:
+    except Exception as error:
         for destination in reversed(created):
             destination.unlink(missing_ok=True)
             parent = destination.parent
