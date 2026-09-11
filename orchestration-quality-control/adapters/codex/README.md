@@ -35,10 +35,10 @@ discovered separately under `~/.codex/agents/` or a project's
 install the plugin, then run the adapter bootstrap. The nested topology
 requires `agents.max_depth = 2`.
 
-
 For guided upgrade, use the packaged `orchestration-upgrade` skill and
 spawn `oqc_codex_upgrade_orchestrator`. For greenfield authoring, use
 `orchestration-author` with the same orchestrator.
+
 ## Codex installation (required nested adapter)
 
 The Codex adapter has one supported installation path. It installs the plugin,

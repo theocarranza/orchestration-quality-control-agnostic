@@ -6,9 +6,9 @@ description: Audit, interview gaps, draft process documents, and checkpoint afte
 
 ## Inputs
 
-- Complete interview answers: `outcome`, `output_root`, and any fields
-  `plan_interview.py` listed under `ask`. Skipped fields arrive as the
-  brief defaults. `intent` must be `author` when a fork was offered.
+- Complete interview answers: `outcome` (required from the root session) plus
+  packaged defaults from `gate_defaults.py author-fields`, optionally overridden
+  after defaults confirmation. `intent` must be `author` when invoking author.
 
 ## Control
 

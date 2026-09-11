@@ -1,0 +1,16 @@
+{
+  "globs": [
+    "**/*.md",
+    ".claude/**/*.md",
+    ".cursor/**/*.md",
+    ".github/**/*.md",
+    ".superpowers/**/*.md",
+  ],
+  "ignores": [
+    "**/node_modules/**",
+    "dist/**",
+    "orchestration-quality-control-workspace/**",
+    ".orchestration-qc/**",
+    "AI_Codex/.obsidian/**",
+  ],
+}

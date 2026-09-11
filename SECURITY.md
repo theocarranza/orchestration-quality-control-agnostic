@@ -24,4 +24,3 @@ Include:
 
 We will acknowledge the report privately, assess the scope, and coordinate a
 fix before public disclosure when that is appropriate.
-

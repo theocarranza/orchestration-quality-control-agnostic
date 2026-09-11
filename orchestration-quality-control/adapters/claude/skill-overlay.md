@@ -1,4 +1,4 @@
-## Claude Code adapter execution
+# Claude Code adapter execution
 
 This installed Claude Code edition uses the host-specific nested topology
 below. This nested topology is the only shipped execution shape:

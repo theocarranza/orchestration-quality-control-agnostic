@@ -13,7 +13,7 @@ from pathlib import Path
 
 PLUGIN_NAME = "orchestration-quality-control"
 MARKETPLACE_NAME = "orchestration-qc-local"
-VERSION = "3.1.0"
+VERSION = "4.0.0-dev"
 FIXED_ZIP_TIME = (2026, 7, 17, 0, 0, 0)
 
 
@@ -79,6 +79,11 @@ def build(output: Path) -> Path:
     shutil.copytree(
         _package_root() / "entrypoints" / "orchestration-author",
         plugin_root / "skills" / "orchestration-author",
+        ignore=_ignore,
+    )
+    shutil.copytree(
+        _package_root() / "entrypoints" / "orchestration-engine",
+        plugin_root / "skills" / "orchestration-engine",
         ignore=_ignore,
     )
 

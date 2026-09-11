@@ -9,6 +9,12 @@ described below were removed. Amended by
 Proposal Author also drafts greenfield process documents (`author_prepare`).
 Accepted, 2026-07-17.
 
+Superseded by [ADR 0013](0013-three-agent-parameterized-code-gated.md),
+2026-09-02: the upgrade trio becomes `operation: upgrade` on the one
+three-template topology. The Proposal Author is the Remediator in `draft`
+mode and the upgrade applier is the Remediator in `apply-preview` mode; the
+upgrade orchestrator is the Orchestrator with that operation.
+
 ```mermaid
 flowchart LR
   PREP["upgrade_prepare"] --> AUTH["Proposal Author<br/>draft only"]

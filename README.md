@@ -6,11 +6,11 @@
 [![Offline tests](https://img.shields.io/badge/offline%20tests-174-brightgreen)](orchestration-quality-control/scripts/tests/)
 [![Agent Skills](https://img.shields.io/badge/spec-Agent%20Skills-8A2BE2)](https://github.com/agentskills/agentskills)
 
-**Quality control for the documents that run your agents** — workflow files, orchestrator documents, and rules files — not the application code agents write. The package classifies targets, checks them against packaged policy, returns structured findings with literal before/after diffs, and applies nothing until a human explicitly approves.
+**Quality control for the documents that run your agents** — workflow files, orchestrator documents, and rules files — not the application code agents write. The package classifies targets, checks them against packaged policy, returns structured findings with literal before/after diffs, and supports the interview where the root session collects the apply decision. The root session interviews once — collecting outcome, targets, profile, language, and the apply decision — then hands the run to the engine; nested agents never ask the user anything. The only mid-run human contacts are a `blocked` envelope and the circuit breaker's `awaiting_authorization`, both engine states the root session surfaces.
 
 | Start here | Host install |
 | --- | --- |
-| [`orchestration-quality-control/SKILL.md`](orchestration-quality-control/SKILL.md) | [Claude](orchestration-quality-control/adapters/claude/README.md) · [Cursor](orchestration-quality-control/adapters/cursor/README.md) · [Codex](orchestration-quality-control/adapters/codex/README.md) |
+| [`orchestration-quality-control/SKILL.md`](orchestration-quality-control/SKILL.md) | [Claude](orchestration-quality-control/adapters/claude/README.md) · [Cursor](orchestration-quality-control/adapters/cursor/README.md) · [Codex](orchestration-quality-control/adapters/codex/README.md) · [AGY](orchestration-quality-control/adapters/agy/README.md) |
 
 ---
 
@@ -60,6 +60,7 @@ flowchart TD
     ADAPTERS --> CLAUDE["Claude — 3-role isolation + hook"]
     ADAPTERS --> CURSOR["Cursor — nested subagents + hook"]
     ADAPTERS --> CODEX["Codex — nested custom agents + hook"]
+    ADAPTERS --> AGY["AGY — nested subagents + hook"]
 ```
 
 The core separates **policy** (what good orchestration looks like) from **enforcement** (how a host prevents bypass). Mechanical decisions run in dependency-free Python under `orchestration-quality-control/scripts/`; a language model is used only to judge whether a passage violates a rule and to write the human-facing report. Every proposed fix must quote verbatim text from the target file — if the anchor is missing, the finding is rejected before review.
@@ -112,7 +113,7 @@ Every host adapter (Claude, Cursor, Codex) mechanizes the same **isolated three-
 | Eval set | Profile | Cases | Purpose |
 | --- | --- | ---: | --- |
 | [`evals/core/evals.json`](orchestration-quality-control/evals/core/evals.json) | `core` | 4 | Generic orchestration only |
-| [`evals/author/evals.json`](orchestration-quality-control/evals/author/evals.json) | `core` | 2 | Greenfield authoring interview and apply gates |
+| [`evals/author/evals.json`](orchestration-quality-control/evals/author/evals.json) | `core` | 2 | Greenfield authoring interview and apply decision |
 
 The definition of done ([ADR 0005](AI_Codex/Architecture/ADR/0005-definition-of-done.md), amended by [ADR 0011](AI_Codex/Architecture/ADR/0011-agnostic-example-pipeline-profile.md)) requires both sets to reach **100% with-skill pass rate**. The repo includes [`eval-harness/`](eval-harness/) tooling (converter, run-integrity checker, runbook) to repeat that grading; see [`eval-harness/RUNBOOK.md`](eval-harness/RUNBOOK.md) for the 3 with-skill + 1 without-skill run protocol per eval.
 

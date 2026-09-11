@@ -7,12 +7,11 @@ description: >
   file, a generator source, or — when a profile is selected — a
   profile-defined artifact), classifies them, verifies them against the
   packaged orchestration quality-control rule sets, and returns structured
-  findings plus a plain-language report. Requires an explicit human
-  approval decision (all, none, or a named subset) before applying any
-  finding, and confirms every approved finding ends applied or explicitly
-  skipped. It also provides a guided upgrade that discovers an orchestration,
+  findings plus a plain-language report. Packaged defaults apply all findings
+  after validate unless the invocation overrides the decision. Confirms every
+  approved finding ends applied or explicitly skipped. It also provides a guided upgrade that discovers an orchestration,
   checks it against a selected OQC reference architecture, drafts an atomic
-  replacement plus diagrams, and applies it only after approval. It can also
+  replacement plus diagrams, with the decision coming from the interview. It can also
   author a new process-document tree after a workspace audit and a short
   interview. Use whenever
   the user asks to check, validate, review, redesign, upgrade, version, or
@@ -37,28 +36,43 @@ it judges the documents that define and coordinate an agentic process.
 
 - **`validate`** — classify the given targets, verify them against the
   applicable rule sets, and return either "all passed" or a plain-language
-  report plus a durable checkpoint awaiting a human decision.
-- **`execute`** — read a pending checkpoint, resolve the caller-supplied
-  decision (`all`, `none`, or a named subset of finding ids), apply exactly
-  the approved findings, and close the run.
-- **`upgrade_prepare`** — discover and confirm an orchestration mechanism,
-  run ordinary QC plus a selected reference-template comparison, and return a
-  complete proposal, documentation preview, and durable checkpoint.
-- **`upgrade_apply`** — resolve an atomic `approve` or `decline` decision,
-  apply the exact checkpointed proposal, and run the same QC/template checks
-  against the result.
+  report plus a durable checkpoint. Packaged default continues with apply-all.
+- **`execute`** — read a pending checkpoint, resolve the decision (packaged
+  default `all` when not supplied), apply exactly the approved findings, and
+  close the run.
+- **`upgrade_prepare`** — discover an orchestration mechanism, run ordinary QC
+  plus a selected reference-template comparison, and return a complete
+  proposal, documentation preview, and durable checkpoint.
+- **`upgrade_apply`** — packaged default `approve` applies the checkpointed
+  proposal and runs verification unless `blocked`.
 
-- **`author_prepare`** — audit the workspace, interview only unresolved
-  orchestration choices, draft process documents, run internal QC, and
-  return a pending checkpoint.
-- **`author_apply`** — atomic `approve` or `decline` into an empty
-  `output_root`.
+- **`author_prepare`** — audit the workspace, ask only for **outcome** in the
+  root session, confirm packaged defaults, draft process documents, run internal
+  QC, and return a pending checkpoint.
+- **`author_apply`** — packaged default `approve` into an empty `output_root`
+  unless `blocked`.
+
+`author_prepare` and `author_apply` deliver process documents only. They are
+not a client-engine compiler and must never be selected when the requested
+deliverable is a runnable, self-contained engine. Use the
+`orchestration-engine` entrypoint for that outcome. That workflow begins with
+the client repository owner's interview, records the resulting client decisions
+inside the client engine root, and generates an `IMPLEMENTATION_PLAN.md` there
+before compiling the engine. Client-specific requirements never belong in this
+package.
+
+The interview is the only decision point. The root session collects the
+outcome (author only), targets, profile, `language` and the apply decision,
+then hands the run to the engine; nested agents never ask the user
+anything. The only mid-run human contacts are a `blocked` envelope and the
+circuit breaker's `awaiting_authorization`, both engine states the root
+session surfaces.
 
 ```mermaid
 flowchart LR
   V["validate"] --> E["execute"]
   UP["upgrade_prepare"] --> UA["upgrade_apply"]
-  AP["author_prepare<br/>specified 3.1.0"] --> AA["author_apply"]
+  AP["author_prepare"] --> AA["author_apply"]
   V -.->|"pending_approval"| E
   UP -.->|"pending_approval"| UA
   AP -.->|"pending_approval"| AA
@@ -98,19 +112,21 @@ checkpoint_path: <path>               # required for upgrade_apply
 decision: approve | decline            # required for upgrade_apply
 
 operation: author_prepare | author_apply
-output_root: relative/path            # required for author_prepare; empty or missing
-# remaining author_prepare fields come from workspace_brief + focused interview
+outcome: <string>                       # required; no packaged default — root session only
+output_root: relative/path              # default: authored-orchestration
+# remaining author_prepare fields: see references/defaults/gate-defaults.json
 checkpoint_path: <path>               # required for author_apply
-decision: approve | decline            # required for author_apply
+decision: approve | decline            # default: approve (auto-continue)
 ```
 
 See `references/schemas/input.schema.json`,
-`references/schemas/upgrade-input.schema.json`, and
-`references/schemas/author-input.schema.json`. `validate` requires at least
-one readable, workspace-relative target. `execute` requires a valid
-`pending_approval` checkpoint and an explicit decision. A host collects
-these values through a question interface, command arguments, or another
-documented adapter mechanism — never by guessing.
+`references/schemas/upgrade-input.schema.json`,
+`references/schemas/author-input.schema.json`, and
+`references/workflows/workflows-root-session-interview.md`. `validate` requires at least
+one readable, workspace-relative target (inferred when not named). `execute` uses
+packaged decision `all` when not supplied. A host collects **outcome** through
+the root-session question UI; other values come from packaged defaults, inference,
+command arguments, or `.orchestration-qc/defaults.json` — never by guessing outcome.
 
 ## The deterministic gates
 

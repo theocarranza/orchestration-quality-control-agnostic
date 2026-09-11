@@ -2,20 +2,19 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://orchestration-quality-control/schemas/input.schema.json",
   "title": "Input",
-  "description": "What a host collects before invoking either operation, through a question interface, command arguments, or another documented adapter mechanism.",
+  "description": "What a host collects before invoking one of three operations (qc, upgrade, or author), through a question interface, command arguments, or another documented adapter mechanism.",
   "type": "object",
-  "required": ["operation", "targets", "profile", "language"],
   "additionalProperties": false,
   "properties": {
     "operation": {
       "type": "string",
-      "enum": ["validate", "execute"]
+      "enum": ["qc", "upgrade", "author"]
     },
     "targets": {
       "type": "array",
       "minItems": 1,
       "items": { "type": "string" },
-      "description": "validate requires at least one readable, workspace-relative target."
+      "description": "Workspace-relative targets to check; not needed for author, which starts from an outcome rather than existing files."
     },
     "profile": {
       "type": "string",
@@ -29,19 +28,44 @@
     },
     "checkpoint_path": {
       "type": ["string", "null"],
-      "description": "Required for execute; must point at a pending_approval checkpoint under the documented state directory."
+      "description": "The resumption point a run reads when the prepare half already wrote a checkpoint."
     },
     "decision": {
-      "description": "Required for execute.",
+      "description": "Interview-supplied decision on what to do with findings or outcomes. For qc, one of the constants 'all', 'none', or an array of finding ids; for upgrade and author, either 'approve' or 'decline'. Defaults from gate-defaults.json.",
       "oneOf": [
         { "const": "all" },
         { "const": "none" },
+        { "const": "approve" },
+        { "const": "decline" },
         {
           "type": "array",
           "minItems": 1,
           "items": { "type": "string" }
         }
       ]
+    },
+    "stop_after_prepare": {
+      "type": "boolean",
+      "default": false,
+      "description": "When true, the run stops after the prepare half, leaving the checkpoint for a later resume. When false (the default), the run continues into apply within the one orchestrator spawn."
     }
-  }
+  },
+  "allOf": [
+    {
+      "required": ["operation", "profile", "language"]
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": ["qc", "upgrade"]
+          }
+        },
+        "required": ["operation"]
+      },
+      "then": {
+        "required": ["targets"]
+      }
+    }
+  ]
 }

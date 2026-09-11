@@ -9,8 +9,11 @@ safely.
 Given one or more target files, it classifies each one, checks it against a
 packaged set of rules, and produces two things: a list of specific findings
 (what is wrong, where, and a proposed fix) and a short plain-language report
-a non-technical reader can follow. Nothing is changed until a person
-explicitly approves which findings to apply.
+a non-technical reader can follow. The root session interviews once — collecting
+outcome, targets, profile, language, and the apply decision — then hands the run
+to the engine; nested agents never ask the user anything. The only mid-run human
+contacts are a `blocked` envelope and the circuit breaker's `awaiting_authorization`,
+both engine states the root session surfaces.
 
 ## Why this exists
 
@@ -46,13 +49,21 @@ Two operations, always in this order:
    draft a complete replacement plus `ARCHITECTURE.md`, checkpoint the literal
    preview, and apply only an atomic approve/decline decision. Host entry
    points: Claude `/oqc-upgrade`, Cursor `/oqc-upgrade`, Codex
-   `orchestration-upgrade`.
+   `orchestration-upgrade`, AGY `/orchestration-upgrade`.
 
 **`author_prepare` / `author_apply`** — audit the workspace, interview only
 what the audit cannot answer, draft process documents, QC them internally,
 apply into an empty directory after approval. See
 [`docs/authoring.md`](../docs/authoring.md). Host entry points: Claude
-`/oqc-author`, Cursor `/oqc-author`, Codex `orchestration-author`.
+`/oqc-author`, Cursor `/oqc-author`, Codex `orchestration-author`, AGY
+`/orchestration-author`.
+
+**`orchestration-engine`** — deliver a runnable client engine. The workflow
+starts with an interview of the client repository owner. Its recorded decisions
+are kept in the client's `orchestration/client-spec.json`, and the compiler
+creates an interview-backed `orchestration/IMPLEMENTATION_PLAN.md` before
+emitting and checking the engine. The package carries no client-specific
+profiles or requirements.
 
 ```mermaid
 sequenceDiagram
@@ -121,6 +132,9 @@ that:
 - `adapters/cursor/` — a native Cursor plugin build with the same three-role
   topology, bundled subagents, an approval-enforcement hook, and a local
   installer for `~/.cursor/plugins/local/`.
+- `adapters/agy/` — a native Antigravity (AGY) plugin build with the same three-role
+  topology, bundled subagents, lifecycle hook guard (`PreToolUse`), rules, and
+  a local installer for `~/.gemini/antigravity-cli/plugins/` or `.agents/plugins/`.
 
 ## Where runtime data lives
 

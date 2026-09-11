@@ -1,4 +1,4 @@
-## Codex adapter execution
+# Codex adapter execution
 
 This installed Codex edition uses the host-specific nested topology below.
 This nested topology is the only shipped execution shape:

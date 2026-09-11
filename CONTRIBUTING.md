@@ -25,4 +25,3 @@ change has one clear purpose.
 - Prefer the smallest possible diff.
 - Do not rename or reshuffle files unless the change needs it.
 - Keep machine-specific local state out of commits.
-

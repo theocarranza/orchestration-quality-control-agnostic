@@ -8,6 +8,11 @@ Amends [ADR 0008](0008-guided-orchestration-upgrade.md): the Proposal
 Author role also drafts greenfield process documents. Does not change
 [ADR 0010](0010-isolated-three-agent-only.md).
 
+Superseded by [ADR 0013](0013-three-agent-parameterized-code-gated.md),
+2026-09-02: greenfield authoring becomes `operation: author` on the one
+three-template topology, and its output is the caller's own three agent
+templates rather than process documents alone.
+
 ```mermaid
 flowchart TD
   AUDIT["Workspace audit"] --> BRIEF["workspace_brief"]

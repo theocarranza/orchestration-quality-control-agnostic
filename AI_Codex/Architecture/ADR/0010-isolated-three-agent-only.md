@@ -5,6 +5,12 @@
 Accepted, 2026-07-17. Supersedes [ADR 0003](0003-single-agent-core-default.md).
 Amends [ADR 0008](0008-guided-orchestration-upgrade.md).
 
+Amended by [ADR 0013](0013-three-agent-parameterized-code-gated.md),
+2026-09-02: exactly three agent templates exist, one Orchestrator among
+them; every hand-off is an envelope conforming to
+`schemas/envelope.schema.json`; and isolation is proven per run by
+`oqc.py mail verify` rather than asserted.
+
 ```mermaid
 flowchart TD
   WAS["Two advertised shapes"] --> NOW["One shape only"]

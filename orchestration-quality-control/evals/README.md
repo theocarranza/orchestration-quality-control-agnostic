@@ -1,7 +1,8 @@
 # Evaluations
 
 Two eval sets, in the same shape (`skill_name`, `profile`, an `evals` array
-of `{id, prompt, expected_output, files, assertions}`):
+of `{id, prompt, expected_output, files, assertions}`, with `injected_failure`
+on core eval 1):
 
 - `core/evals.json` — generic orchestration checks only, against fixtures
   in `core/fixtures/`. This is the fixture set
@@ -29,3 +30,10 @@ package — see `AI_Codex/Architecture/ADR/0005-definition-of-done.md` for what 
 today (the deterministic scripts, a full simulated validate/execute cycle,
 and fixture classification) versus what is still open (the eval prompts
 actually graded against a live run).
+
+## Mailbox assertions
+
+The `m` assertions in every eval are graded from the run's mailbox (via `oqc.py mail verify`)
+rather than from the final report. They are currently red until the orchestration engine
+ships isolated workers and mailbox persistence. A run whose mailbox does not verify fails
+the eval regardless of the quality of its report or findings.

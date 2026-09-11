@@ -19,4 +19,3 @@ assignees: ''
 ## Relevant files or commands
 
 ## Logs, screenshots, or links
-

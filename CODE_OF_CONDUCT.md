@@ -26,4 +26,3 @@ behavior makes the repository harder to work in.
 
 If you need to report a problem, use a private maintainer channel or a private
 GitHub security/advisory path rather than a public issue.
-

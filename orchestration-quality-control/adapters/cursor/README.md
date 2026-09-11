@@ -36,9 +36,9 @@ the validator and remediator. If the installed Cursor runtime cannot perform
 that nested handoff, the adapter must return `blocked`; it must not silently
 run the checks in a single agent.
 
-
 For guided upgrade, invoke `/oqc-upgrade`. For greenfield authoring, invoke
 `/oqc-author`. Both delegate to `oqc_cursor_upgrade_orchestrator`.
+
 ## Local installation
 
 From the repository root, run the single front-door installer:

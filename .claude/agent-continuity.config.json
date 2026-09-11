@@ -1,0 +1,20 @@
+{
+  "vault": {
+    "folder": "AI_Codex"
+  },
+  "markdownAllowlist": {
+    "_comment": "Patterns REPLACE the hook defaults rather than extending them, so the default set is repeated here verbatim before the additions. Bash case-globs: * matches / too, so a trailing /* is recursive. The .claude and .cursor entries exist because the root-architect-execution skill keeps its canonical subagent role definitions and contracts under .claude/skills/root-architect-execution/references/, and the agent wrappers under .claude/agents/ point at them. Without these, every subagent is blocked from reading the role it was spawned to perform.",
+    "patterns": [
+      "CLAUDE.md",
+      "GEMINI.md",
+      ".agent/*",
+      "docs/*",
+      "projects/*/CLAUDE.md",
+      "projects/*/GEMINI.md",
+      "projects/*/.agent/*",
+      "projects/*/e2e_test/*",
+      ".claude/*",
+      ".cursor/*"
+    ]
+  }
+}

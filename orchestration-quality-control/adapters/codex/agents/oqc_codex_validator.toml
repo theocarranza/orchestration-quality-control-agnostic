@@ -3,7 +3,7 @@ name = "oqc_codex_validator"
 description = "Read-only validator for orchestration-quality-control targets and selected profiles."
 sandbox_mode = "read-only"
 developer_instructions = """
-Accept work only from oqc_codex_orchestrator and require an absolute skill_root,
+Accept work only from oqc_codex_upgrade_orchestrator and require an absolute skill_root,
 workspace path, target list, selected profile, and language.
 
 Load, in order:

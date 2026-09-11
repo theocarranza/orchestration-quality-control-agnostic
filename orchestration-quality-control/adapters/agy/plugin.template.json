@@ -1,0 +1,6 @@
+{
+  "name": "orchestration-quality-control",
+  "version": "4.0.0-dev",
+  "description": "Antigravity (AGY) adapter for orchestration quality control, refactoring, and greenfield process authoring.",
+  "author": "Orchestration Quality Control maintainers"
+}

@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "task_id",
+    "attempt",
+    "outcome"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "attempt": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "outcome": {
+      "enum": [
+        "passed",
+        "failed"
+      ]
+    },
+    "critique": {
+      "type": "string"
+    },
+    "artifact": {
+      "type": "string"
+    },
+    "question": {
+      "type": "object",
+      "required": [
+        "question_id",
+        "prompt"
+      ],
+      "properties": {
+        "question_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "prompt": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "inspected_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "sha256 of the canonical proposal file map this result inspected. Binds the verdict to exact content; author_state refuses a checkpoint whose preview digest differs."
+    },
+    "findings": {
+      "type": "array",
+      "description": "Structured findings this worker returned. An empty array means the worker checked and found nothing; absence of the field means the worker does not check.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "severity",
+          "summary"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "severity": {
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "location": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "template_gaps": {
+      "type": "array",
+      "description": "Structured template gaps this worker returned, kept distinct from findings so a gap is never counted as a rule violation or silently dropped.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "invariant"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "invariant": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "description": "One worker's returned result. `findings` and `inspected_digest` are the authoritative record of a checking worker's verdict: author_state reads findings from the run's hash-chained mailbox through validation_evidence.py, never from a caller-supplied file, so a coordinator cannot substitute an empty list for a real failing result. Both are optional because only checking workers produce them."
+}

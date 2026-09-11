@@ -1,6 +1,7 @@
 import hashlib
 import importlib.util
 import json
+import re
 import sys
 import tempfile
 import unittest
@@ -52,6 +53,23 @@ class BuildPluginTest(unittest.TestCase):
         self.assertTrue(
             (plugin / "skills" / "orchestration-author" / "SKILL.md").is_file()
         )
+        self.assertTrue(
+            (plugin / "skills" / "orchestration-engine" / "SKILL.md").is_file()
+        )
+
+    def test_engine_entrypoint_distinguishes_runnable_delivery_from_document_authoring(self):
+        BUILDER.build(self.output)
+        engine = (
+            self.output
+            / "plugins"
+            / BUILDER.PLUGIN_NAME
+            / "skills"
+            / "orchestration-engine"
+            / "SKILL.md"
+        ).read_text(encoding="utf-8")
+        self.assertIn("compile_delivery.py", engine)
+        self.assertIn("check_delivery.py", engine)
+        self.assertIn("orchestration-author", engine)
 
     def test_build_injects_overlay_without_mutating_canonical_skill(self):
         canonical = BUILDER._package_root() / "SKILL.md"
@@ -59,13 +77,52 @@ class BuildPluginTest(unittest.TestCase):
         BUILDER.build(self.output)
         generated = self.output / "plugins" / BUILDER.PLUGIN_NAME / "skills" / BUILDER.PLUGIN_NAME / "SKILL.md"
         text = generated.read_text(encoding="utf-8")
-        self.assertIn("## Codex adapter execution", text)
+        self.assertIn("\n# Codex adapter execution\n", text)
         self.assertIn("# Orchestration Quality Control", text)
         self.assertEqual(canonical.read_bytes(), before)
 
     def test_build_excludes_python_bytecode(self):
         BUILDER.build(self.output)
         self.assertFalse(any(path.name == "__pycache__" or path.suffix == ".pyc" for path in self.output.rglob("*")))
+
+    def test_author_entrypoint_routes_to_canonical_sibling_skill_root(self):
+        BUILDER.build(self.output)
+        skills = self.output / "plugins" / BUILDER.PLUGIN_NAME / "skills"
+        author = skills / "orchestration-author"
+        canonical = skills / BUILDER.PLUGIN_NAME
+        workflow = canonical / "references" / "workflows" / "workflows-root-session-interview.md"
+        self.assertTrue(workflow.is_file())
+        entrypoint = (author / "SKILL.md").read_text(encoding="utf-8")
+        for resource_dir in ("references", "rules", "schemas", "scripts"):
+            self.assertFalse((author / resource_dir).exists())
+        self.assertIn(
+            "../orchestration-quality-control/references/workflows/workflows-root-session-interview.md",
+            entrypoint,
+        )
+        self.assertNotIn("`references/workflows/workflows-root-session-interview.md`", entrypoint)
+        self.assertNotIn("`scripts/discover_workspace.py`", entrypoint)
+        self.assertNotIn("`scripts/plan_interview.py`", entrypoint)
+        resource_prefix = "../orchestration-quality-control/"
+        resource_classes = ("references/", "rules/", "schemas/", "scripts/")
+        for path in re.findall(r"`([^`\n]+)`", entrypoint):
+            if any(resource in path for resource in resource_classes):
+                self.assertTrue(path.startswith(resource_prefix), path)
+
+    def test_validator_accepts_the_installed_upgrade_orchestrator_caller(self):
+        BUILDER.build(self.output)
+        validator = (
+            self.output
+            / "agents"
+            / "oqc_codex_validator.toml"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "Accept work only from oqc_codex_upgrade_orchestrator",
+            validator,
+        )
+        self.assertNotIn(
+            "Accept work only from oqc_codex_orchestrator",
+            validator,
+        )
 
     def test_build_manifest_hashes_every_other_file(self):
         BUILDER.build(self.output)

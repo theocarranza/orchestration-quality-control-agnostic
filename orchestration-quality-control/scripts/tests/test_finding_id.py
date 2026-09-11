@@ -80,6 +80,20 @@ class FindingIdUnitTest(unittest.TestCase):
         self.assertNotEqual(first["id"], second["id"])
         self.assertTrue(second["id"].endswith("-2"))
 
+    def test_occurrence_suffix_handles_sparse_existing_ids_without_collision(self):
+        rel = self._write("workflow.md", "DUP\nDUP\n")
+        first = derive_finding_id.derive(
+            str(self.workspace), rel, "rules-workflow-quality-control.md#W6",
+            "core/workflow-authoring", "DUP", [],
+        )
+        base_id = first["id"]
+        # Existing contains base_id and base_id-2 and base_id-3
+        third = derive_finding_id.derive(
+            str(self.workspace), rel, "rules-workflow-quality-control.md#W6",
+            "core/workflow-authoring", "DUP", [base_id, f"{base_id}-2", f"{base_id}-4"],
+        )
+        self.assertEqual(third["id"], f"{base_id}-3")
+
     def test_verify_marks_resolved_finding_not_still_open(self):
         rel = self._write("workflow.md", "before text\n")
         finding_id = derive_finding_id.derive(

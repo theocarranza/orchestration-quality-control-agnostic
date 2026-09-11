@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "description": "Packaged defaults for gates removed from human interview. Only author outcome has no default.",
+  "keep_gates": ["author-outcome"],
+  "removed_gates": {
+    "qc-apply": { "decision": "all" },
+    "execute-resume": { "decision": "all" },
+    "upgrade-apply": { "decision": "approve" },
+    "author-apply": { "decision": "approve" },
+    "upgrade-manifest": { "manifest_confirm": true },
+    "author-fork": { "intent": "author" },
+    "validate-profile": { "profile": "core", "profile_hint_override": "example-pipeline when brief.profile_hints is exactly [\"example-pipeline\"]" },
+    "validate-language": { "language": "en", "hint_override": "single doc_language_hint when present" },
+    "validate-targets": { "source_order": ["invocation paths", ".orchestration-qc/defaults.json validate.targets", "brief.existing_orchestration"] },
+    "upgrade-inputs": {
+      "apply_mode": "side-by-side",
+      "template_id": "isolated-three-agent",
+      "output_root": "<mechanism-basename>-oqc-next",
+      "documentation_path": "<output_root>/ARCHITECTURE.md"
+    },
+    "author-output-root": { "output_root": "authored-orchestration" },
+    "author-shape": { "shape": "single-agent" },
+    "author-process-approval": { "approval": "required" },
+    "author-state": { "state": { "directory": ".orchestration-qc/state" } },
+    "author-stop": { "stop": "packaged stop string in gate_defaults.py" },
+    "author-named-inputs": { "named_inputs": [] },
+    "author-language": { "language": "en", "hint_override": "single doc_language_hint when present" },
+    "author-e2e": { "outcome_involves_test_tree": false }
+  },
+  "labels": {
+    "author": {
+      "output_root": "Output folder",
+      "profile": "Rule profile",
+      "language": "Document language",
+      "shape": "Single agent vs workers",
+      "approval": "Human approval in authored workflow",
+      "state": "Durable state location",
+      "stop": "Stop conditions",
+      "named_inputs": "Named inputs",
+      "outcome_involves_test_tree": "Outcome uses e2e/integration tree",
+      "intent": "Author vs upgrade"
+    },
+    "validate": {
+      "profile": "Rule profile",
+      "language": "Report language",
+      "decision": "Apply decision after validate",
+      "targets": "Targets to check"
+    },
+    "upgrade": {
+      "mechanism_path": "Mechanism path",
+      "profile": "Rule profile",
+      "language": "Report language",
+      "apply_mode": "Apply mode",
+      "output_root": "Side-by-side output folder",
+      "documentation_path": "Architecture doc path",
+      "manifest_confirm": "Continue with discovered manifest",
+      "decision": "Apply decision after prepare"
+    }
+  }
+}

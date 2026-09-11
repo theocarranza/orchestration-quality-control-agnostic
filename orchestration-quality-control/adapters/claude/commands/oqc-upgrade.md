@@ -1,76 +1,42 @@
 ---
 name: oqc-upgrade
 description: >
-  Guided orchestration upgrade. Collects a mechanism path, profile, language,
-  apply mode, and documentation path, confirms the discovery manifest,
-  delegates to the oqc-upgrade-orchestrator subagent (operation:
-  upgrade_prepare), presents the plain-language report and literal preview,
-  asks for an atomic approve/decline decision, then delegates upgrade_apply
-  in the same turn. Use whenever the user runs `/oqc-upgrade`, asks to
-  upgrade, redesign, version, normalize, or template an orchestration
-  mechanism. Do not use this command for ordinary finding-by-finding QC —
-  that is `oqc-validate`.
+  Guided orchestration upgrade. Infers mechanism path and packaged profile,
+  language, side-by-side paths, and auto-approve decision; delegates to the
+  oqc-upgrade-orchestrator subagent for upgrade_prepare then upgrade_apply in
+  one turn. Use whenever the user runs `/oqc-upgrade` or asks to upgrade,
+  redesign, version, normalize, or template an orchestration mechanism.
 license: MIT
 model: sonnet
 effort: high
 compatibility: >
-  Claude Code only. Delegates to the oqc-upgrade-orchestrator subagent
-  (.claude/agents/), which itself delegates to oqc-validator,
-  oqc-proposal-author, and oqc-upgrade-applier — all require the Agent tool
-  and per-subagent tool restriction. See adapters/claude/README.md for the
-  capability matrix.
+  Claude Code only. Delegates to the oqc-upgrade-orchestrator subagent. See
+  adapters/claude/README.md.
 ---
 
 # oqc-upgrade
 
-This skill is the main-session half of the guided-upgrade operations. It
-never reads target content or drafts proposals itself — that lives inside
-the `oqc-upgrade-orchestrator` subagent and its workers. This skill collects
-input, confirms discovery, delegates, presents results, and records the
-atomic approval decision.
+This skill is the main-session half of guided-upgrade operations. It never
+drafts proposals itself. It resolves packaged defaults, delegates prepare and
+apply without manifest or atomic approval questions.
+
+Follow @references/workflows/workflows-root-session-interview.md.
 
 ## Steps
 
-1. Collect inputs via UI (one question at a time):
-   - `mechanism_path`: workspace-relative file or folder for the existing
-     orchestration mechanism.
-   - `profile`: rule profile, default `core`.
-   - `language`: report language, default English.
-   - `apply_mode`: `side-by-side` or `in-place`.
-   - `output_root`: required when `apply_mode` is `side-by-side`.
-   - `documentation_path`: default `<output_root or mechanism>/ARCHITECTURE.md`.
-
-   `template_id` is fixed to `isolated-three-agent` — the only shipped
-   reference architecture — and is not asked as a question.
-
-2. Confirm discovery:
-   - Run `scripts/discover_structure.py` with the workspace and
-     `mechanism_path`.
-   - Present the candidate count, total bytes, and file list summary.
-   - Ask via UI whether to continue with this manifest. Stop on decline.
-
-3. Delegate prepare to the `oqc-upgrade-orchestrator` subagent (Agent tool,
-   `subagent_type: oqc-upgrade-orchestrator`):
-   - Objective: run `operation: upgrade_prepare` with the collected inputs
-     and the confirmed manifest from step 2.
-   - Output format: `{ report, preview, manifest, checkpoint_path }` or a
-     `blocked` payload.
-   - Boundaries: it must not ask the user anything.
-
-4. Handle the prepare return:
-   - Present the plain-language report and literal preview in chat.
-   - Ask via UI: approve the complete proposal / decline.
-   - Relay any `blocked` payload verbatim.
-
-5. Delegate apply in the same turn:
-   - Invoke the `oqc-upgrade-orchestrator` again with `operation:
-     upgrade_apply`, the `checkpoint_path`, and `decision` (`approve` or
-     `decline`).
-   - Present application outcomes and verification status.
+1. Run `scripts/discover_workspace.py` when `mechanism_path` is not explicit.
+2. Resolve inputs without UI questions via
+   `scripts/gate_defaults.py upgrade-fields` unless the invocation names
+   overrides. Packaged defaults include side-by-side apply, manifest confirm,
+   and `decision: approve`.
+3. Run `scripts/discover_structure.py` for visibility; do **not** ask manifest
+   confirmation — continue with the discovered manifest.
+4. Delegate prepare to `oqc-upgrade-orchestrator` (`operation: upgrade_prepare`).
+5. Present report and preview for visibility. Delegate apply with packaged
+   `decision: approve` in the same turn unless prepare returned `blocked`.
+6. Present application outcomes.
 
 ## Operating rules
 
 - Never call `Edit` or `Write` on a target or proposed destination yourself.
-- Never subset or expand the proposal; the decision is atomic.
-- If prepare returns without `checkpoint_path`, `preview`, or `report`, stop
-  and report the malformed return.
+- `template_id` remains `isolated-three-agent` and is not asked.

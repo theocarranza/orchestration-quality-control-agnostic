@@ -6,6 +6,7 @@ derived_from:
   - adapters/claude/agents/oqc-orchestrator.md
   - adapters/codex/agents/oqc_codex_orchestrator.toml
   - adapters/cursor/agents/oqc_cursor_orchestrator.md
+  - adapters/agy/agents/oqc_agy_orchestrator.md
   - AI_Codex/Architecture/ADR/0006-codex-nested-adapter.md
   - AI_Codex/Architecture/ADR/0007-cursor-native-adapter.md
 ---

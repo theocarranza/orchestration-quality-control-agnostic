@@ -4,6 +4,8 @@
 
 Accepted, 2026-07-16. Item 3 below is open — see Consequences.
 Amended by [ADR 0011](0011-agnostic-example-pipeline-profile.md), 2026-09-02.
+Amended by [ADR 0013](0013-three-agent-parameterized-code-gated.md),
+2026-09-02: item 3 gains a cost budget.
 
 ```mermaid
 flowchart TD
@@ -51,6 +53,18 @@ The extraction is done when all four of the following hold:
    a 100% with-skill pass rate. Live-model grading is optional for merging
    a release when offline tests pass (see ADR 0011).
 
+   Amended by ADR 0013 for 4.0.0: the core set must also reach a 100%
+   with-skill pass rate over three runs of each of its four evals, and the
+   run must stay inside the budget — every run's mailbox verifies with a
+   distinct `agent_id` per role, each worker reads exactly its envelope and
+   its compiled prompt before its targets with a run total of six or fewer,
+   every compiled prompt is at most 32 KB, no request reaches a fourth
+   attempt, median wall time is at most 240 s and at most twice the
+   without-skill median, and the only things written under
+   `.orchestration-qc/` are the checkpoint and `mail/<run_id>/`. The budget
+   table in [[2026-09-02-return-to-intention-4-0-0]] holds the numbers and
+   `eval-harness/` produces them.
+
 4. **The partial-apply conformance fixture proves finding-id stability.**
    `scripts/tests/fixtures/partial-apply/` plus
    `PartialApplyConformanceTest` in `scripts/tests/test_finding_id.py`
@@ -70,3 +84,36 @@ This is recorded as open, not silently skipped. Before this package is
 treated as fully validated against live models, someone with access to run
 the actual host skill needs to execute both eval sets and confirm the
 with-skill pass rate, then update this ADR's status accordingly.
+
+### Live-model run — 2026-09-02 (Cursor host)
+
+Both ADR workspaces were executed at 3 with-skill + 1 without-skill per
+eval, graded with `integrity.json` evidence. Artifacts:
+
+- `orchestration-quality-control-workspace/core/iteration-1/benchmark.json`
+- `orchestration-quality-control-workspace/example-pipeline/iteration-1/benchmark.json`
+
+**example-pipeline with-skill:** 100% on all four evals, all three runs
+(inline env, missing gates, graph, rules-with-rationale).
+
+**core with-skill:** not 100%. `eval-workflows-generic-clean` with-skill
+run 1 failed two assertions:
+
+1. Reports that no problems were found, with no fabricated findings —
+   invented a W13 “resize worker with no stated reason” finding on the
+   designed-clean fixture.
+2. Does not propose any edit, since there is nothing to fix — proposed
+   adding a reason clause. The fixture itself stayed unedited
+   (`integrity.json` `unedited: true`).
+
+Runs 2 and 3 of that eval passed. The other three core evals passed 5/5
+on every with-skill run.
+
+Per the runbook gate (both workspaces at mean 1.0 with-skill), item 3
+stays **open**. No assertion was reworded or regraded to force a match.
+
+Author evals (`evals/author/evals.json`) were run the same day as an extra
+set, not as item 3. Artifacts:
+`orchestration-quality-control-workspace/author/iteration-1/benchmark.json`.
+With-skill was 100% on both evals and all three runs. That result does not
+close item 3.

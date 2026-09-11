@@ -1,4 +1,4 @@
-## Cursor adapter execution
+# Cursor adapter execution
 
 This installed Cursor edition uses the host-specific nested topology below.
 This nested topology is the only shipped execution shape:
@@ -33,5 +33,12 @@ For `upgrade_prepare` or `upgrade_apply`, invoke exactly one
 `oqc_cursor_upgrade_orchestrator`. For `author_prepare` or `author_apply`,
 invoke the same orchestrator with the author workflows. It coordinates the
 existing Validator, `oqc_cursor_proposal_author`, and
-`oqc_cursor_upgrade_applier`. The root Cursor session owns every question
-and the atomic approval decision.
+`oqc_cursor_upgrade_applier`.
+
+## Root session UI
+
+Follow `references/workflows/workflows-root-session-interview.md`. The root
+Cursor session owns exactly one human question for authoring: **outcome**.
+Use `AskQuestion` here only — never inside a Task subagent. Present packaged
+defaults for every other former gate; the user accepts or updates them, then
+the run auto-continues (including apply) unless a script returns `blocked`.
